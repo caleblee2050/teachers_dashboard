@@ -159,8 +159,57 @@ export async function setupAuth(app: Express) {
     console.log('Starting Google OAuth flow...');
     console.log('Client ID:', process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...');
     console.log('Callback URL:', callbackURL);
+    console.log('Request headers:', req.headers);
     next();
   }, passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+  // Add a test route to verify callback URL is reachable
+  app.get('/api/test-callback', (req, res) => {
+    console.log('Test callback route reached');
+    res.json({ 
+      message: 'Callback route is working', 
+      query: req.query,
+      headers: req.headers 
+    });
+  });
+
+  // Development mode: Add temporary login for testing
+  app.get('/api/dev-login', async (req, res) => {
+    console.log('Development login requested');
+    
+    const devUser = {
+      id: 'dev-user-123',
+      profile: {
+        emails: [{ value: 'dev@example.com' }],
+        displayName: 'Development User',
+        name: { givenName: 'Dev', familyName: 'User' },
+        photos: [{ value: 'https://via.placeholder.com/150' }]
+      }
+    };
+
+    // Create user in storage
+    try {
+      await storage.upsertUser({
+        id: 'dev-user-123',
+        email: 'dev@example.com',
+        firstName: 'Dev',
+        lastName: 'User',
+        profileImageUrl: 'https://via.placeholder.com/150'
+      });
+      console.log('Dev user created in storage');
+    } catch (error) {
+      console.error('Error creating dev user:', error);
+    }
+    
+    req.logIn(devUser, (err) => {
+      if (err) {
+        console.error('Dev login error:', err);
+        return res.redirect('/?error=dev_login_failed');
+      }
+      console.log('Dev user logged in successfully');
+      res.redirect('/?success=dev_login');
+    });
+  });
 
   app.get('/api/auth/google/callback', (req, res, next) => {
     console.log('=== Google OAuth Callback ===');
