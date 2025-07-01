@@ -1,11 +1,25 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
 export default function AppHeader() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [language, setLanguage] = useState('ko');
+
+  const handleLogout = () => {
+    toast({
+      title: "로그아웃 중...",
+      description: "계정에서 로그아웃하고 있습니다.",
+    });
+    
+    // Clear local storage and redirect to logout
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = '/api/logout';
+  };
 
   const getInitials = (firstName?: string, lastName?: string) => {
     const first = firstName?.charAt(0) || '';
@@ -53,8 +67,9 @@ export default function AppHeader() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => window.location.href = '/api/logout'}
+                onClick={handleLogout}
                 className="text-gray-400 hover:text-gray-600"
+                title="로그아웃"
               >
                 <i className="fas fa-sign-out-alt"></i>
               </Button>
