@@ -70,5 +70,5 @@
 }
 
 .file-drop-zone.drag-over {
-  @apply border-primary bg-primary/5;
+  @apply border-primary bg-blue-50;
 }

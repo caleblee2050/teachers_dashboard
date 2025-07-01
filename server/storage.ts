@@ -65,7 +65,8 @@ export class MemStorage implements IStorage {
     const file: File = {
       ...fileData,
       id,
-      createdAt: new Date(),
+      createdAt: null,
+      extractedText: fileData.extractedText ?? null,
     };
     this.files.set(id, file);
     return file;
