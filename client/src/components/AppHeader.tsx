@@ -18,6 +18,9 @@ export default function AppHeader() {
     // Clear local storage and redirect to logout
     localStorage.clear();
     sessionStorage.clear();
+    
+    // Add a flag to indicate user wants to change account
+    localStorage.setItem('requestAccountSelection', 'true');
     window.location.href = '/api/logout';
   };
 
@@ -65,13 +68,14 @@ export default function AppHeader() {
                 {getDisplayName(user?.firstName, user?.lastName)}님
               </span>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={handleLogout}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400 korean-text"
                 title="로그아웃"
               >
-                <i className="fas fa-sign-out-alt"></i>
+                <i className="fas fa-sign-out-alt mr-1"></i>
+                로그아웃
               </Button>
             </div>
           </div>

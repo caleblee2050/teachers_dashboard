@@ -1,7 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useEffect, useState } from "react";
 
 export default function Landing() {
+  const [showAccountSelector, setShowAccountSelector] = useState(false);
+
+  useEffect(() => {
+    // Check if user requested account selection
+    const requestAccountSelection = localStorage.getItem('requestAccountSelection');
+    if (requestAccountSelection === 'true') {
+      setShowAccountSelector(true);
+      localStorage.removeItem('requestAccountSelection');
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -49,13 +61,45 @@ export default function Landing() {
             </CardContent>
           </Card>
           
-          <Button 
-            size="lg" 
-            className="px-8 py-4 text-lg korean-text"
-            onClick={() => window.location.href = '/api/login'}
-          >
-            시작하기
-          </Button>
+          {showAccountSelector ? (
+            <div className="space-y-4">
+              <p className="text-lg text-gray-700 korean-text mb-4">
+                로그인 방법을 선택하세요
+              </p>
+              <div className="flex gap-4 justify-center">
+                <Button 
+                  size="lg" 
+                  className="px-8 py-4 text-lg korean-text"
+                  onClick={() => window.location.href = '/api/login'}
+                >
+                  기존 계정으로 로그인
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="px-8 py-4 text-lg korean-text"
+                  onClick={() => window.location.href = '/api/login/new-account'}
+                >
+                  다른 계정으로 로그인
+                </Button>
+              </div>
+              <Button 
+                variant="ghost"
+                className="korean-text"
+                onClick={() => setShowAccountSelector(false)}
+              >
+                취소
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              size="lg" 
+              className="px-8 py-4 text-lg korean-text"
+              onClick={() => window.location.href = '/api/login'}
+            >
+              시작하기
+            </Button>
+          )}
           
           <div className="mt-12 text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 korean-text">
@@ -67,7 +111,7 @@ export default function Landing() {
                   <i className="fas fa-language text-primary text-3xl mb-4"></i>
                   <h3 className="font-semibold mb-2 korean-text">다국어 지원</h3>
                   <p className="text-sm text-gray-600 korean-text">
-                    한국어, 영어 콘텐츠 생성
+                    7개 언어 지원 (한국어, 영어, 일본어, 중국어, 태국어, 베트남어, 필리핀어)
                   </p>
                 </CardContent>
               </Card>
