@@ -207,7 +207,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFile(id: string): Promise<boolean> {
     const result = await db.delete(files).where(eq(files.id, id));
-    return result.rowCount > 0;
+    return Boolean(result.rowCount && result.rowCount > 0);
   }
 
   // Generated content operations
@@ -255,7 +255,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteStudent(id: string): Promise<boolean> {
     const result = await db.delete(students).where(eq(students.id, id));
-    return result.rowCount > 0;
+    return Boolean(result.rowCount && result.rowCount > 0);
   }
 }
 

@@ -100,7 +100,7 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="" disabled>
+                  <SelectItem value="no-files" disabled>
                     텍스트 추출이 완료된 파일이 없습니다
                   </SelectItem>
                 )}
