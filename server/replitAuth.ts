@@ -1,32 +1,16 @@
-import * as client from "openid-client";
-import { Strategy, type VerifyFunction } from "openid-client/passport";
-
 import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
-import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-if (!process.env.REPLIT_DOMAINS) {
-  throw new Error("Environment variable REPLIT_DOMAINS not provided");
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  throw new Error("Google OAuth credentials not provided");
 }
 
-console.log('REPL_ID:', process.env.REPL_ID);
-console.log('REPLIT_DOMAINS:', process.env.REPLIT_DOMAINS);
-
-const getOidcConfig = memoize(
-  async () => {
-    console.log('Discovering OIDC configuration...');
-    const config = await client.discovery(
-      new URL("https://replit.com/oidc"),
-      process.env.REPL_ID!
-    );
-    console.log('OIDC config discovered successfully');
-    return config;
-  },
-  { maxAge: 3600 * 1000 }
-);
+console.log('Google OAuth Client ID:', process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...');
+console.log('Setting up Google OAuth authentication...');
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
@@ -44,7 +28,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       maxAge: sessionTtl,
     },
   });

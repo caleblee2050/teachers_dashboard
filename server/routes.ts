@@ -4,7 +4,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./googleAuth";
 import { generateSummary, generateQuiz, generateStudyGuide } from "./services/gemini";
 import { extractTextFromFile } from "./services/fileProcessor";
 import { insertFileSchema, insertGeneratedContentSchema, insertStudentSchema } from "@shared/schema";
@@ -66,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -82,7 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'No file uploaded' });
       }
 
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const file = req.file;
       
       const fileData = {
@@ -114,7 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/files', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const files = await storage.getFilesByTeacher(userId);
       res.json(files);
     } catch (error) {
@@ -125,7 +125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/files/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const fileId = req.params.id;
       
       const file = await storage.getFile(fileId);
@@ -155,7 +155,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI content generation routes
   app.post('/api/generate/:type', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { type } = req.params;
       const { fileId, language = 'ko' } = req.body;
 
@@ -211,7 +211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/content', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const content = await storage.getGeneratedContentByTeacher(userId);
       res.json(content);
     } catch (error) {
@@ -222,7 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/content/file/:fileId', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { fileId } = req.params;
       
       const file = await storage.getFile(fileId);
@@ -258,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Student management routes
   app.post('/api/students', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const studentData = {
         ...req.body,
         teacherId: userId,
@@ -275,7 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/students', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const students = await storage.getStudentsByTeacher(userId);
       res.json(students);
     } catch (error) {
@@ -303,7 +303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard stats route
   app.get('/api/dashboard/stats', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       const files = await storage.getFilesByTeacher(userId);
       const content = await storage.getGeneratedContentByTeacher(userId);
