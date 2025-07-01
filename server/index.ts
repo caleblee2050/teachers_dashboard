@@ -7,8 +7,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Force override with new Google OAuth credentials
-process.env.GOOGLE_CLIENT_ID = "452832396126-bn75m5oeitc8ac87mtqbtlnsmte0p7h8.apps.googleusercontent.com";
-process.env.GOOGLE_CLIENT_SECRET = "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";
+process.env.GOOGLE_CLIENT_ID = "1037784984511-u1mvd4jjjj1qngp6n30bgk4eh69a71lr.apps.googleusercontent.com";
+process.env.GOOGLE_CLIENT_SECRET = "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";
 
 console.log('Updated Google OAuth credentials:');
 console.log('Client ID:', process.env.GOOGLE_CLIENT_ID?.substring(0, 25) + '...');
