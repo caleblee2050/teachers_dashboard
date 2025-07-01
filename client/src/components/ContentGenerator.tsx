@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -15,12 +16,34 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
   const { toast } = useToast();
   const [selectedFileId, setSelectedFileId] = useState<string>("");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("ko");
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(["ko"]);
+  const [useMultiLanguage, setUseMultiLanguage] = useState<boolean>(false);
 
   const availableFiles = files?.filter(file => file.extractedText) || [];
 
+  const languages = [
+    { code: 'ko', name: '한국어' },
+    { code: 'en', name: 'English' },
+    { code: 'ja', name: '日本語' },
+    { code: 'zh', name: '中文' },
+    { code: 'th', name: 'ไทย' },
+    { code: 'vi', name: 'Tiếng Việt' },
+    { code: 'fil', name: 'Filipino' }
+  ];
+
   const generateContentMutation = useMutation({
-    mutationFn: async ({ type, fileId, language }: { type: string; fileId: string; language: string }) => {
-      return await apiRequest('POST', `/api/generate/${type}`, { fileId, language });
+    mutationFn: async ({ type, fileId, languages }: { type: string; fileId: string; languages: string[] }) => {
+      if (languages.length === 1) {
+        return await apiRequest('POST', `/api/generate/${type}`, { fileId, language: languages[0] });
+      } else {
+        // Generate for multiple languages
+        const results = await Promise.all(
+          languages.map(lang => 
+            apiRequest('POST', `/api/generate/${type}`, { fileId, language: lang })
+          )
+        );
+        return results;
+      }
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/content'] });
@@ -57,6 +80,18 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
     },
   });
 
+  const toggleLanguage = (langCode: string) => {
+    if (useMultiLanguage) {
+      setSelectedLanguages(prev => 
+        prev.includes(langCode) 
+          ? prev.filter(l => l !== langCode)
+          : [...prev, langCode]
+      );
+    } else {
+      setSelectedLanguage(langCode);
+    }
+  };
+
   const handleGenerate = (type: string) => {
     if (!selectedFileId) {
       toast({
@@ -67,10 +102,21 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
       return;
     }
 
+    const languagesToGenerate = useMultiLanguage ? selectedLanguages : [selectedLanguage];
+    
+    if (languagesToGenerate.length === 0) {
+      toast({
+        title: "언어를 선택해주세요",
+        description: "콘텐츠를 생성할 언어를 최소 하나 선택해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     generateContentMutation.mutate({
       type,
       fileId: selectedFileId,
-      language: selectedLanguage,
+      languages: languagesToGenerate,
     });
   };
 
@@ -112,22 +158,46 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
             <label className="block text-sm font-medium text-gray-700 mb-2 korean-text">
               언어 선택
             </label>
-            <div className="flex space-x-2">
-              <Button
-                size="sm"
-                variant={selectedLanguage === 'ko' ? 'default' : 'outline'}
-                onClick={() => setSelectedLanguage('ko')}
-                className="korean-text"
-              >
-                한국어
-              </Button>
-              <Button
-                size="sm"
-                variant={selectedLanguage === 'en' ? 'default' : 'outline'}
-                onClick={() => setSelectedLanguage('en')}
-              >
-                English
-              </Button>
+            
+            <div className="mb-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="multiLanguage"
+                  checked={useMultiLanguage}
+                  onCheckedChange={(checked) => setUseMultiLanguage(checked === true)}
+                />
+                <label htmlFor="multiLanguage" className="text-sm text-gray-600 korean-text">
+                  모든 언어로 동시 생성
+                </label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {languages.map((lang) => (
+                <div key={lang.code} className="flex items-center space-x-2">
+                  {useMultiLanguage ? (
+                    <>
+                      <Checkbox
+                        id={lang.code}
+                        checked={selectedLanguages.includes(lang.code)}
+                        onCheckedChange={() => toggleLanguage(lang.code)}
+                      />
+                      <label htmlFor={lang.code} className="text-sm text-gray-700">
+                        {lang.name}
+                      </label>
+                    </>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant={selectedLanguage === lang.code ? 'default' : 'outline'}
+                      onClick={() => toggleLanguage(lang.code)}
+                      className="w-full text-xs"
+                    >
+                      {lang.name}
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -135,7 +205,7 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
             <Button
               className="w-full bg-primary hover:bg-primary/90 korean-text"
               onClick={() => handleGenerate('summary')}
-              disabled={generateContentMutation.isPending || !selectedFileId}
+              disabled={generateContentMutation.isPending || !selectedFileId || (useMultiLanguage && selectedLanguages.length === 0)}
             >
               {generateContentMutation.isPending ? (
                 <i className="fas fa-spinner fa-spin mr-2"></i>
@@ -148,7 +218,7 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
             <Button
               className="w-full bg-secondary hover:bg-secondary/90 korean-text"
               onClick={() => handleGenerate('quiz')}
-              disabled={generateContentMutation.isPending || !selectedFileId}
+              disabled={generateContentMutation.isPending || !selectedFileId || (useMultiLanguage && selectedLanguages.length === 0)}
             >
               {generateContentMutation.isPending ? (
                 <i className="fas fa-spinner fa-spin mr-2"></i>
@@ -161,7 +231,7 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
             <Button
               className="w-full bg-accent hover:bg-accent/90 korean-text"
               onClick={() => handleGenerate('study_guide')}
-              disabled={generateContentMutation.isPending || !selectedFileId}
+              disabled={generateContentMutation.isPending || !selectedFileId || (useMultiLanguage && selectedLanguages.length === 0)}
             >
               {generateContentMutation.isPending ? (
                 <i className="fas fa-spinner fa-spin mr-2"></i>

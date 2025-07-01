@@ -5,7 +5,7 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { generateSummary, generateQuiz, generateStudyGuide } from "./services/openai";
+import { generateSummary, generateQuiz, generateStudyGuide } from "./services/gemini";
 import { extractTextFromFile } from "./services/fileProcessor";
 import { insertFileSchema, insertGeneratedContentSchema, insertStudentSchema } from "@shared/schema";
 import { z } from "zod";
