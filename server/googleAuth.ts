@@ -54,11 +54,17 @@ export async function setupAuth(app: Express) {
 
   console.log('Configuring Google OAuth strategy...');
 
+  // Get current domain for callback URL
+  const currentDomain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
+  const callbackURL = `https://${currentDomain}/api/auth/google/callback`;
+  
+  console.log('Using callback URL:', callbackURL);
+
   // Configure Google OAuth strategy
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: "/api/auth/google/callback"
+    callbackURL: callbackURL
   },
   async (accessToken: string, refreshToken: string, profile: any, done: any) => {
     console.log('=== Google OAuth Verify Function ===');
@@ -97,9 +103,13 @@ export async function setupAuth(app: Express) {
   console.log('Setting up Google OAuth routes...');
 
   // Auth routes
-  app.get('/api/login', 
-    passport.authenticate('google', { scope: ['profile', 'email'] })
-  );
+  app.get('/api/login', (req, res, next) => {
+    console.log('=== Login Request ===');
+    console.log('Starting Google OAuth flow...');
+    console.log('Client ID:', process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...');
+    console.log('Callback URL:', callbackURL);
+    next();
+  }, passport.authenticate('google', { scope: ['profile', 'email'] }));
 
   app.get('/api/auth/google/callback',
     (req, res, next) => {
