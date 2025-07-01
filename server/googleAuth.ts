@@ -12,6 +12,8 @@ if (!hasGoogleCredentials) {
 }
 
 console.log('Google OAuth Client ID:', process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...');
+console.log('Google OAuth Client Secret length:', process.env.GOOGLE_CLIENT_SECRET?.length);
+console.log('Google OAuth Client Secret starts with:', process.env.GOOGLE_CLIENT_SECRET?.substring(0, 8) + '...');
 console.log('Setting up Google OAuth authentication...');
 
 export function getSession() {
@@ -112,34 +114,46 @@ export async function setupAuth(app: Express) {
   console.log('Using callback URL:', callbackURL);
 
   // Configure Google OAuth strategy
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID!,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: callbackURL
-  },
-  async (accessToken: string, refreshToken: string, profile: any, done: any) => {
-    console.log('=== Google OAuth Verify Function ===');
-    console.log('Profile ID:', profile.id);
-    console.log('Profile Email:', profile.emails?.[0]?.value);
-    console.log('Profile Name:', profile.displayName);
+  try {
+    console.log('Creating Google OAuth strategy with:');
+    console.log('- Client ID exists:', !!process.env.GOOGLE_CLIENT_ID);
+    console.log('- Client Secret exists:', !!process.env.GOOGLE_CLIENT_SECRET);
+    console.log('- Callback URL:', callbackURL);
     
-    try {
-      await upsertUser(profile);
-      console.log('User upserted successfully');
+    passport.use(new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      callbackURL: callbackURL
+    },
+    async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+      console.log('=== Google OAuth Verify Function ===');
+      console.log('Profile ID:', profile.id);
+      console.log('Profile Email:', profile.emails?.[0]?.value);
+      console.log('Profile Name:', profile.displayName);
       
-      const user = {
-        id: profile.id,
-        profile: profile,
-        accessToken: accessToken,
-        refreshToken: refreshToken
-      };
-      
-      return done(null, user);
-    } catch (error) {
-      console.error('Error in verify function:', error);
-      return done(error, null);
-    }
-  }));
+      try {
+        await upsertUser(profile);
+        console.log('User upserted successfully');
+        
+        const user = {
+          id: profile.id,
+          profile: profile,
+          accessToken: accessToken,
+          refreshToken: refreshToken
+        };
+        
+        return done(null, user);
+      } catch (error) {
+        console.error('Error in verify function:', error);
+        return done(error, null);
+      }
+    }));
+    
+    console.log('Google OAuth strategy created successfully');
+  } catch (strategyError) {
+    console.error('Error creating Google OAuth strategy:', strategyError);
+    throw strategyError;
+  }
 
   passport.serializeUser((user: any, done) => {
     console.log('Serializing user:', user.id);
@@ -209,6 +223,16 @@ export async function setupAuth(app: Express) {
       console.log('Dev user logged in successfully');
       res.redirect('/?success=dev_login');
     });
+  });
+
+  // Add a catch-all route to debug callback issues
+  app.all('/api/auth/google/*', (req, res, next) => {
+    console.log('=== OAuth Route Hit ===');
+    console.log('Method:', req.method);
+    console.log('Path:', req.path);
+    console.log('URL:', req.url);
+    console.log('Query:', req.query);
+    next();
   });
 
   app.get('/api/auth/google/callback', (req, res, next) => {
