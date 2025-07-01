@@ -175,7 +175,24 @@ export async function setupAuth(app: Express) {
     console.log('Callback URL:', callbackURL);
     console.log('Request headers:', req.headers);
     next();
-  }, passport.authenticate('google', { scope: ['profile', 'email'] }));
+  }, (req, res, next) => {
+    console.log('About to call passport.authenticate...');
+    
+    // Manual Google OAuth URL for debugging
+    const manualAuthUrl = `https://accounts.google.com/oauth2/auth?` +
+      `client_id=${process.env.GOOGLE_CLIENT_ID}&` +
+      `redirect_uri=${encodeURIComponent(callbackURL)}&` +
+      `scope=${encodeURIComponent('profile email')}&` +
+      `response_type=code&` +
+      `prompt=consent`;
+    
+    console.log('Manual Google OAuth URL:', manualAuthUrl);
+    
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'],
+      prompt: 'consent'
+    })(req, res, next);
+  });
 
   // Add a test route to verify callback URL is reachable
   app.get('/api/test-callback', (req, res) => {
