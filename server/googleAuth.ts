@@ -183,7 +183,12 @@ export async function setupAuth(app: Express) {
       failureRedirect: '/?error=auth_failed',
       successRedirect: '/',
       failureFlash: false
-    })
+    }),
+    (req, res) => {
+      console.log('OAuth callback completed successfully');
+      // This should not be reached if redirect works
+      res.redirect('/');
+    }
   );
 
   app.get('/api/logout', (req, res) => {
