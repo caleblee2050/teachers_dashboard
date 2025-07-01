@@ -12,12 +12,18 @@ if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
 }
 
+console.log('REPL_ID:', process.env.REPL_ID);
+console.log('REPLIT_DOMAINS:', process.env.REPLIT_DOMAINS);
+
 const getOidcConfig = memoize(
   async () => {
-    return await client.discovery(
+    console.log('Discovering OIDC configuration...');
+    const config = await client.discovery(
       new URL("https://replit.com/oidc"),
       process.env.REPL_ID!
     );
+    console.log('OIDC config discovered successfully');
+    return config;
   },
   { maxAge: 3600 * 1000 }
 );
@@ -84,18 +90,24 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
+  const domains = process.env.REPLIT_DOMAINS!.split(",");
+  console.log('Setting up strategies for domains:', domains);
+  
+  for (const domain of domains) {
+    const callbackURL = `https://${domain}/api/callback`;
+    console.log(`Creating strategy for domain: ${domain}, callback: ${callbackURL}`);
+    
     const strategy = new Strategy(
       {
         name: `replitauth:${domain}`,
         config,
         scope: "openid email profile",
-        callbackURL: `https://${domain}/api/callback`,
+        callbackURL,
       },
       verify,
     );
     passport.use(strategy);
+    console.log(`Strategy registered: replitauth:${domain}`);
   }
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
