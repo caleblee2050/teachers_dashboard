@@ -95,7 +95,7 @@ export default function Landing() {
             <Button 
               size="lg" 
               className="px-8 py-4 text-lg korean-text"
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/api/dev-login'}
             >
               시작하기
             </Button>
