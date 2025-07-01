@@ -114,7 +114,14 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    console.log('=== LOGIN REQUEST ===');
+    console.log('Hostname:', req.hostname);
+    console.log('Headers:', req.headers);
+    
+    const strategyName = `replitauth:${req.hostname}`;
+    console.log('Using strategy:', strategyName);
+    
+    passport.authenticate(strategyName, {
       scope: ["openid", "email", "profile"],
     })(req, res, next);
   });
@@ -127,16 +134,33 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
+  // Add a simple test route to verify callback URL accessibility
+  app.get("/api/callback-test", (req, res) => {
+    console.log('Callback test route accessed');
+    res.json({ message: "Callback route is accessible", hostname: req.hostname });
+  });
+
   app.get("/api/callback", (req, res, next) => {
     console.log('=== CALLBACK START ===');
     console.log('Hostname:', req.hostname);
     console.log('URL:', req.url);
-    console.log('Query:', req.query);
-    console.log('Headers:', req.headers);
+    console.log('Query params:', req.query);
+    console.log('Method:', req.method);
+    console.log('User-Agent:', req.get('User-Agent'));
+    
+    if (!req.query.code && !req.query.error) {
+      console.log('No authorization code or error in callback');
+      return res.redirect('/?error=missing_code');
+    }
+    
+    if (req.query.error) {
+      console.log('OAuth error received:', req.query.error);
+      return res.redirect(`/?error=${req.query.error}`);
+    }
     
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
-      failureRedirect: "/?error=callback_failed",
+      failureRedirect: "/?error=auth_failed",
     })(req, res, next);
   });
 
