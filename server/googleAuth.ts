@@ -5,8 +5,10 @@ import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
-if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  throw new Error("Google OAuth credentials not provided");
+// Check for Google OAuth credentials but don't crash the app
+const hasGoogleCredentials = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET;
+if (!hasGoogleCredentials) {
+  console.warn("Warning: Google OAuth credentials not provided. Authentication will be disabled.");
 }
 
 console.log('Google OAuth Client ID:', process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...');
@@ -14,6 +16,22 @@ console.log('Setting up Google OAuth authentication...');
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  
+  // Check if DATABASE_URL is available
+  if (!process.env.DATABASE_URL) {
+    console.warn("Warning: DATABASE_URL not found. Sessions will not persist.");
+    return session({
+      secret: process.env.SESSION_SECRET || 'fallback-secret-key',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: sessionTtl,
+      },
+    });
+  }
+
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
@@ -21,8 +39,9 @@ export function getSession() {
     ttl: sessionTtl,
     tableName: "sessions",
   });
+  
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET || 'fallback-secret-key',
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -47,12 +66,42 @@ async function upsertUser(profile: any) {
 }
 
 export async function setupAuth(app: Express) {
-  app.set("trust proxy", 1);
-  app.use(getSession());
-  app.use(passport.initialize());
-  app.use(passport.session());
+  try {
+    app.set("trust proxy", 1);
+    app.use(getSession());
+    app.use(passport.initialize());
+    app.use(passport.session());
 
-  console.log('Configuring Google OAuth strategy...');
+    // Only set up Google OAuth if credentials are available
+    if (!hasGoogleCredentials) {
+      console.log('Skipping Google OAuth setup due to missing credentials');
+      
+      // Set up minimal auth routes that return errors
+      app.get('/api/login', (req, res) => {
+        res.status(500).json({ message: 'Google OAuth not configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.' });
+      });
+      
+      app.get('/api/auth/google/callback', (req, res) => {
+        res.redirect('/?error=oauth_not_configured');
+      });
+      
+      app.get('/api/logout', (req, res) => {
+        res.redirect('/');
+      });
+      
+      // Set up auth user route
+      app.get('/api/auth/user', (req, res) => {
+        res.status(401).json({ message: "Authentication not configured" });
+      });
+      
+      return;
+    }
+
+    console.log('Configuring Google OAuth strategy...');
+  } catch (error) {
+    console.error('Error setting up authentication:', error);
+    // Don't crash the app, just log the error and continue
+  }
 
   // Get current domain for callback URL
   const currentDomain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
@@ -151,6 +200,15 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  // If OAuth is not configured, deny all authenticated requests
+  if (!hasGoogleCredentials) {
+    console.log('Authentication denied: Google OAuth not configured');
+    return res.status(500).json({ 
+      message: "Authentication not available. Google OAuth credentials are missing.",
+      error: "oauth_not_configured"
+    });
+  }
+  
   console.log('Checking authentication:', {
     isAuthenticated: req.isAuthenticated(),
     hasUser: !!req.user
