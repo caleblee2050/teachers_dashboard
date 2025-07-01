@@ -38,8 +38,30 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Log all requests for debugging
+  app.use((req, res, next) => {
+    if (req.url.startsWith('/api/')) {
+      console.log(`${req.method} ${req.url} - Query:`, req.query);
+    }
+    next();
+  });
+
   // Auth middleware
   await setupAuth(app);
+
+  // Debug route to check session
+  app.get('/api/session', (req: any, res) => {
+    console.log('Session check:', {
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user,
+      session: req.session
+    });
+    res.json({
+      isAuthenticated: req.isAuthenticated(),
+      hasUser: !!req.user,
+      sessionID: req.sessionID
+    });
+  });
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

@@ -84,9 +84,14 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
+    console.log('=== VERIFY FUNCTION CALLED ===');
+    console.log('Tokens received:', !!tokens);
+    console.log('Claims:', tokens.claims());
+    
     const user = {};
     updateUserSession(user, tokens);
     await upsertUser(tokens.claims());
+    console.log('User verification completed');
     verified(null, user);
   };
 
