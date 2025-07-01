@@ -15,7 +15,7 @@ if (!process.env.REPLIT_DOMAINS) {
 const getOidcConfig = memoize(
   async () => {
     return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
+      new URL("https://replit.com/oidc"),
       process.env.REPL_ID!
     );
   },
@@ -116,35 +116,15 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
-    console.log('Callback received for hostname:', req.hostname);
-    console.log('Query params:', req.query);
-    console.log('Using hostname:', req.hostname);
+    console.log('=== CALLBACK START ===');
+    console.log('Hostname:', req.hostname);
+    console.log('URL:', req.url);
+    console.log('Query:', req.query);
+    console.log('Headers:', req.headers);
     
-    const strategyName = `replitauth:${req.hostname}`;
-    console.log('Using strategy:', strategyName);
-    
-    passport.authenticate(strategyName, (err: any, user: any, info: any) => {
-      console.log('Authentication result:', { err, user: !!user, info });
-      
-      if (err) {
-        console.error('Authentication error:', err);
-        return res.redirect('/?error=auth_error');
-      }
-      
-      if (!user) {
-        console.error('No user returned:', info);
-        return res.redirect('/?error=no_user');
-      }
-      
-      req.logIn(user, (loginErr: any) => {
-        if (loginErr) {
-          console.error('Login error:', loginErr);
-          return res.redirect('/?error=login_error');
-        }
-        
-        console.log('Login successful, redirecting to home');
-        return res.redirect('/');
-      });
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      successReturnToOrRedirect: "/",
+      failureRedirect: "/?error=callback_failed",
     })(req, res, next);
   });
 
