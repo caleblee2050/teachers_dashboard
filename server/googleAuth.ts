@@ -105,7 +105,9 @@ export async function setupAuth(app: Express) {
 
   // Get current domain for callback URL
   const currentDomain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
-  const callbackURL = `https://${currentDomain}/api/auth/google/callback`;
+  const callbackURL = currentDomain.includes('localhost') 
+    ? `http://${currentDomain}/api/auth/google/callback`
+    : `https://${currentDomain}/api/auth/google/callback`;
   
   console.log('Using callback URL:', callbackURL);
 
@@ -160,36 +162,73 @@ export async function setupAuth(app: Express) {
     next();
   }, passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-  app.get('/api/auth/google/callback',
-    (req, res, next) => {
-      console.log('=== Google OAuth Callback ===');
-      console.log('Query params:', req.query);
-      console.log('Headers:', req.headers);
-      
-      if (req.query.error) {
-        console.log('OAuth error:', req.query.error);
-        console.log('Error description:', req.query.error_description);
-        return res.redirect(`/?error=${req.query.error}&description=${req.query.error_description}`);
-      }
-      
-      if (!req.query.code) {
-        console.log('No authorization code received');
-        return res.redirect('/?error=no_code');
-      }
-      
-      next();
-    },
-    passport.authenticate('google', { 
-      failureRedirect: '/?error=auth_failed',
-      successRedirect: '/',
-      failureFlash: false
-    }),
-    (req, res) => {
-      console.log('OAuth callback completed successfully');
-      // This should not be reached if redirect works
-      res.redirect('/');
+  app.get('/api/auth/google/callback', (req, res, next) => {
+    console.log('=== Google OAuth Callback ===');
+    console.log('Query params:', req.query);
+    console.log('URL:', req.url);
+    console.log('Original URL:', req.originalUrl);
+    
+    if (req.query.error) {
+      console.log('OAuth error:', req.query.error);
+      console.log('Error description:', req.query.error_description);
+      return res.redirect(`/?error=${encodeURIComponent(req.query.error as string)}&description=${encodeURIComponent(req.query.error_description as string || '')}`);
     }
-  );
+    
+    if (!req.query.code) {
+      console.log('No authorization code received');
+      return res.redirect('/?error=no_code');
+    }
+    
+    console.log('Proceeding with passport authentication...');
+    
+    passport.authenticate('google', (err: any, user: any, info: any) => {
+      console.log('=== Passport Authentication Result ===');
+      console.log('Error:', err);
+      console.log('User:', user ? 'User received' : 'No user');
+      console.log('Info:', info);
+      
+      if (err) {
+        console.error('Authentication error:', err);
+        return res.redirect(`/?error=auth_error&message=${encodeURIComponent(err.message || 'Authentication failed')}`);
+      }
+      
+      if (!user) {
+        console.log('No user returned from Google OAuth');
+        return res.redirect('/?error=no_user');
+      }
+      
+      req.logIn(user, (loginErr: any) => {
+        if (loginErr) {
+          console.error('Login error:', loginErr);
+          return res.redirect(`/?error=login_error&message=${encodeURIComponent(loginErr.message || 'Login failed')}`);
+        }
+        
+        console.log('User successfully logged in:', user.id);
+        return res.redirect('/?success=login');
+      });
+    })(req, res, next);
+  });
+
+  app.get('/api/auth/user', (req, res) => {
+    console.log('Getting user info:', {
+      isAuthenticated: req.isAuthenticated(),
+      hasUser: !!req.user
+    });
+    
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    const user = req.user as any;
+    res.json({
+      id: user.id,
+      email: user.profile?.emails?.[0]?.value || null,
+      name: user.profile?.displayName || null,
+      firstName: user.profile?.name?.givenName || null,
+      lastName: user.profile?.name?.familyName || null,
+      profileImageUrl: user.profile?.photos?.[0]?.value || null
+    });
+  });
 
   app.get('/api/logout', (req, res) => {
     console.log('Logging out user');
