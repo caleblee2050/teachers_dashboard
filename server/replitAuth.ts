@@ -103,7 +103,6 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/login", (req, res, next) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
@@ -111,15 +110,28 @@ export async function setupAuth(app: Express) {
   // New login endpoint for account selection
   app.get("/api/login/new-account", (req, res, next) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
-      prompt: "select_account consent",
+      prompt: "select_account",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
+    passport.authenticate(`replitauth:${req.hostname}`, (err, user, info) => {
+      if (err) {
+        console.error('Authentication error:', err);
+        return res.redirect('/api/login');
+      }
+      if (!user) {
+        console.error('Authentication failed:', info);
+        return res.redirect('/api/login');
+      }
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error('Login error:', err);
+          return res.redirect('/api/login');
+        }
+        return res.redirect('/');
+      });
     })(req, res, next);
   });
 
