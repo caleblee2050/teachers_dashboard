@@ -118,7 +118,7 @@ export async function setupAuth(app: Express) {
   app.get("/api/callback", (req, res, next) => {
     console.log('Callback received for hostname:', req.hostname);
     console.log('Query params:', req.query);
-    console.log('Available strategies:', passport._strategies);
+    console.log('Using hostname:', req.hostname);
     
     const strategyName = `replitauth:${req.hostname}`;
     console.log('Using strategy:', strategyName);
