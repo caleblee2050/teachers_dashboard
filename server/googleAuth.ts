@@ -105,13 +105,26 @@ export async function setupAuth(app: Express) {
     (req, res, next) => {
       console.log('=== Google OAuth Callback ===');
       console.log('Query params:', req.query);
+      console.log('Headers:', req.headers);
+      
+      if (req.query.error) {
+        console.log('OAuth error:', req.query.error);
+        console.log('Error description:', req.query.error_description);
+        return res.redirect(`/?error=${req.query.error}&description=${req.query.error_description}`);
+      }
+      
+      if (!req.query.code) {
+        console.log('No authorization code received');
+        return res.redirect('/?error=no_code');
+      }
+      
       next();
     },
-    passport.authenticate('google', { failureRedirect: '/?error=auth_failed' }),
-    (req, res) => {
-      console.log('Authentication successful, redirecting to home');
-      res.redirect('/');
-    }
+    passport.authenticate('google', { 
+      failureRedirect: '/?error=auth_failed',
+      successRedirect: '/',
+      failureFlash: false
+    })
   );
 
   app.get('/api/logout', (req, res) => {
