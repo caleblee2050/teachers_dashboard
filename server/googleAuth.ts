@@ -204,6 +204,15 @@ export async function setupAuth(app: Express) {
     });
   });
 
+  // Simple test for Google callback route
+  app.get('/api/auth/google/test', (req, res) => {
+    console.log('Google OAuth test route reached');
+    res.json({ 
+      message: 'Google OAuth callback route is accessible',
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Development mode: Add temporary login for testing
   app.get('/api/dev-login', async (req, res) => {
     console.log('Development login requested');
