@@ -13,6 +13,8 @@ import {
   type InsertStudent,
 } from "@shared/schema";
 import { nanoid } from "nanoid";
+import { eq } from "drizzle-orm";
+import { db } from "./db";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -150,4 +152,111 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  // User operations
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  // File operations
+  async createFile(fileData: InsertFile): Promise<File> {
+    const id = nanoid();
+    const [file] = await db
+      .insert(files)
+      .values({
+        ...fileData,
+        id,
+      })
+      .returning();
+    return file;
+  }
+
+  async getFilesByTeacher(teacherId: string): Promise<File[]> {
+    return await db.select().from(files).where(eq(files.teacherId, teacherId));
+  }
+
+  async getFile(id: string): Promise<File | undefined> {
+    const [file] = await db.select().from(files).where(eq(files.id, id));
+    return file;
+  }
+
+  async updateFileText(id: string, extractedText: string): Promise<File | undefined> {
+    const [file] = await db
+      .update(files)
+      .set({ extractedText })
+      .where(eq(files.id, id))
+      .returning();
+    return file;
+  }
+
+  async deleteFile(id: string): Promise<boolean> {
+    const result = await db.delete(files).where(eq(files.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Generated content operations
+  async createGeneratedContent(contentData: InsertGeneratedContent): Promise<GeneratedContent> {
+    const id = nanoid();
+    const [content] = await db
+      .insert(generatedContent)
+      .values({
+        ...contentData,
+        id,
+      })
+      .returning();
+    return content;
+  }
+
+  async getGeneratedContentByFile(fileId: string): Promise<GeneratedContent[]> {
+    return await db.select().from(generatedContent).where(eq(generatedContent.fileId, fileId));
+  }
+
+  async getGeneratedContentByTeacher(teacherId: string): Promise<GeneratedContent[]> {
+    return await db.select().from(generatedContent).where(eq(generatedContent.teacherId, teacherId));
+  }
+
+  async getGeneratedContentByShare(shareToken: string): Promise<GeneratedContent | undefined> {
+    const [content] = await db.select().from(generatedContent).where(eq(generatedContent.shareToken, shareToken));
+    return content;
+  }
+
+  // Student operations
+  async createStudent(studentData: InsertStudent): Promise<Student> {
+    const id = nanoid();
+    const [student] = await db
+      .insert(students)
+      .values({
+        ...studentData,
+        id,
+      })
+      .returning();
+    return student;
+  }
+
+  async getStudentsByTeacher(teacherId: string): Promise<Student[]> {
+    return await db.select().from(students).where(eq(students.teacherId, teacherId));
+  }
+
+  async deleteStudent(id: string): Promise<boolean> {
+    const result = await db.delete(students).where(eq(students.id, id));
+    return result.rowCount > 0;
+  }
+}
+
+export const storage = new DatabaseStorage();
