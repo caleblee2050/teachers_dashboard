@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import ClassroomUploadDialog from "./ClassroomUploadDialog";
 
 interface GeneratedContentProps {
   content: any[];
@@ -242,16 +243,22 @@ export default function GeneratedContent({ content }: GeneratedContentProps) {
                     >
                       공유 링크 복사
                     </Button>
-                    <Button
-                      size="sm"
-                      className={`text-sm ${
-                        item.contentType === 'summary' ? 'bg-primary hover:bg-primary/90' :
-                        item.contentType === 'quiz' ? 'bg-secondary hover:bg-secondary/90' :
-                        'bg-accent hover:bg-accent/90'
-                      }`}
+                    <ClassroomUploadDialog
+                      contentId={item.id}
+                      contentTitle={item.title}
+                      contentType={item.contentType}
                     >
-                      Classroom에 공유
-                    </Button>
+                      <Button
+                        size="sm"
+                        className={`text-sm ${
+                          item.contentType === 'summary' ? 'bg-primary hover:bg-primary/90' :
+                          item.contentType === 'quiz' ? 'bg-secondary hover:bg-secondary/90' :
+                          'bg-accent hover:bg-accent/90'
+                        }`}
+                      >
+                        Classroom에 업로드
+                      </Button>
+                    </ClassroomUploadDialog>
                   </div>
                 </div>
               </div>

@@ -7,6 +7,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./googleAuth";
 import { generateSummary, generateQuiz, generateStudyGuide } from "./services/gemini";
 import { extractTextFromFile } from "./services/fileProcessor";
+import { createClassroomService } from "./services/googleClassroom";
 import { insertFileSchema, insertGeneratedContentSchema, insertStudentSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -320,6 +321,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
       res.status(500).json({ message: 'Failed to fetch dashboard stats' });
+    }
+  });
+
+  // Google Classroom API routes
+  app.get('/api/classroom/courses', isAuthenticated, async (req: any, res) => {
+    try {
+      const classroomService = await createClassroomService(req.user);
+      const courses = await classroomService.getCourses();
+      res.json(courses);
+    } catch (error) {
+      console.error('Error fetching classroom courses:', error);
+      res.status(500).json({ 
+        message: 'Google Classroom에 접근할 수 없습니다. 권한을 확인해주세요.',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.post('/api/classroom/upload', isAuthenticated, async (req: any, res) => {
+    try {
+      const { courseId, contentId, title, description } = req.body;
+
+      if (!courseId || !contentId) {
+        return res.status(400).json({ message: '필수 정보가 누락되었습니다.' });
+      }
+
+      // Get the content to upload
+      const content = await storage.getGeneratedContentByTeacher(req.user.id);
+      const targetContent = content.find(c => c.id === contentId);
+
+      if (!targetContent) {
+        return res.status(404).json({ message: '콘텐츠를 찾을 수 없습니다.' });
+      }
+
+      const classroomService = await createClassroomService(req.user);
+      const result = await classroomService.createAssignment(
+        courseId,
+        title || targetContent.title,
+        description || `EduAI Assistant에서 생성된 ${targetContent.contentType} 콘텐츠`,
+        {
+          type: targetContent.contentType,
+          data: targetContent.content
+        }
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error uploading to classroom:', error);
+      res.status(500).json({ 
+        message: 'Google Classroom 업로드에 실패했습니다.',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.get('/api/classroom/check-permissions', isAuthenticated, async (req: any, res) => {
+    try {
+      const classroomService = await createClassroomService(req.user);
+      const hasPermissions = await classroomService.checkPermissions();
+      res.json({ hasPermissions });
+    } catch (error) {
+      console.error('Error checking classroom permissions:', error);
+      res.json({ hasPermissions: false, error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 

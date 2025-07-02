@@ -194,7 +194,12 @@ export async function setupAuth(app: Express) {
     console.log('Manual Google OAuth URL:', manualAuthUrl);
     
     passport.authenticate('google', { 
-      scope: ['profile', 'email'],
+      scope: [
+        'profile', 
+        'email',
+        'https://www.googleapis.com/auth/classroom.courses.readonly',
+        'https://www.googleapis.com/auth/classroom.coursework.students'
+      ],
       prompt: 'consent'
     })(req, res, next);
   });
@@ -205,7 +210,12 @@ export async function setupAuth(app: Express) {
     console.log('Starting Google OAuth flow with account selection...');
     
     passport.authenticate('google', { 
-      scope: ['profile', 'email'],
+      scope: [
+        'profile', 
+        'email',
+        'https://www.googleapis.com/auth/classroom.courses.readonly',
+        'https://www.googleapis.com/auth/classroom.coursework.students'
+      ],
       prompt: 'select_account'
     })(req, res, next);
   });

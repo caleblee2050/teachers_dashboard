@@ -107,6 +107,11 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- July 02, 2025. Google Classroom integration added
+  - Added Google Classroom API integration for uploading AI-generated content
+  - Updated OAuth scopes to include Classroom permissions
+  - Created ClassroomUploadDialog component with course selection
+  - Added server-side routes for classroom operations
 - July 01, 2025. Initial setup
 
 ## User Preferences
