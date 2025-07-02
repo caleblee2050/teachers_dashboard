@@ -134,10 +134,10 @@ export default function Landing() {
               </Button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 flex flex-col items-center">
               <Button 
                 size="lg" 
-                className="px-8 py-4 text-lg korean-text flex items-center gap-2"
+                className="px-8 py-4 text-lg korean-text flex items-center gap-2 mx-auto"
                 onClick={() => window.location.href = '/api/login'}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -148,13 +148,13 @@ export default function Landing() {
                 </svg>
                 Google로 시작하기
               </Button>
-              <p className="text-sm text-gray-500 korean-text">
+              <p className="text-sm text-gray-500 korean-text text-center">
                 또는
               </p>
               <Button 
                 size="sm" 
                 variant="outline"
-                className="korean-text"
+                className="korean-text mx-auto"
                 onClick={() => window.location.href = '/api/dev-login'}
               >
                 개발자 로그인 (테스트용)
