@@ -468,7 +468,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user;
       
-      if (!user.googleAccessToken || !user.googleRefreshToken) {
+      if (!user.googleAccessToken) {
+        console.log('No Google access token found for user:', user.id);
         return res.status(401).json({ 
           message: 'Google authentication required. Please connect your Google account first.' 
         });
@@ -500,7 +501,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user;
       const userId = user.id;
       
-      if (!user.googleAccessToken || !user.googleRefreshToken) {
+      console.log('Sync students request - user tokens:', {
+        hasAccessToken: !!user.googleAccessToken,
+        hasRefreshToken: !!user.googleRefreshToken
+      });
+      
+      if (!user.googleAccessToken) {
+        console.log('No Google access token found for user:', user.id);
         return res.status(401).json({ 
           message: 'Google authentication required. Please connect your Google account first.' 
         });
