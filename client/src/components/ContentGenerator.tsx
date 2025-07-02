@@ -205,7 +205,7 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
 
           <div className="space-y-3 pt-2">
             <Button
-              className="w-full bg-primary hover:bg-primary/90 korean-text"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
               onClick={() => handleGenerate('summary')}
               disabled={generateContentMutation.isPending || !selectedFileId || (useMultiLanguage && selectedLanguages.length === 0)}
             >
@@ -218,7 +218,7 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
             </Button>
 
             <Button
-              className="w-full bg-secondary hover:bg-secondary/90 korean-text"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium korean-text"
               onClick={() => handleGenerate('quiz')}
               disabled={generateContentMutation.isPending || !selectedFileId || (useMultiLanguage && selectedLanguages.length === 0)}
             >
@@ -231,7 +231,7 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
             </Button>
 
             <Button
-              className="w-full bg-accent hover:bg-accent/90 korean-text"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium korean-text"
               onClick={() => handleGenerate('study_guide')}
               disabled={generateContentMutation.isPending || !selectedFileId || (useMultiLanguage && selectedLanguages.length === 0)}
             >

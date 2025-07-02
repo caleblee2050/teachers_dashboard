@@ -198,14 +198,16 @@ export default function MyLibrary() {
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold korean-text">AI 콘텐츠 생성 - {selectedFile.originalName}</h3>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => {
                     setShowContentGenerator(false);
                     setSelectedFile(null);
                   }}
+                  className="text-gray-600 hover:text-gray-800 hover:bg-gray-100"
                 >
-                  <i className="fas fa-times"></i>
+                  <i className="fas fa-times mr-1"></i>
+                  닫기
                 </Button>
               </div>
             </div>
