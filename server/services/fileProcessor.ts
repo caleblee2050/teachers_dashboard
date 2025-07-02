@@ -12,18 +12,12 @@ export async function extractTextFromFile(filePath: string, fileType: string): P
       try {
         console.log(`Processing PDF file: ${filePath}`);
         
-        let pdf;
-        try {
-          pdf = await import('pdf-parse');
-        } catch (importError) {
-          console.error('Failed to import pdf-parse:', importError);
-          throw new Error('PDF 파서 라이브러리를 로드할 수 없습니다.');
-        }
+        const pdf = require('pdf-parse');
 
         const dataBuffer = await fs.promises.readFile(filePath);
         console.log(`PDF file size: ${dataBuffer.length} bytes`);
         
-        const data = await pdf.default(dataBuffer);
+        const data = await pdf(dataBuffer);
         console.log(`Extracted text length: ${data.text ? data.text.length : 0}`);
         
         // If we successfully extracted text, return it
@@ -47,7 +41,7 @@ AI 콘텐츠 생성을 위해서는:
 
 참고: 현재 시스템은 텍스트 기반 PDF만 지원합니다.`;
         }
-      } catch (pdfError) {
+      } catch (pdfError: any) {
         console.error('PDF processing error:', pdfError);
         
         // Check if it's a specific file not found error from pdf-parse internal
