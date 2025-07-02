@@ -152,6 +152,12 @@ export default function Dashboard() {
     enabled: isAuthenticated,
   });
 
+  const { data: classroomPermissions } = useQuery({
+    queryKey: ['/api/classroom/check-permissions'],
+    enabled: isAuthenticated,
+    retry: false,
+  });
+
   if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -238,6 +244,50 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Google Classroom Status */}
+      <Card className="mb-8">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-blue-100">
+                <i className="fab fa-google text-blue-600 text-xl"></i>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-semibold text-gray-900 korean-text">Google Classroom 연동</h3>
+                <p className="text-sm text-gray-600 korean-text">
+                  {(classroomPermissions as any)?.hasPermissions 
+                    ? 'Google Classroom에 연결되었습니다' 
+                    : (classroomPermissions as any)?.needsReauth
+                    ? 'Google 계정 재인증이 필요합니다'
+                    : 'Google Classroom 권한을 확인하는 중...'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              {(classroomPermissions as any)?.hasPermissions ? (
+                <div className="flex items-center text-green-600">
+                  <i className="fas fa-check-circle mr-2"></i>
+                  <span className="text-sm korean-text">연결됨</span>
+                </div>
+              ) : (classroomPermissions as any)?.needsReauth ? (
+                <Button 
+                  onClick={() => window.location.href = '/api/auth/google'}
+                  className="korean-text"
+                >
+                  <i className="fas fa-sync mr-2"></i>
+                  다시 연결
+                </Button>
+              ) : (
+                <div className="flex items-center text-yellow-600">
+                  <i className="fas fa-exclamation-circle mr-2"></i>
+                  <span className="text-sm korean-text">확인 중</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* File Upload Section */}
       <FileUpload />

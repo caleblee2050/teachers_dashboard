@@ -152,6 +152,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'File not found' });
       }
 
+      // First, delete all generated content associated with this file
+      try {
+        const generatedContent = await storage.getGeneratedContentByFile(fileId);
+        for (const content of generatedContent) {
+          await storage.deleteGeneratedContent(content.id);
+        }
+      } catch (error) {
+        console.error('Error deleting generated content:', error);
+      }
+
       // Delete physical file
       try {
         await fs.promises.unlink(file.filePath);
@@ -186,6 +196,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const file = await storage.getFile(fileId);
           if (file && file.teacherId === userId) {
+            // First, delete all generated content associated with this file
+            try {
+              const generatedContent = await storage.getGeneratedContentByFile(fileId);
+              for (const content of generatedContent) {
+                await storage.deleteGeneratedContent(content.id);
+              }
+            } catch (error) {
+              console.error('Error deleting generated content for file:', fileId, error);
+            }
+
             // Delete physical file (ignore if already deleted)
             try {
               await fs.promises.unlink(file.filePath);
@@ -514,9 +534,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const classroomService = await createClassroomService(req.user);
       const hasPermissions = await classroomService.checkPermissions();
       res.json({ hasPermissions });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error checking classroom permissions:', error);
-      res.json({ hasPermissions: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      
+      if (error.message?.includes('access token') || error.code === 401) {
+        res.json({ 
+          hasPermissions: false, 
+          needsReauth: true,
+          message: 'Google 계정 재인증이 필요합니다.'
+        });
+      } else {
+        res.json({ 
+          hasPermissions: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      }
+    }
+  });
+
+  // Force Google re-authentication
+  app.post('/api/auth/reauth-google', isAuthenticated, async (req: any, res) => {
+    try {
+      // Update user to clear tokens
+      await storage.upsertUser({
+        id: req.user.id,
+        email: req.user.email,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        accessToken: null,
+        refreshToken: null
+      });
+
+      // Destroy session
+      req.session.destroy((err: any) => {
+        if (err) {
+          console.error('Error destroying session:', err);
+        }
+      });
+
+      res.json({ message: 'Google 계정 재인증을 위해 로그아웃되었습니다.' });
+    } catch (error) {
+      console.error('Error during reauth:', error);
+      res.status(500).json({ message: '재인증 처리 중 오류가 발생했습니다.' });
     }
   });
 

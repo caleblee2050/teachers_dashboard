@@ -5,11 +5,14 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import ContentGenerator from "@/components/ContentGenerator";
 import { useState } from "react";
 
 export default function MyLibrary() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [showContentGenerator, setShowContentGenerator] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<any>(null);
 
   const { data: files, isLoading } = useQuery({
     queryKey: ['/api/files'],
@@ -46,9 +49,14 @@ export default function MyLibrary() {
     },
   });
 
-  const filteredFiles = files?.filter((file: any) =>
+  const filteredFiles = Array.isArray(files) ? files.filter((file: any) =>
     file.originalName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) : [];
+
+  const handleGenerateAI = (file: any) => {
+    setSelectedFile(file);
+    setShowContentGenerator(true);
+  };
 
   const handleDeleteFile = (fileId: string, fileName: string) => {
     if (confirm(`"${fileName}" 파일을 삭제하시겠습니까?`)) {
@@ -143,6 +151,7 @@ export default function MyLibrary() {
                     size="sm" 
                     className="flex-1 korean-text"
                     disabled={!file.extractedText}
+                    onClick={() => handleGenerateAI(file)}
                   >
                     <i className="fas fa-robot mr-2"></i>
                     AI 생성
@@ -177,6 +186,32 @@ export default function MyLibrary() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* AI Content Generator Modal */}
+      {showContentGenerator && selectedFile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
+            <div className="p-6 border-b">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold korean-text">AI 콘텐츠 생성 - {selectedFile.originalName}</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowContentGenerator(false);
+                    setSelectedFile(null);
+                  }}
+                >
+                  <i className="fas fa-times"></i>
+                </Button>
+              </div>
+            </div>
+            <div className="p-6">
+              <ContentGenerator files={[selectedFile]} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -129,13 +129,30 @@ export class GoogleClassroomService {
 
   async checkPermissions(): Promise<boolean> {
     try {
+      // Try to refresh token if access token is expired
+      if (this.oauth2Client.credentials.refresh_token) {
+        try {
+          await this.oauth2Client.refreshAccessToken();
+        } catch (refreshError) {
+          console.error('Failed to refresh token:', refreshError);
+        }
+      }
+
       await this.classroom.courses.list({
         teacherId: 'me',
         pageSize: 1,
       });
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Permission check failed:', error);
+      
+      // Check if it's an authentication error
+      if (error.code === 401 || error.status === 401) {
+        console.error('Authentication failed - user needs to re-authenticate with Google');
+      } else if (error.code === 403 || error.status === 403) {
+        console.error('Classroom API access denied - API may not be enabled or insufficient permissions');
+      }
+      
       return false;
     }
   }
