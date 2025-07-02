@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,6 +24,23 @@ type AddStudentForm = {
 export default function StudentManagement() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
+  const [location, setLocation] = useLocation();
+
+  // Check for success message in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    
+    if (success === 'google_connected') {
+      toast({
+        title: "Google Classroom 연결 완료",
+        description: "Google Classroom 권한이 성공적으로 부여되었습니다. 이제 동기화를 사용할 수 있습니다.",
+      });
+      
+      // Clean up URL
+      window.history.replaceState({}, '', '/student-management');
+    }
+  }, [toast]);
 
   const addStudentFormSchema = z.object({
     name: z.string().min(1, '이름을 입력해주세요'),

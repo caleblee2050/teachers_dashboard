@@ -288,14 +288,22 @@ export async function setupAuth(app: Express) {
     });
   });
 
-  // Add a catch-all route to debug callback issues
-  app.all('/api/auth/google/*', (req, res, next) => {
-    console.log('=== OAuth Route Hit ===');
-    console.log('Method:', req.method);
-    console.log('Path:', req.path);
-    console.log('URL:', req.url);
-    console.log('Query:', req.query);
-    next();
+  // Google OAuth re-authentication route for classroom permissions
+  app.get('/api/auth/google', (req, res, next) => {
+    console.log('=== Google OAuth Re-auth Request ===');
+    console.log('Starting Google OAuth flow for classroom access...');
+    
+    passport.authenticate('google', { 
+      scope: [
+        'profile', 
+        'email',
+        'https://www.googleapis.com/auth/classroom.courses.readonly',
+        'https://www.googleapis.com/auth/classroom.coursework.students'
+      ],
+      prompt: 'select_account consent',
+      accessType: 'offline',
+      includeGrantedScopes: true
+    })(req, res, next);
   });
 
   app.get('/api/auth/google/callback', (req, res, next) => {
@@ -339,8 +347,8 @@ export async function setupAuth(app: Express) {
           return res.redirect(`/?error=login_error&message=${encodeURIComponent(loginErr.message || 'Login failed')}`);
         }
         
-        console.log('User successfully logged in:', user.id);
-        return res.redirect('/?success=login');
+        console.log('User successfully logged in with Google tokens:', user.id);
+        return res.redirect('/student-management?success=google_connected');
       });
     })(req, res, next);
   });
