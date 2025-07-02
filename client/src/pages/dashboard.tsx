@@ -1,16 +1,21 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import FileUpload from "@/components/FileUpload";
 import ContentGenerator from "@/components/ContentGenerator";
 import GeneratedContent from "@/components/GeneratedContent";
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Dashboard() {
   const { toast } = useToast();
   const { user, isAuthenticated, isLoading } = useAuth();
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [selectedContent, setSelectedContent] = useState<string[]>([]);
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -39,6 +44,108 @@ export default function Dashboard() {
 
   // Debug log for files
   console.log('Dashboard files data:', { recentFiles, filesLoading, isAuthenticated });
+
+  // Delete files mutation
+  const deleteFilesMutation = useMutation({
+    mutationFn: async (fileIds: string[]) => {
+      if (fileIds.length === 1) {
+        const response = await apiRequest('DELETE', `/api/files/${fileIds[0]}`);
+        return await response.json();
+      } else {
+        const response = await apiRequest('DELETE', '/api/files', { fileIds });
+        return await response.json();
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      setSelectedFiles([]);
+      toast({
+        title: "삭제 완료",
+        description: "선택한 파일이 삭제되었습니다.",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => window.location.href = "/api/login", 500);
+        return;
+      }
+      toast({
+        title: "삭제 실패",
+        description: "파일 삭제 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete content mutation
+  const deleteContentMutation = useMutation({
+    mutationFn: async (contentIds: string[]) => {
+      if (contentIds.length === 1) {
+        const response = await apiRequest('DELETE', `/api/content/${contentIds[0]}`);
+        return await response.json();
+      } else {
+        const response = await apiRequest('DELETE', '/api/content', { contentIds });
+        return await response.json();
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/content'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      setSelectedContent([]);
+      toast({
+        title: "삭제 완료",
+        description: "선택한 콘텐츠가 삭제되었습니다.",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => window.location.href = "/api/login", 500);
+        return;
+      }
+      toast({
+        title: "삭제 실패",
+        description: "콘텐츠 삭제 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFileSelect = (fileId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedFiles(prev => [...prev, fileId]);
+    } else {
+      setSelectedFiles(prev => prev.filter(id => id !== fileId));
+    }
+  };
+
+  const handleContentSelect = (contentId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedContent(prev => [...prev, contentId]);
+    } else {
+      setSelectedContent(prev => prev.filter(id => id !== contentId));
+    }
+  };
+
+  const handleDeleteSelectedFiles = () => {
+    if (selectedFiles.length === 0) return;
+    deleteFilesMutation.mutate(selectedFiles);
+  };
+
+  const handleDeleteSelectedContent = () => {
+    if (selectedContent.length === 0) return;
+    deleteContentMutation.mutate(selectedContent);
+  };
 
   const { data: recentContent, isLoading: contentLoading } = useQuery({
     queryKey: ['/api/content'],
@@ -142,9 +249,22 @@ export default function Dashboard() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900 korean-text">최근 업로드</h3>
-              <a href="/library" className="text-primary hover:text-primary/80 text-sm font-medium korean-text">
-                모두 보기
-              </a>
+              <div className="flex items-center space-x-2">
+                {selectedFiles.length > 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleDeleteSelectedFiles}
+                    disabled={deleteFilesMutation.isPending}
+                    className="korean-text"
+                  >
+                    {deleteFilesMutation.isPending ? "삭제 중..." : `선택 삭제 (${selectedFiles.length})`}
+                  </Button>
+                )}
+                <a href="/library" className="text-primary hover:text-primary/80 text-sm font-medium korean-text">
+                  모두 보기
+                </a>
+              </div>
             </div>
           </div>
           <CardContent className="p-6">
@@ -167,6 +287,11 @@ export default function Dashboard() {
                 {recentFiles.slice(0, 3).map((file: any) => (
                   <div key={file.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
                     <div className="flex items-center">
+                      <Checkbox
+                        checked={selectedFiles.includes(file.id)}
+                        onCheckedChange={(checked) => handleFileSelect(file.id, checked as boolean)}
+                        className="mr-3"
+                      />
                       <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-3">
                         <i className={getFileIcon(file.fileType)}></i>
                       </div>
@@ -181,9 +306,15 @@ export default function Dashboard() {
                       <button className="text-primary hover:text-primary/80">
                         <i className="fas fa-robot"></i>
                       </button>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <i className="fas fa-ellipsis-v"></i>
-                      </button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteFilesMutation.mutate([file.id])}
+                        disabled={deleteFilesMutation.isPending}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -203,7 +334,13 @@ export default function Dashboard() {
       </div>
 
       {/* Generated Content Display */}
-      <GeneratedContent content={Array.isArray(recentContent) ? recentContent : []} />
+      <GeneratedContent 
+        content={Array.isArray(recentContent) ? recentContent : []} 
+        selectedContent={selectedContent}
+        onContentSelect={handleContentSelect}
+        onDeleteSelected={handleDeleteSelectedContent}
+        isDeleting={deleteContentMutation.isPending}
+      />
     </div>
   );
 }

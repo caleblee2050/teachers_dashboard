@@ -78,15 +78,13 @@ export default function FileUpload() {
 
     const allowedTypes = [
       'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       'text/plain'
     ];
 
     if (!allowedTypes.includes(file.type)) {
       toast({
         title: "지원하지 않는 파일 형식",
-        description: "PDF, DOCX, PPTX, TXT 파일만 업로드할 수 있습니다.",
+        description: "PDF와 TXT 파일만 업로드할 수 있습니다.",
         variant: "destructive",
       });
       return;
@@ -166,7 +164,7 @@ export default function FileUpload() {
                 파일 선택하기
               </Button>
               <p className="text-sm text-gray-500 mt-2 korean-text">
-                최대 10MB, PDF, DOCX, PPTX, TXT 형식 지원
+                최대 10MB, PDF와 TXT 형식 지원
               </p>
             </>
           )}
@@ -176,7 +174,7 @@ export default function FileUpload() {
           ref={fileInputRef}
           type="file"
           className="hidden"
-          accept=".pdf,.docx,.pptx,.txt"
+          accept=".pdf,.txt"
           onChange={(e) => handleFileSelect(e.target.files)}
         />
       </CardContent>

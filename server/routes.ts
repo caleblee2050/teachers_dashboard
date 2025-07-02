@@ -45,15 +45,13 @@ const upload = multer({
     
     const allowedTypes = [
       'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       'text/plain'
     ];
     
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only PDF, DOCX, PPTX, and TXT files are allowed.'));
+      cb(new Error('Invalid file type. Only PDF and TXT files are allowed.'));
     }
   }
 });
@@ -173,6 +171,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete multiple files
+  app.delete('/api/files', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { fileIds } = req.body;
+      
+      if (!Array.isArray(fileIds) || fileIds.length === 0) {
+        return res.status(400).json({ message: 'Invalid file IDs' });
+      }
+
+      const results = [];
+      for (const fileId of fileIds) {
+        try {
+          const file = await storage.getFile(fileId);
+          if (file && file.teacherId === userId) {
+            // Delete physical file
+            try {
+              await fs.promises.unlink(file.filePath);
+            } catch (error) {
+              console.error('Failed to delete physical file:', error);
+            }
+            
+            const deleted = await storage.deleteFile(fileId);
+            results.push({ fileId, success: deleted });
+          } else {
+            results.push({ fileId, success: false, error: 'File not found' });
+          }
+        } catch (error) {
+          results.push({ fileId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+      }
+
+      res.json({ results });
+    } catch (error) {
+      console.error('Error deleting files:', error);
+      res.status(500).json({ message: 'Failed to delete files' });
+    }
+  });
+
   // AI content generation routes
   app.post('/api/generate/:type', isAuthenticated, async (req: any, res) => {
     try {
@@ -256,6 +293,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching file content:', error);
       res.status(500).json({ message: 'Failed to fetch file content' });
+    }
+  });
+
+  // Delete generated content
+  app.delete('/api/content/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const contentId = req.params.id;
+      
+      const content = await storage.getGeneratedContentByTeacher(userId);
+      const targetContent = content.find(c => c.id === contentId);
+      
+      if (!targetContent) {
+        return res.status(404).json({ message: 'Content not found' });
+      }
+
+      const deleted = await storage.deleteGeneratedContent(contentId);
+      if (deleted) {
+        res.json({ message: 'Content deleted successfully' });
+      } else {
+        res.status(500).json({ message: 'Failed to delete content' });
+      }
+    } catch (error) {
+      console.error('Error deleting content:', error);
+      res.status(500).json({ message: 'Failed to delete content' });
+    }
+  });
+
+  // Delete multiple generated content
+  app.delete('/api/content', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { contentIds } = req.body;
+      
+      if (!Array.isArray(contentIds) || contentIds.length === 0) {
+        return res.status(400).json({ message: 'Invalid content IDs' });
+      }
+
+      const userContent = await storage.getGeneratedContentByTeacher(userId);
+      const results = [];
+      
+      for (const contentId of contentIds) {
+        try {
+          const targetContent = userContent.find(c => c.id === contentId);
+          if (targetContent) {
+            const deleted = await storage.deleteGeneratedContent(contentId);
+            results.push({ contentId, success: deleted });
+          } else {
+            results.push({ contentId, success: false, error: 'Content not found' });
+          }
+        } catch (error) {
+          results.push({ contentId, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+      }
+
+      res.json({ results });
+    } catch (error) {
+      console.error('Error deleting content:', error);
+      res.status(500).json({ message: 'Failed to delete content' });
     }
   });
 

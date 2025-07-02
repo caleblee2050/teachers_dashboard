@@ -9,6 +9,10 @@ import ClassroomUploadDialog from "./ClassroomUploadDialog";
 
 interface GeneratedContentProps {
   content: any[];
+  selectedContent?: string[];
+  onContentSelect?: (contentId: string, checked: boolean) => void;
+  onDeleteSelected?: () => void;
+  isDeleting?: boolean;
 }
 
 export default function GeneratedContent({ content }: GeneratedContentProps) {

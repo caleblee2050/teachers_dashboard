@@ -33,6 +33,7 @@ export interface IStorage {
   getGeneratedContentByFile(fileId: string): Promise<GeneratedContent[]>;
   getGeneratedContentByTeacher(teacherId: string): Promise<GeneratedContent[]>;
   getGeneratedContentByShare(shareToken: string): Promise<GeneratedContent | undefined>;
+  deleteGeneratedContent(id: string): Promise<boolean>;
   
   // Student operations
   createStudent(student: InsertStudent): Promise<Student>;
@@ -127,6 +128,10 @@ export class MemStorage implements IStorage {
   async getGeneratedContentByShare(shareToken: string): Promise<GeneratedContent | undefined> {
     return Array.from(this.generatedContent.values())
       .find(content => content.shareToken === shareToken);
+  }
+
+  async deleteGeneratedContent(id: string): Promise<boolean> {
+    return this.generatedContent.delete(id);
   }
 
   // Student operations
@@ -236,6 +241,16 @@ export class DatabaseStorage implements IStorage {
   async getGeneratedContentByShare(shareToken: string): Promise<GeneratedContent | undefined> {
     const [content] = await db.select().from(generatedContent).where(eq(generatedContent.shareToken, shareToken));
     return content;
+  }
+
+  async deleteGeneratedContent(id: string): Promise<boolean> {
+    try {
+      const result = await db.delete(generatedContent).where(eq(generatedContent.id, id));
+      return Boolean(result.rowCount && result.rowCount > 0);
+    } catch (error) {
+      console.error('Error deleting generated content:', error);
+      return false;
+    }
   }
 
   // Student operations
