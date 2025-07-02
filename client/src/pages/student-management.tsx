@@ -133,8 +133,15 @@ export default function StudentManagement() {
 
   const syncStudentsMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/classroom/sync-students');
-      return response;
+      console.log('Starting sync students mutation...');
+      try {
+        const response = await apiRequest('POST', '/api/classroom/sync-students');
+        console.log('Sync students response:', response);
+        return response;
+      } catch (error) {
+        console.error('Sync students error:', error);
+        throw error;
+      }
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/students'] });
