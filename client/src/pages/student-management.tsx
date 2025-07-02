@@ -136,8 +136,11 @@ export default function StudentManagement() {
       console.log('Starting sync students mutation...');
       try {
         const response = await apiRequest('POST', '/api/classroom/sync-students');
-        console.log('Sync students response:', response);
-        return response;
+        console.log('Sync students response status:', response.status);
+        console.log('Sync students response ok:', response.ok);
+        const data = await response.json();
+        console.log('Sync students data:', data);
+        return data;
       } catch (error) {
         console.error('Sync students error:', error);
         throw error;
