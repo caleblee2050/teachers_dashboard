@@ -138,7 +138,7 @@ export default function StudentManagement() {
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="korean-text">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text">
                 <i className="fas fa-plus mr-2"></i>
                 학생 추가
               </Button>
@@ -184,7 +184,7 @@ export default function StudentManagement() {
                   <Button
                     type="submit"
                     disabled={addStudentMutation.isPending}
-                    className="korean-text"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
                   >
                     {addStudentMutation.isPending ? (
                       <>
@@ -264,12 +264,13 @@ export default function StudentManagement() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="destructive"
                           onClick={() => handleDeleteStudent(student.id, student.name)}
                           disabled={deleteStudentMutation.isPending}
-                          className="text-red-600 hover:text-red-900"
+                          className="bg-red-600 hover:bg-red-700 text-white"
                         >
-                          <i className="fas fa-trash"></i>
+                          <i className="fas fa-trash mr-1"></i>
+                          삭제
                         </Button>
                       </td>
                     </tr>
@@ -282,7 +283,11 @@ export default function StudentManagement() {
               <i className="fas fa-users text-gray-300 text-6xl mb-4"></i>
               <h3 className="text-lg font-semibold text-gray-900 mb-2 korean-text">등록된 학생이 없습니다</h3>
               <p className="text-gray-500 mb-6 korean-text">학생을 추가하여 생성된 콘텐츠를 공유해보세요.</p>
-              <Button onClick={() => setIsAddDialogOpen(true)} className="korean-text">
+              <Button 
+                onClick={() => setIsAddDialogOpen(true)} 
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
+              >
+                <i className="fas fa-plus mr-2"></i>
                 첫 번째 학생 추가하기
               </Button>
             </div>
