@@ -192,11 +192,12 @@ export default function GeneratedContent({
                     <Badge variant="secondary">{getLanguageLabel(item.language)}</Badge>
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       onClick={() => copyShareLink(item.shareToken)}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="text-gray-600 hover:text-gray-800"
                     >
-                      <i className="fas fa-share-alt"></i>
+                      <i className="fas fa-share-alt mr-1"></i>
+                      공유
                     </Button>
                     {classroomStatus?.hasPermissions && (
                       <ClassroomUploadDialog
@@ -216,12 +217,13 @@ export default function GeneratedContent({
                     )}
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="destructive"
                       onClick={() => deleteContentMutation.mutate(item.id)}
                       disabled={deleteContentMutation.isPending}
-                      className="text-red-500 hover:text-red-700"
+                      className="bg-red-600 hover:bg-red-700 text-white"
                     >
-                      <i className="fas fa-trash"></i>
+                      <i className="fas fa-trash mr-1"></i>
+                      삭제
                     </Button>
                   </div>
                 </div>

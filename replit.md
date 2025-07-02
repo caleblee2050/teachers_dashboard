@@ -107,6 +107,12 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- July 02, 2025. File upload restrictions and button UI improvements
+  - Restricted file uploads to DOCX and TXT files only for reliable text processing
+  - Removed PDF support due to extraction reliability issues
+  - Added mammoth library for stable DOCX text extraction
+  - Improved button visibility with text labels and better colors
+  - Enhanced user interface clarity across dashboard and library pages
 - July 02, 2025. Google authentication and error handling improvements
   - Modified Google OAuth to show account selection screen instead of direct login
   - Enhanced error handling for Google Classroom API with detailed user guidance

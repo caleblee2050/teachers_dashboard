@@ -149,7 +149,7 @@ export default function MyLibrary() {
                 <div className="flex space-x-2">
                   <Button 
                     size="sm" 
-                    className="flex-1 korean-text"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
                     disabled={!file.extractedText}
                     onClick={() => handleGenerateAI(file)}
                   >
@@ -158,11 +158,13 @@ export default function MyLibrary() {
                   </Button>
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="destructive"
                     onClick={() => handleDeleteFile(file.id, file.originalName)}
                     disabled={deleteFileMutation.isPending}
+                    className="bg-red-600 hover:bg-red-700 text-white"
                   >
-                    <i className="fas fa-trash"></i>
+                    <i className="fas fa-trash mr-2"></i>
+                    삭제
                   </Button>
                 </div>
               </CardContent>

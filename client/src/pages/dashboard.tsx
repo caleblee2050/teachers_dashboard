@@ -369,17 +369,22 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <button className="text-primary hover:text-primary/80">
-                        <i className="fas fa-robot"></i>
-                      </button>
                       <Button
-                        variant="ghost"
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <i className="fas fa-robot mr-1"></i>
+                        AI 생성
+                      </Button>
+                      <Button
+                        variant="destructive"
                         size="sm"
                         onClick={() => deleteFilesMutation.mutate([file.id])}
                         disabled={deleteFilesMutation.isPending}
-                        className="text-red-500 hover:text-red-700"
+                        className="bg-red-600 hover:bg-red-700 text-white"
                       >
-                        <i className="fas fa-trash"></i>
+                        <i className="fas fa-trash mr-1"></i>
+                        삭제
                       </Button>
                     </div>
                   </div>
