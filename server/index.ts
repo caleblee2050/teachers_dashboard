@@ -9,8 +9,14 @@ dotenv.config();
 
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Set charset to UTF-8 for proper Korean filename handling
+app.use((req, res, next) => {
+  res.charset = 'utf-8';
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

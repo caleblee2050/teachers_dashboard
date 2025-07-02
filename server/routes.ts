@@ -18,11 +18,31 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 const upload = multer({
-  dest: uploadDir,
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      // Fix Korean filename encoding by using Buffer
+      const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+      const ext = path.extname(originalName);
+      const name = path.basename(originalName, ext);
+      const sanitizedName = name.replace(/[^a-zA-Z0-9가-힣\s\-_.]/g, '');
+      const timestamp = Date.now();
+      cb(null, `${timestamp}-${sanitizedName}${ext}`);
+    }
+  }),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
+    // Fix originalname encoding issue
+    try {
+      file.originalname = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    } catch (error) {
+      console.log('Filename encoding fix failed, using original name');
+    }
+    
     const allowedTypes = [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
