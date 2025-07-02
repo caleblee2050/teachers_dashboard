@@ -1,10 +1,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { isUnauthorizedError } from "@/lib/authUtils";
 import ClassroomUploadDialog from "./ClassroomUploadDialog";
 
 interface GeneratedContentProps {
@@ -15,7 +18,13 @@ interface GeneratedContentProps {
   isDeleting?: boolean;
 }
 
-export default function GeneratedContent({ content }: GeneratedContentProps) {
+export default function GeneratedContent({ 
+  content, 
+  selectedContent = [], 
+  onContentSelect, 
+  onDeleteSelected,
+  isDeleting = false 
+}: GeneratedContentProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("summary");
 
@@ -24,6 +33,38 @@ export default function GeneratedContent({ content }: GeneratedContentProps) {
     queryKey: ['/api/classroom/check-permissions'],
     retry: false,
     refetchOnWindowFocus: false,
+  });
+
+  // Individual content deletion mutation
+  const deleteContentMutation = useMutation({
+    mutationFn: async (contentId: string) => {
+      const response = await apiRequest('DELETE', `/api/content/${contentId}`);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/content'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      toast({
+        title: "삭제 완료",
+        description: "콘텐츠가 삭제되었습니다.",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => window.location.href = "/api/login", 500);
+        return;
+      }
+      toast({
+        title: "삭제 실패",
+        description: "콘텐츠 삭제 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    },
   });
 
   const copyShareLink = (shareToken: string) => {
@@ -88,16 +129,29 @@ export default function GeneratedContent({ content }: GeneratedContentProps) {
   return (
     <Card>
       <div className="p-6 border-b border-gray-200">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-900 korean-text">생성된 콘텐츠</h3>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="summary" className="korean-text">요약</TabsTrigger>
-              <TabsTrigger value="quiz" className="korean-text">퀴즈</TabsTrigger>
-              <TabsTrigger value="study_guide" className="korean-text">학습가이드</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center space-x-2">
+            {selectedContent && selectedContent.length > 0 && onDeleteSelected && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={onDeleteSelected}
+                disabled={isDeleting}
+                className="korean-text"
+              >
+                {isDeleting ? "삭제 중..." : `선택 삭제 (${selectedContent.length})`}
+              </Button>
+            )}
+          </div>
         </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="summary" className="korean-text">요약</TabsTrigger>
+            <TabsTrigger value="quiz" className="korean-text">퀴즈</TabsTrigger>
+            <TabsTrigger value="study_guide" className="korean-text">학습가이드</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
       <CardContent className="p-6">
         {filteredContent.length > 0 ? (
@@ -105,10 +159,19 @@ export default function GeneratedContent({ content }: GeneratedContentProps) {
             {filteredContent.map((item) => (
               <div key={item.id} className={`rounded-lg p-4 border ${getBackgroundColor(item.contentType)}`}>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-gray-900 flex items-center">
-                    <i className={`${getContentTypeIcon(item.contentType)} mr-2`}></i>
-                    {item.title}
-                  </h4>
+                  <div className="flex items-center">
+                    {onContentSelect && (
+                      <Checkbox
+                        checked={selectedContent.includes(item.id)}
+                        onCheckedChange={(checked) => onContentSelect(item.id, checked as boolean)}
+                        className="mr-3"
+                      />
+                    )}
+                    <h4 className="font-semibold text-gray-900 flex items-center">
+                      <i className={`${getContentTypeIcon(item.contentType)} mr-2`}></i>
+                      {item.title}
+                    </h4>
+                  </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant="secondary">{getLanguageLabel(item.language)}</Badge>
                     <Button
@@ -118,6 +181,31 @@ export default function GeneratedContent({ content }: GeneratedContentProps) {
                       className="text-gray-400 hover:text-gray-600"
                     >
                       <i className="fas fa-share-alt"></i>
+                    </Button>
+                    {classroomStatus?.hasPermissions && (
+                      <ClassroomUploadDialog
+                        contentId={item.id}
+                        contentTitle={item.title}
+                        contentType={item.contentType}
+                      >
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-green-500 hover:text-green-700 korean-text"
+                        >
+                          <i className="fas fa-school mr-1"></i>
+                          Classroom
+                        </Button>
+                      </ClassroomUploadDialog>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => deleteContentMutation.mutate(item.id)}
+                      disabled={deleteContentMutation.isPending}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <i className="fas fa-trash"></i>
                     </Button>
                   </div>
                 </div>
@@ -242,55 +330,6 @@ export default function GeneratedContent({ content }: GeneratedContentProps) {
                   <span className="text-sm text-gray-600">
                     생성일: {new Date(item.createdAt).toLocaleDateString('ko-KR')} {new Date(item.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  <div className="flex space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => copyShareLink(item.shareToken)}
-                      className={`text-sm ${
-                        item.contentType === 'summary' ? 'text-primary border-primary hover:bg-primary hover:text-white' :
-                        item.contentType === 'quiz' ? 'text-secondary border-secondary hover:bg-secondary hover:text-white' :
-                        'text-accent border-accent hover:bg-accent hover:text-white'
-                      }`}
-                    >
-                      공유 링크 복사
-                    </Button>
-                    {classroomStatus?.hasPermissions ? (
-                      <ClassroomUploadDialog
-                        contentId={item.id}
-                        contentTitle={item.title}
-                        contentType={item.contentType}
-                      >
-                        <Button
-                          size="sm"
-                          className={`text-sm ${
-                            item.contentType === 'summary' ? 'bg-primary hover:bg-primary/90' :
-                            item.contentType === 'quiz' ? 'bg-secondary hover:bg-secondary/90' :
-                            'bg-accent hover:bg-accent/90'
-                          }`}
-                        >
-                          Classroom에 업로드
-                        </Button>
-                      </ClassroomUploadDialog>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          toast({
-                            title: "Google Classroom API 필요",
-                            description: "Classroom에 업로드 버튼을 클릭하여 API 활성화 방법을 확인하세요.",
-                            variant: "default",
-                          });
-                        }}
-                        className="text-sm text-gray-500"
-                        disabled
-                      >
-                        <i className="fas fa-lock mr-1"></i>
-                        Classroom 업로드
-                      </Button>
-                    )}
-                  </div>
                 </div>
               </div>
             ))}

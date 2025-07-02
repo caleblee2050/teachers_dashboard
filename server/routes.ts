@@ -186,11 +186,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const file = await storage.getFile(fileId);
           if (file && file.teacherId === userId) {
-            // Delete physical file
+            // Delete physical file (ignore if already deleted)
             try {
               await fs.promises.unlink(file.filePath);
             } catch (error) {
-              console.error('Failed to delete physical file:', error);
+              // File might already be deleted, continue with database deletion
+              console.log('Physical file already deleted or not found:', file.filePath);
             }
             
             const deleted = await storage.deleteFile(fileId);

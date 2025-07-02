@@ -34,13 +34,15 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
   const generateContentMutation = useMutation({
     mutationFn: async ({ type, fileId, languages }: { type: string; fileId: string; languages: string[] }) => {
       if (languages.length === 1) {
-        return await apiRequest('POST', `/api/generate/${type}`, { fileId, language: languages[0] });
+        const response = await apiRequest('POST', `/api/generate/${type}`, { fileId, language: languages[0] });
+        return await response.json();
       } else {
         // Generate for multiple languages
         const results = await Promise.all(
-          languages.map(lang => 
-            apiRequest('POST', `/api/generate/${type}`, { fileId, language: lang })
-          )
+          languages.map(async (lang) => {
+            const response = await apiRequest('POST', `/api/generate/${type}`, { fileId, language: lang });
+            return await response.json();
+          })
         );
         return results;
       }
