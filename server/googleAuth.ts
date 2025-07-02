@@ -174,9 +174,28 @@ export async function setupAuth(app: Express) {
     done(null, user);
   });
 
-  passport.deserializeUser((user: any, done) => {
+  passport.deserializeUser(async (user: any, done) => {
     console.log('Deserializing user:', user.id);
-    done(null, user);
+    try {
+      // Get fresh user data from database to include Google tokens
+      const dbUser = await storage.getUser(user.id);
+      if (dbUser) {
+        // Merge session data with database data
+        const fullUser = {
+          ...user,
+          ...dbUser,
+          googleAccessToken: dbUser.googleAccessToken,
+          googleRefreshToken: dbUser.googleRefreshToken
+        };
+        console.log('User deserialized with Google tokens:', !!fullUser.googleAccessToken);
+        done(null, fullUser);
+      } else {
+        done(null, user);
+      }
+    } catch (error) {
+      console.error('Error deserializing user:', error);
+      done(null, user);
+    }
   });
 
   console.log('Setting up Google OAuth routes...');
