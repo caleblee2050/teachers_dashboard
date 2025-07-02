@@ -194,6 +194,17 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
+  // New account login route (forces account selection)
+  app.get('/api/login/new-account', (req, res, next) => {
+    console.log('=== New Account Login Request ===');
+    console.log('Starting Google OAuth flow with account selection...');
+    
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'],
+      prompt: 'select_account'
+    })(req, res, next);
+  });
+
   // Add a test route to verify callback URL is reachable
   app.get('/api/test-callback', (req, res) => {
     console.log('Test callback route reached');
