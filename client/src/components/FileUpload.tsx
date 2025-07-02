@@ -77,14 +77,14 @@ export default function FileUpload() {
     }
 
     const allowedTypes = [
-      'application/pdf',
-      'text/plain'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'text/plain' // .txt
     ];
 
     if (!allowedTypes.includes(file.type)) {
       toast({
         title: "지원하지 않는 파일 형식",
-        description: "PDF와 TXT 파일만 업로드할 수 있습니다.",
+        description: "DOCX와 TXT 파일만 업로드할 수 있습니다.",
         variant: "destructive",
       });
       return;
@@ -130,7 +130,7 @@ export default function FileUpload() {
       <div className="p-6 border-b border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900 korean-text">새 자료 업로드</h3>
         <p className="text-sm text-gray-600 mt-1 korean-text">
-          PDF, DOCX, PPTX, TXT 파일을 업로드하여 AI 콘텐츠를 생성하세요.
+          DOCX, TXT 파일을 업로드하여 AI 콘텐츠를 생성하세요.
         </p>
       </div>
       <CardContent className="p-6">
@@ -164,7 +164,7 @@ export default function FileUpload() {
                 파일 선택하기
               </Button>
               <p className="text-sm text-gray-500 mt-2 korean-text">
-                최대 10MB, PDF와 TXT 형식 지원
+                최대 10MB, DOCX와 TXT 형식 지원
               </p>
             </>
           )}
@@ -174,7 +174,7 @@ export default function FileUpload() {
           ref={fileInputRef}
           type="file"
           className="hidden"
-          accept=".pdf,.txt"
+          accept=".docx,.txt"
           onChange={(e) => handleFileSelect(e.target.files)}
         />
       </CardContent>

@@ -44,14 +44,14 @@ const upload = multer({
     }
     
     const allowedTypes = [
-      'application/pdf',
-      'text/plain'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'text/plain' // .txt
     ];
     
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only PDF and TXT files are allowed.'));
+      cb(new Error('Invalid file type. Only DOCX and TXT files are allowed.'));
     }
   }
 });

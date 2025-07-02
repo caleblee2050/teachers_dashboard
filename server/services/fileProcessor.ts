@@ -1,98 +1,41 @@
 import fs from 'fs';
 import path from 'path';
+import mammoth from 'mammoth';
 
 export async function extractTextFromFile(filePath: string, fileType: string): Promise<string> {
   try {
     if (fileType === 'text/plain') {
+      console.log(`Processing TXT file: ${filePath}`);
       const content = await fs.promises.readFile(filePath, 'utf-8');
-      return content;
+      console.log(`TXT file extracted, length: ${content.length}`);
+      return content.trim();
     }
     
-    if (fileType === 'application/pdf') {
-      try {
-        console.log(`Processing PDF file: ${filePath}`);
-        
-        const pdf = require('pdf-parse');
-
-        const dataBuffer = await fs.promises.readFile(filePath);
-        console.log(`PDF file size: ${dataBuffer.length} bytes`);
-        
-        const data = await pdf(dataBuffer);
-        console.log(`Extracted text length: ${data.text ? data.text.length : 0}`);
-        
-        // If we successfully extracted text, return it
-        if (data.text && data.text.trim().length > 0) {
-          console.log('PDF text extraction successful');
-          return data.text.trim();
-        } else {
-          // If PDF has no extractable text (e.g., image-based PDF)
-          console.log('PDF has no extractable text');
-          const fileName = path.basename(filePath);
-          return `PDF 파일 "${fileName}"에서 텍스트를 추출할 수 없습니다.
+    if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      console.log(`Processing DOCX file: ${filePath}`);
+      const buffer = await fs.promises.readFile(filePath);
+      const result = await mammoth.extractRawText({ buffer });
+      console.log(`DOCX file extracted, length: ${result.value.length}`);
+      
+      if (result.value && result.value.trim().length > 0) {
+        return result.value.trim();
+      } else {
+        const fileName = path.basename(filePath);
+        return `DOCX 파일 "${fileName}"에서 텍스트를 추출할 수 없습니다.
 
 이는 다음과 같은 이유일 수 있습니다:
-- 이미지 기반 PDF (스캔된 문서)
-- 텍스트가 없는 PDF
-- 암호화된 PDF
+- 파일이 손상되었거나 암호화됨
+- 텍스트 내용이 없는 파일
+- 지원하지 않는 DOCX 형식
 
 AI 콘텐츠 생성을 위해서는:
-1. PDF 내용을 복사하여 TXT 파일로 저장 후 업로드하거나
-2. 텍스트가 포함된 다른 PDF 파일을 사용해주세요.
-
-참고: 현재 시스템은 텍스트 기반 PDF만 지원합니다.`;
-        }
-      } catch (pdfError: any) {
-        console.error('PDF processing error:', pdfError);
-        
-        // Check if it's a specific file not found error from pdf-parse internal
-        if (pdfError.code === 'ENOENT' && pdfError.path && pdfError.path.includes('test/data')) {
-          console.log('pdf-parse internal file error, attempting alternative approach');
-          
-          // Try a more direct approach - read the actual file we want to process
-          try {
-            const dataBuffer = await fs.promises.readFile(filePath);
-            
-            // Simple text extraction attempt - look for basic text patterns
-            const text = dataBuffer.toString('latin1');
-            const textMatch = text.match(/BT[\s\S]*?ET/g);
-            
-            if (textMatch && textMatch.length > 0) {
-              // Basic PDF text extraction - this is a simplified approach
-              let extractedText = textMatch.join(' ')
-                .replace(/BT|ET/g, '')
-                .replace(/\/\w+\s+\d+(\.\d+)?\s+Tf/g, '')
-                .replace(/\d+(\.\d+)?\s+\d+(\.\d+)?\s+Td/g, '')
-                .replace(/\[(.*?)\]\s*TJ/g, '$1')
-                .replace(/\s+/g, ' ')
-                .trim();
-              
-              if (extractedText.length > 50) {
-                console.log('Alternative PDF extraction successful');
-                return extractedText;
-              }
-            }
-          } catch (altError) {
-            console.error('Alternative PDF extraction failed:', altError);
-          }
-        }
-        
-        // Final fallback message
-        const fileName = path.basename(filePath);
-        return `PDF 파일 "${fileName}"을 처리하는 중 오류가 발생했습니다.
-
-현재 PDF 텍스트 추출 기능에 문제가 있습니다.
-AI 콘텐츠 생성을 위해 다음 중 하나를 시도해주세요:
-
-1. PDF 내용을 복사하여 TXT 파일로 저장 후 업로드
-2. Word 문서(.docx) 형식으로 업로드
-3. 일반 텍스트(.txt) 파일로 업로드
-
-TXT 파일 업로드 시 실제 콘텐츠로 AI 요약, 퀴즈, 학습 가이드를 생성할 수 있습니다.`;
+1. 다른 DOCX 파일을 사용하거나
+2. 내용을 복사하여 TXT 파일로 저장 후 업로드해주세요.`;
       }
     }
     
     // For unsupported file types
-    throw new Error(`Unsupported file type: ${fileType}`);
+    throw new Error(`지원하지 않는 파일 형식: ${fileType}. DOCX와 TXT 파일만 지원합니다.`);
   } catch (error) {
     console.error(`Failed to extract text from file ${filePath}:`, error);
     const errorMessage = error instanceof Error ? error.message : String(error);
