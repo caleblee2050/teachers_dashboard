@@ -47,7 +47,8 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
 
   const uploadMutation = useMutation({
     mutationFn: async (data: { courseId: string; contentId: string; title: string; description: string }) => {
-      return await apiRequest('POST', '/api/classroom/upload', data);
+      const response = await apiRequest('POST', '/api/classroom/upload', data);
+      return await response.json();
     },
     onSuccess: (result: any) => {
       console.log('Upload result:', result);
