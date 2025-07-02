@@ -50,16 +50,19 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
       return await apiRequest('POST', '/api/classroom/upload', data);
     },
     onSuccess: (result: any) => {
-      if (result?.success) {
+      console.log('Upload result:', result);
+      // Check if result exists and has success property, or if it has assignmentId (indicating success)
+      if (result?.success === true || (result?.assignmentId && result?.success !== false)) {
         toast({
           title: "업로드 완료",
-          description: "Google Classroom에 콘텐츠가 성공적으로 업로드되었습니다.",
+          description: `Google Classroom에 콘텐츠가 성공적으로 업로드되었습니다. ${result.assignmentId ? `(과제 ID: ${result.assignmentId})` : ''}`,
         });
         setOpen(false);
         setSelectedCourse("");
         setTitle(contentTitle);
         setDescription("");
       } else {
+        console.error('Upload failed:', result);
         toast({
           title: "업로드 실패",
           description: result?.error || "알 수 없는 오류가 발생했습니다.",
