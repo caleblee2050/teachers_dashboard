@@ -556,22 +556,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/classroom/check-permissions', isAuthenticated, async (req: any, res) => {
     try {
+      console.log('Checking classroom permissions for user:', req.user?.id);
+      
+      if (!req.user?.accessToken) {
+        console.log('No access token found for user');
+        return res.json({ 
+          hasPermissions: false, 
+          needsReauth: true,
+          message: 'Google 계정 재인증이 필요합니다. 액세스 토큰이 없습니다.'
+        });
+      }
+      
       const classroomService = await createClassroomService(req.user);
       const hasPermissions = await classroomService.checkPermissions();
+      
+      console.log('Classroom permissions check result:', hasPermissions);
       res.json({ hasPermissions });
     } catch (error: any) {
       console.error('Error checking classroom permissions:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        status: error.status,
+        cause: error.cause
+      });
       
-      if (error.message?.includes('access token') || error.code === 401) {
+      // Check for various authentication failure patterns
+      const isAuthError = error.code === 401 || 
+                         error.status === 401 ||
+                         error.message?.includes('authentication') ||
+                         error.message?.includes('access token') ||
+                         error.message?.includes('UNAUTHENTICATED') ||
+                         (error.cause && error.cause.code === 401);
+      
+      if (isAuthError) {
+        console.log('Authentication failed - user needs to re-authenticate with Google');
         res.json({ 
           hasPermissions: false, 
           needsReauth: true,
-          message: 'Google 계정 재인증이 필요합니다.'
+          message: 'Google 계정 재인증이 필요합니다. 권한이 만료되었습니다.'
         });
       } else {
         res.json({ 
           hasPermissions: false, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          message: 'Google Classroom 권한 확인 중 오류가 발생했습니다.'
         });
       }
     }

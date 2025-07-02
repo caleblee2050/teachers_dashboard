@@ -216,7 +216,9 @@ export async function setupAuth(app: Express) {
         'https://www.googleapis.com/auth/classroom.courses.readonly',
         'https://www.googleapis.com/auth/classroom.coursework.students'
       ],
-      prompt: 'select_account'
+      prompt: 'select_account consent',
+      accessType: 'offline',
+      includeGrantedScopes: true
     })(req, res, next);
   });
 

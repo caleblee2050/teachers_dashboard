@@ -48,33 +48,32 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
   const uploadMutation = useMutation({
     mutationFn: async (data: { courseId: string; contentId: string; title: string; description: string }) => {
       const response = await apiRequest('POST', '/api/classroom/upload', data);
-      return await response.json();
+      return response;
     },
-    onSuccess: (result: any) => {
-      console.log('Upload result:', result);
-      // Check if result exists and has success property, or if it has assignmentId (indicating success)
-      if (result?.success === true || (result?.assignmentId && result?.success !== false)) {
-        toast({
-          title: "업로드 완료",
-          description: `Google Classroom에 콘텐츠가 성공적으로 업로드되었습니다. ${result.assignmentId ? `(과제 ID: ${result.assignmentId})` : ''}`,
-        });
-        setOpen(false);
-        setSelectedCourse("");
-        setTitle(contentTitle);
-        setDescription("");
-      } else {
-        console.error('Upload failed:', result);
-        toast({
-          title: "업로드 실패",
-          description: result?.error || "알 수 없는 오류가 발생했습니다.",
-          variant: "destructive",
-        });
-      }
+    onSuccess: (data) => {
+      toast({
+        title: "업로드 완료",
+        description: `Google Classroom에 성공적으로 업로드되었습니다.`,
+      });
+      setOpen(false);
+      setSelectedCourse("");
+      setTitle(contentTitle);
+      setDescription("");
     },
     onError: (error: any) => {
+      console.error('Upload error:', error);
+      
+      let errorMessage = "업로드 중 오류가 발생했습니다.";
+      
+      if (error.message?.includes('권한')) {
+        errorMessage = "Google Classroom 권한이 필요합니다. 다시 로그인해주세요.";
+      } else if (error.message?.includes('API')) {
+        errorMessage = "Google Classroom API 오류가 발생했습니다.";
+      }
+      
       toast({
         title: "업로드 실패",
-        description: error.message || "Google Classroom 업로드에 실패했습니다.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -127,40 +126,60 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="korean-text">Google Classroom에 업로드</DialogTitle>
+          <DialogTitle>Google Classroom에 업로드</DialogTitle>
         </DialogHeader>
         
-        {permissionCheck?.needsReauth ? (
-          <div className="text-center py-8">
-            <i className="fas fa-user-lock text-blue-500 text-3xl mb-4"></i>
-            <p className="text-gray-600 korean-text mb-2">
-              Google 계정 재인증이 필요합니다
-            </p>
-            <p className="text-sm text-gray-500 korean-text mb-4">
-              Google Classroom 권한이 만료되었습니다.<br/>
-              다시 로그인하여 권한을 새로 받아주세요.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                localStorage.setItem('requestAccountSelection', 'true');
-                window.location.href = '/api/logout';
-              }}
-              className="korean-text"
-            >
-              Google 다시 로그인
-            </Button>
+        {(permissionCheck?.needsReauth || (!permissionCheck?.hasPermissions && permissionCheck?.message)) ? (
+          <div className="text-center py-8 space-y-4">
+            <div className="w-16 h-16 mx-auto bg-orange-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Google 재인증 필요
+              </h3>
+              <p className="text-gray-600 mb-1">
+                Google Classroom 권한이 만료되었습니다
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                {permissionCheck?.message || '다시 로그인하여 권한을 새로 받아주세요.'}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Button
+                onClick={() => {
+                  localStorage.setItem('requestAccountSelection', 'true');
+                  window.location.href = '/api/logout';
+                }}
+                className="w-full"
+              >
+                다시 로그인하기
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setOpen(false)}
+                className="w-full"
+              >
+                취소
+              </Button>
+            </div>
           </div>
         ) : coursesError ? (
           <div className="text-center py-8">
-            <i className="fas fa-exclamation-triangle text-yellow-500 text-3xl mb-4"></i>
+            <div className="w-16 h-16 mx-auto bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
             {(coursesError as any)?.message?.includes('API가 활성화되지 않았습니다') || 
              (coursesError as any)?.message?.includes('has not been used in project') ? (
               <>
-                <p className="text-gray-600 korean-text mb-2">
+                <p className="text-gray-600 mb-2">
                   Google Classroom API가 활성화되지 않았습니다.
                 </p>
-                <div className="text-sm text-gray-500 korean-text mb-4 space-y-2">
+                <div className="text-sm text-gray-500 mb-4 space-y-2">
                   <p>다음 단계를 따라 API를 활성화해주세요:</p>
                   <ol className="list-decimal list-inside text-left space-y-1 max-w-md mx-auto">
                     <li>아래 "Google Cloud Console 열기" 버튼 클릭</li>
@@ -174,7 +193,7 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
                   <Button
                     variant="outline"
                     onClick={() => window.open('https://console.developers.google.com/apis/api/classroom.googleapis.com/overview?project=452832396126', '_blank')}
-                    className="korean-text mr-2"
+                    className="mr-2"
                   >
                     Google Cloud Console 열기
                   </Button>
@@ -184,7 +203,6 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
                       localStorage.setItem('requestAccountSelection', 'true');
                       window.location.href = '/api/logout';
                     }}
-                    className="korean-text"
                   >
                     다시 로그인
                   </Button>
@@ -192,11 +210,11 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
               </>
             ) : (
               <>
-                <p className="text-gray-600 korean-text mb-2">
-                  Google Classroom에 접근할 수 없습니다.
+                <p className="text-gray-600 mb-2">
+                  Google Classroom에 연결할 수 없습니다.
                 </p>
-                <p className="text-sm text-gray-500 korean-text mb-4">
-                  Google 계정에 다시 로그인하여 Classroom 권한을 허용해주세요.
+                <p className="text-sm text-gray-500 mb-4">
+                  네트워크 연결을 확인하거나 다시 로그인해주세요.
                 </p>
                 <Button
                   variant="outline"
@@ -204,42 +222,21 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
                     localStorage.setItem('requestAccountSelection', 'true');
                     window.location.href = '/api/logout';
                   }}
-                  className="korean-text"
                 >
                   다시 로그인
                 </Button>
               </>
             )}
           </div>
-        ) : !permissionCheck?.hasPermissions ? (
-          <div className="text-center py-8">
-            <i className="fas fa-lock text-gray-400 text-3xl mb-4"></i>
-            <p className="text-gray-600 korean-text mb-2">
-              Google Classroom 권한이 필요합니다.
-            </p>
-            <p className="text-sm text-gray-500 korean-text mb-4">
-              계정에 다시 로그인하여 Classroom 권한을 허용해주세요.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                localStorage.setItem('requestAccountSelection', 'true');
-                window.location.href = '/api/logout';
-              }}
-              className="korean-text"
-            >
-              권한 허용하기
-            </Button>
-          </div>
         ) : coursesLoading ? (
           <div className="text-center py-8">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600 korean-text">클래스룸 정보를 불러오는 중...</p>
+            <p className="text-gray-600">클래스 목록을 불러오는 중...</p>
           </div>
         ) : (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="course" className="korean-text">클래스 선택</Label>
+              <Label htmlFor="course">클래스 선택</Label>
               <Select value={selectedCourse} onValueChange={setSelectedCourse}>
                 <SelectTrigger>
                   <SelectValue placeholder="업로드할 클래스를 선택하세요" />
@@ -247,47 +244,54 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
                 <SelectContent>
                   {courses && Array.isArray(courses) ? courses.map((course: ClassroomCourse) => (
                     <SelectItem key={course.id} value={course.id}>
-                      {course.name}{course.section ? ` (${course.section})` : ''}
+                      {course.name} {course.section ? `(${course.section})` : ''}
                     </SelectItem>
-                  )) : null}
+                  )) : (
+                    <SelectItem value="no-courses" disabled>
+                      사용 가능한 클래스가 없습니다
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="title" className="korean-text">과제 제목</Label>
+              <Label htmlFor="title">과제 제목</Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder={`${getContentTypeLabel(contentType)} 과제`}
+                placeholder="과제 제목을 입력하세요"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="korean-text">설명 (선택사항)</Label>
+              <Label htmlFor="description">설명 (선택사항)</Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder={`EduAI Assistant에서 생성된 ${getContentTypeLabel(contentType)} 콘텐츠입니다.`}
+                placeholder="과제에 대한 추가 설명을 입력하세요"
                 rows={3}
               />
             </div>
 
-            <div className="flex justify-end space-x-2 pt-4">
+            <div className="bg-blue-50 p-3 rounded-md">
+              <p className="text-sm text-blue-700">
+                <strong>업로드 내용:</strong> {getContentTypeLabel(contentType)} - {contentTitle}
+              </p>
+            </div>
+
+            <div className="flex justify-end space-x-2">
               <Button
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={uploadMutation.isPending}
-                className="korean-text"
               >
                 취소
               </Button>
               <Button
                 onClick={handleUpload}
                 disabled={uploadMutation.isPending || !selectedCourse || !title.trim()}
-                className="korean-text"
               >
                 {uploadMutation.isPending ? (
                   <>
