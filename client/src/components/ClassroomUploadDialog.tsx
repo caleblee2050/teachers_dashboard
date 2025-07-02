@@ -138,11 +138,11 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
                 <div className="text-sm text-gray-500 korean-text mb-4 space-y-2">
                   <p>다음 단계를 따라 API를 활성화해주세요:</p>
                   <ol className="list-decimal list-inside text-left space-y-1 max-w-md mx-auto">
-                    <li>Google Cloud Console에 접속</li>
-                    <li>프로젝트 선택 (Project ID: 452832396126)</li>
-                    <li>"API 및 서비스" → "라이브러리" 이동</li>
-                    <li>"Google Classroom API" 검색 후 활성화</li>
-                    <li>몇 분 후 다시 시도</li>
+                    <li>아래 "Google Cloud Console 열기" 버튼 클릭</li>
+                    <li>페이지 상단에서 파란색 "사용 설정" 버튼 클릭</li>
+                    <li>API 활성화까지 1-2분 대기</li>
+                    <li>이 페이지로 돌아와서 새로고침</li>
+                    <li>필요시 "다시 로그인"으로 권한 재승인</li>
                   </ol>
                 </div>
                 <div className="space-y-2">

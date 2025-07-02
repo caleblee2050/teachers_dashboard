@@ -275,7 +275,7 @@ export default function GeneratedContent({ content }: GeneratedContentProps) {
                         onClick={() => {
                           toast({
                             title: "Google Classroom API 필요",
-                            description: "Google Cloud Console에서 Classroom API를 활성화하거나 다시 로그인해주세요.",
+                            description: "Classroom에 업로드 버튼을 클릭하여 API 활성화 방법을 확인하세요.",
                             variant: "default",
                           });
                         }}
