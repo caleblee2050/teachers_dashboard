@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import ClassroomUploadDialog from "./ClassroomUploadDialog";
 
 interface GeneratedContentProps {
@@ -13,6 +14,13 @@ interface GeneratedContentProps {
 export default function GeneratedContent({ content }: GeneratedContentProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("summary");
+
+  // Check if Google Classroom API is available
+  const { data: classroomStatus } = useQuery<{ hasPermissions: boolean }>({
+    queryKey: ['/api/classroom/check-permissions'],
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   const copyShareLink = (shareToken: string) => {
     const shareUrl = `${window.location.origin}/api/share/${shareToken}`;
@@ -243,22 +251,41 @@ export default function GeneratedContent({ content }: GeneratedContentProps) {
                     >
                       공유 링크 복사
                     </Button>
-                    <ClassroomUploadDialog
-                      contentId={item.id}
-                      contentTitle={item.title}
-                      contentType={item.contentType}
-                    >
+                    {classroomStatus?.hasPermissions ? (
+                      <ClassroomUploadDialog
+                        contentId={item.id}
+                        contentTitle={item.title}
+                        contentType={item.contentType}
+                      >
+                        <Button
+                          size="sm"
+                          className={`text-sm ${
+                            item.contentType === 'summary' ? 'bg-primary hover:bg-primary/90' :
+                            item.contentType === 'quiz' ? 'bg-secondary hover:bg-secondary/90' :
+                            'bg-accent hover:bg-accent/90'
+                          }`}
+                        >
+                          Classroom에 업로드
+                        </Button>
+                      </ClassroomUploadDialog>
+                    ) : (
                       <Button
                         size="sm"
-                        className={`text-sm ${
-                          item.contentType === 'summary' ? 'bg-primary hover:bg-primary/90' :
-                          item.contentType === 'quiz' ? 'bg-secondary hover:bg-secondary/90' :
-                          'bg-accent hover:bg-accent/90'
-                        }`}
+                        variant="outline"
+                        onClick={() => {
+                          toast({
+                            title: "Google Classroom API 필요",
+                            description: "Google Cloud Console에서 Classroom API를 활성화하거나 다시 로그인해주세요.",
+                            variant: "default",
+                          });
+                        }}
+                        className="text-sm text-gray-500"
+                        disabled
                       >
-                        Classroom에 업로드
+                        <i className="fas fa-lock mr-1"></i>
+                        Classroom 업로드
                       </Button>
-                    </ClassroomUploadDialog>
+                    )}
                   </div>
                 </div>
               </div>
