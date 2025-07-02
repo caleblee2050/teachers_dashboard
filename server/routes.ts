@@ -330,12 +330,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const classroomService = await createClassroomService(req.user);
       const courses = await classroomService.getCourses();
       res.json(courses);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching classroom courses:', error);
-      res.status(500).json({ 
-        message: 'Google Classroom에 접근할 수 없습니다. 권한을 확인해주세요.',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      
+      // Check if it's an API not enabled error
+      if (error.code === 403 && error.message?.includes('has not been used in project')) {
+        res.status(403).json({ 
+          message: 'Google Classroom API가 활성화되지 않았습니다.',
+          error: 'API_NOT_ENABLED',
+          details: 'Google Cloud Console에서 Google Classroom API를 활성화해주세요.'
+        });
+      } else if (error.code === 403) {
+        res.status(403).json({ 
+          message: 'Google Classroom 권한이 없습니다.',
+          error: 'PERMISSION_DENIED',
+          details: 'Google 계정에 다시 로그인하여 Classroom 권한을 허용해주세요.'
+        });
+      } else {
+        res.status(500).json({ 
+          message: 'Google Classroom에 접근할 수 없습니다.',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
     }
   });
 

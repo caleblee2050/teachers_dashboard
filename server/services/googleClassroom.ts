@@ -50,8 +50,16 @@ export class GoogleClassroomService {
         descriptionHeading: course.descriptionHeading,
         state: course.courseState!,
       })) || [];
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching courses:', error);
+      
+      // Pass through the original error with its code for better error handling
+      if (error.code === 403) {
+        const newError = new Error(error.message || 'Google Classroom API access forbidden');
+        (newError as any).code = error.code;
+        throw newError;
+      }
+      
       throw new Error('Failed to fetch Google Classroom courses');
     }
   }

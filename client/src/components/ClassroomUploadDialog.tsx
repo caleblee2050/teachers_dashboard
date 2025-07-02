@@ -35,6 +35,7 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
     queryKey: ['/api/classroom/courses'],
     enabled: open,
     retry: false,
+    throwOnError: false,
   });
 
   // Check permissions
@@ -128,22 +129,62 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
         {coursesError ? (
           <div className="text-center py-8">
             <i className="fas fa-exclamation-triangle text-yellow-500 text-3xl mb-4"></i>
-            <p className="text-gray-600 korean-text mb-2">
-              Google Classroom에 접근할 수 없습니다.
-            </p>
-            <p className="text-sm text-gray-500 korean-text mb-4">
-              Google 계정에 다시 로그인하여 Classroom 권한을 허용해주세요.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                localStorage.setItem('requestAccountSelection', 'true');
-                window.location.href = '/api/logout';
-              }}
-              className="korean-text"
-            >
-              다시 로그인
-            </Button>
+            {(coursesError as any)?.message?.includes('API가 활성화되지 않았습니다') || 
+             (coursesError as any)?.message?.includes('has not been used in project') ? (
+              <>
+                <p className="text-gray-600 korean-text mb-2">
+                  Google Classroom API가 활성화되지 않았습니다.
+                </p>
+                <div className="text-sm text-gray-500 korean-text mb-4 space-y-2">
+                  <p>다음 단계를 따라 API를 활성화해주세요:</p>
+                  <ol className="list-decimal list-inside text-left space-y-1 max-w-md mx-auto">
+                    <li>Google Cloud Console에 접속</li>
+                    <li>프로젝트 선택 (Project ID: 452832396126)</li>
+                    <li>"API 및 서비스" → "라이브러리" 이동</li>
+                    <li>"Google Classroom API" 검색 후 활성화</li>
+                    <li>몇 분 후 다시 시도</li>
+                  </ol>
+                </div>
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open('https://console.developers.google.com/apis/api/classroom.googleapis.com/overview?project=452832396126', '_blank')}
+                    className="korean-text mr-2"
+                  >
+                    Google Cloud Console 열기
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      localStorage.setItem('requestAccountSelection', 'true');
+                      window.location.href = '/api/logout';
+                    }}
+                    className="korean-text"
+                  >
+                    다시 로그인
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-600 korean-text mb-2">
+                  Google Classroom에 접근할 수 없습니다.
+                </p>
+                <p className="text-sm text-gray-500 korean-text mb-4">
+                  Google 계정에 다시 로그인하여 Classroom 권한을 허용해주세요.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    localStorage.setItem('requestAccountSelection', 'true');
+                    window.location.href = '/api/logout';
+                  }}
+                  className="korean-text"
+                >
+                  다시 로그인
+                </Button>
+              </>
+            )}
           </div>
         ) : !permissionCheck?.hasPermissions ? (
           <div className="text-center py-8">
