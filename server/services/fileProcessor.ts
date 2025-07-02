@@ -14,22 +14,40 @@ export async function extractTextFromFile(filePath: string, fileType: string): P
         const pdf = await import('pdf-parse');
         const dataBuffer = await fs.promises.readFile(filePath);
         const data = await pdf.default(dataBuffer);
-        return data.text;
+        
+        // If we successfully extracted text, return it
+        if (data.text && data.text.trim().length > 0) {
+          return data.text;
+        } else {
+          // If PDF has no extractable text (e.g., image-based PDF)
+          const fileName = path.basename(filePath);
+          return `PDF 파일 "${fileName}"을 업로드했지만 텍스트를 추출할 수 없습니다.
+
+이는 다음과 같은 이유일 수 있습니다:
+- 이미지 기반 PDF (스캔된 문서)
+- 텍스트가 없는 PDF
+- 암호화된 PDF
+
+AI 콘텐츠 생성을 위해서는:
+1. PDF 내용을 복사하여 TXT 파일로 저장 후 업로드하거나
+2. 텍스트가 포함된 다른 PDF 파일을 사용해주세요.
+
+참고: 현재 시스템은 텍스트 기반 PDF만 지원합니다.`;
+        }
       } catch (pdfError) {
-        console.log('pdf-parse not available, using fallback for PDF');
-        // Fallback: Return a message indicating PDF processing is not available
+        console.log('pdf-parse error:', pdfError);
+        // Fallback: Return a message indicating PDF processing failed
         const fileName = path.basename(filePath);
-        return `PDF 파일이 업로드되었습니다: ${fileName}
+        return `PDF 파일 "${fileName}"을 처리하는 중 오류가 발생했습니다.
 
-이 PDF 파일의 내용을 처리하려면 다음과 같은 텍스트를 추출할 수 있습니다:
+현재 PDF 텍스트 추출 기능에 문제가 있습니다.
+AI 콘텐츠 생성을 위해 다음 중 하나를 시도해주세요:
 
-[PDF 텍스트 추출 기능이 현재 구성 중입니다. 
-TXT 파일을 업로드하시거나, PDF 내용을 직접 복사해서 TXT 파일로 저장 후 업로드해주세요.]
+1. PDF 내용을 복사하여 TXT 파일로 저장 후 업로드
+2. Word 문서(.docx) 형식으로 업로드
+3. 일반 텍스트(.txt) 파일로 업로드
 
-교육용 샘플 내용:
-- 이 파일을 기반으로 AI 콘텐츠를 생성할 수 있습니다
-- 요약, 퀴즈, 학습 가이드 등을 생성할 수 있습니다
-- 여러 언어로 콘텐츠를 생성할 수 있습니다`;
+TXT 파일 업로드 시 실제 콘텐츠로 AI 요약, 퀴즈, 학습 가이드를 생성할 수 있습니다.`;
       }
     }
     

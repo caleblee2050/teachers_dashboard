@@ -1,8 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 
 // This API key is from Gemini Developer API Key, not vertex AI API Key
-const hasGoogleApiKey = !!process.env.GOOGLE_API_KEY;
-const ai = hasGoogleApiKey ? new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY || "" }) : null;
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+console.log('Gemini API Key available:', !!apiKey);
+if (process.env.GOOGLE_API_KEY && process.env.GEMINI_API_KEY) {
+  console.log('Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GEMINI_API_KEY.');
+}
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export interface SummaryContent {
   title: string;
@@ -49,8 +53,8 @@ const getLanguageInstruction = (language: string): string => {
 };
 
 export async function generateSummary(text: string, language: 'ko' | 'en' | 'ja' | 'zh' | 'th' | 'vi' | 'fil'): Promise<SummaryContent> {
-  if (!hasGoogleApiKey || !ai) {
-    throw new Error("Google AI API key not configured. Please add GOOGLE_API_KEY environment variable.");
+  if (!apiKey || !ai) {
+    throw new Error("Gemini API key not configured. Please add GEMINI_API_KEY environment variable.");
   }
   
   try {
@@ -109,8 +113,8 @@ Please format your response as JSON with the following structure:
 }
 
 export async function generateQuiz(text: string, language: 'ko' | 'en' | 'ja' | 'zh' | 'th' | 'vi' | 'fil'): Promise<QuizContent> {
-  if (!hasGoogleApiKey || !ai) {
-    throw new Error("Google AI API key not configured. Please add GOOGLE_API_KEY environment variable.");
+  if (!apiKey || !ai) {
+    throw new Error("Gemini API key not configured. Please add GEMINI_API_KEY environment variable.");
   }
   
   try {
@@ -183,8 +187,8 @@ Please format your response as JSON with the following structure:
 }
 
 export async function generateStudyGuide(text: string, language: 'ko' | 'en' | 'ja' | 'zh' | 'th' | 'vi' | 'fil'): Promise<StudyGuideContent> {
-  if (!hasGoogleApiKey || !ai) {
-    throw new Error("Google AI API key not configured. Please add GOOGLE_API_KEY environment variable.");
+  if (!apiKey || !ai) {
+    throw new Error("Gemini API key not configured. Please add GEMINI_API_KEY environment variable.");
   }
   
   try {
