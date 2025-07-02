@@ -111,6 +111,11 @@ export async function setupAuth(app: Express) {
     ? `http://${currentDomain}/api/auth/google/callback`
     : `https://${currentDomain}/api/auth/google/callback`;
   
+  console.log('Domain detection:');
+  console.log('- REPLIT_DOMAINS:', process.env.REPLIT_DOMAINS);
+  console.log('- Current domain:', currentDomain);
+  console.log('- Final callback URL:', callbackURL);
+  
   console.log('Using callback URL:', callbackURL);
 
   // Configure Google OAuth strategy
