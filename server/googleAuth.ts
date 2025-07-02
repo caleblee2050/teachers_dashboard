@@ -187,9 +187,9 @@ export async function setupAuth(app: Express) {
     const manualAuthUrl = `https://accounts.google.com/oauth2/auth?` +
       `client_id=${process.env.GOOGLE_CLIENT_ID}&` +
       `redirect_uri=${encodeURIComponent(callbackURL)}&` +
-      `scope=${encodeURIComponent('profile email')}&` +
+      `scope=${encodeURIComponent('profile email https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.students')}&` +
       `response_type=code&` +
-      `prompt=consent`;
+      `prompt=select_account%20consent`;
     
     console.log('Manual Google OAuth URL:', manualAuthUrl);
     
@@ -200,7 +200,7 @@ export async function setupAuth(app: Express) {
         'https://www.googleapis.com/auth/classroom.courses.readonly',
         'https://www.googleapis.com/auth/classroom.coursework.students'
       ],
-      prompt: 'consent'
+      prompt: 'select_account consent'
     })(req, res, next);
   });
 
