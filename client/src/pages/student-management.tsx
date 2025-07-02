@@ -150,11 +150,20 @@ export default function StudentManagement() {
       queryClient.invalidateQueries({ queryKey: ['/api/students'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       
-      const { results } = data;
-      let description = `${results.added}명의 새 학생이 추가되었습니다.`;
-      if (results.skipped > 0) {
-        description += ` ${results.skipped}명은 이미 등록되어 건너뛰었습니다.`;
+      const { results, totalClassroomStudents } = data;
+      
+      let description;
+      if (totalClassroomStudents === 0) {
+        description = "Google Classroom에 등록된 학생이 없습니다.";
+      } else if (results.added === 0 && results.skipped > 0) {
+        description = `${totalClassroomStudents}명의 학생을 확인했습니다. 모든 학생이 이미 등록되어 있습니다.`;
+      } else {
+        description = `${results.added}명의 새 학생이 추가되었습니다.`;
+        if (results.skipped > 0) {
+          description += ` ${results.skipped}명은 이미 등록되어 건너뛰었습니다.`;
+        }
       }
+      
       if (results.errors.length > 0) {
         description += ` ${results.errors.length}명의 학생 추가에 실패했습니다.`;
       }
