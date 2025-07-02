@@ -10,18 +10,31 @@ export async function extractTextFromFile(filePath: string, fileType: string): P
     
     if (fileType === 'application/pdf') {
       try {
-        // Try to use pdf-parse if available
-        const pdf = await import('pdf-parse');
+        console.log(`Processing PDF file: ${filePath}`);
+        
+        let pdf;
+        try {
+          pdf = await import('pdf-parse');
+        } catch (importError) {
+          console.error('Failed to import pdf-parse:', importError);
+          throw new Error('PDF 파서 라이브러리를 로드할 수 없습니다.');
+        }
+
         const dataBuffer = await fs.promises.readFile(filePath);
+        console.log(`PDF file size: ${dataBuffer.length} bytes`);
+        
         const data = await pdf.default(dataBuffer);
+        console.log(`Extracted text length: ${data.text ? data.text.length : 0}`);
         
         // If we successfully extracted text, return it
         if (data.text && data.text.trim().length > 0) {
-          return data.text;
+          console.log('PDF text extraction successful');
+          return data.text.trim();
         } else {
           // If PDF has no extractable text (e.g., image-based PDF)
+          console.log('PDF has no extractable text');
           const fileName = path.basename(filePath);
-          return `PDF 파일 "${fileName}"을 업로드했지만 텍스트를 추출할 수 없습니다.
+          return `PDF 파일 "${fileName}"에서 텍스트를 추출할 수 없습니다.
 
 이는 다음과 같은 이유일 수 있습니다:
 - 이미지 기반 PDF (스캔된 문서)
@@ -35,8 +48,41 @@ AI 콘텐츠 생성을 위해서는:
 참고: 현재 시스템은 텍스트 기반 PDF만 지원합니다.`;
         }
       } catch (pdfError) {
-        console.log('pdf-parse error:', pdfError);
-        // Fallback: Return a message indicating PDF processing failed
+        console.error('PDF processing error:', pdfError);
+        
+        // Check if it's a specific file not found error from pdf-parse internal
+        if (pdfError.code === 'ENOENT' && pdfError.path && pdfError.path.includes('test/data')) {
+          console.log('pdf-parse internal file error, attempting alternative approach');
+          
+          // Try a more direct approach - read the actual file we want to process
+          try {
+            const dataBuffer = await fs.promises.readFile(filePath);
+            
+            // Simple text extraction attempt - look for basic text patterns
+            const text = dataBuffer.toString('latin1');
+            const textMatch = text.match(/BT[\s\S]*?ET/g);
+            
+            if (textMatch && textMatch.length > 0) {
+              // Basic PDF text extraction - this is a simplified approach
+              let extractedText = textMatch.join(' ')
+                .replace(/BT|ET/g, '')
+                .replace(/\/\w+\s+\d+(\.\d+)?\s+Tf/g, '')
+                .replace(/\d+(\.\d+)?\s+\d+(\.\d+)?\s+Td/g, '')
+                .replace(/\[(.*?)\]\s*TJ/g, '$1')
+                .replace(/\s+/g, ' ')
+                .trim();
+              
+              if (extractedText.length > 50) {
+                console.log('Alternative PDF extraction successful');
+                return extractedText;
+              }
+            }
+          } catch (altError) {
+            console.error('Alternative PDF extraction failed:', altError);
+          }
+        }
+        
+        // Final fallback message
         const fileName = path.basename(filePath);
         return `PDF 파일 "${fileName}"을 처리하는 중 오류가 발생했습니다.
 
