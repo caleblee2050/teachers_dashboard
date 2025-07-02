@@ -658,12 +658,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Checking classroom permissions for user:', req.user?.id);
       
-      if (!req.user?.accessToken) {
-        console.log('No access token found for user');
+      if (!req.user?.googleAccessToken) {
+        console.log('No Google access token found for user');
         return res.json({ 
           hasPermissions: false, 
           needsReauth: true,
-          message: 'Google 계정 재인증이 필요합니다. 액세스 토큰이 없습니다.'
+          message: 'Google Classroom 권한이 필요합니다. Google 계정 연결을 먼저 진행해주세요.'
         });
       }
       

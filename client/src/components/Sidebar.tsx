@@ -20,7 +20,7 @@ export default function Sidebar() {
       label: 'AI 콘텐츠 생성',
     },
     {
-      path: '/students',
+      path: '/student-management',
       icon: 'fas fa-users',
       label: '학생 관리',
     },

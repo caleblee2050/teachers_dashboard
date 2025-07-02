@@ -214,9 +214,9 @@ export class GoogleClassroomService {
 }
 
 export async function createClassroomService(user: any): Promise<GoogleClassroomService> {
-  if (!user.accessToken) {
+  if (!user.googleAccessToken) {
     throw new Error('User does not have Google access token');
   }
 
-  return new GoogleClassroomService(user.accessToken, user.refreshToken);
+  return new GoogleClassroomService(user.googleAccessToken, user.googleRefreshToken);
 }

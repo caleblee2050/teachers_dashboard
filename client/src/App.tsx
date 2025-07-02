@@ -40,7 +40,7 @@ function Router() {
                   <Route path="/" component={Dashboard} />
                   <Route path="/library" component={MyLibrary} />
                   <Route path="/ai-content" component={AIContent} />
-                  <Route path="/students" component={StudentManagement} />
+                  <Route path="/student-management" component={StudentManagement} />
                   <Route path="/shared" component={SharedContent} />
                   <Route component={NotFound} />
                 </Switch>

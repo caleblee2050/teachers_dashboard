@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { isUnauthorizedError } from '@/lib/authUtils';
 import { insertStudentSchema } from '@shared/schema';
@@ -39,6 +40,11 @@ export default function StudentManagement() {
   const { data: students = [], isLoading: studentsLoading } = useQuery({
     queryKey: ['/api/students'],
     staleTime: 30000,
+  });
+
+  const { data: classroomPermissions } = useQuery({
+    queryKey: ['/api/classroom/check-permissions'],
+    staleTime: 60000,
   });
 
   const addStudentMutation = useMutation({
@@ -144,11 +150,30 @@ export default function StudentManagement() {
       }
       
       const errorMessage = error.message || "Google 클래스룸 동기화에 실패했습니다.";
-      toast({
-        title: "동기화 오류",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      
+      // Check if it's an authentication error and suggest re-login
+      if (errorMessage.includes('Google authentication required') || errorMessage.includes('authentication required')) {
+        toast({
+          title: "Google 인증 필요",
+          description: "Google Classroom 접근을 위해 다시 로그인이 필요합니다.",
+          variant: "destructive",
+          action: (
+            <ToastAction
+              altText="Google 로그인"
+              onClick={() => window.open('/api/login', '_blank')}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Google 로그인
+            </ToastAction>
+          ),
+        });
+      } else {
+        toast({
+          title: "동기화 오류",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -179,25 +204,40 @@ export default function StudentManagement() {
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2 korean-text">학생 관리</h2>
             <p className="text-gray-600 korean-text">학생들을 관리하고 생성된 콘텐츠를 공유하세요.</p>
+            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800 korean-text">
+                <i className="fas fa-info-circle mr-2"></i>
+                Google 클래스룸 동기화를 사용하려면 먼저 "Google Classroom 연결" 버튼을 클릭하여 Classroom 권한을 부여해주세요.
+              </p>
+            </div>
           </div>
-          <div className="flex space-x-3">
-            <Button
-              onClick={syncStudents}
-              disabled={syncStudentsMutation.isPending}
-              className="bg-green-600 hover:bg-green-700 text-white font-medium korean-text"
-            >
-              {syncStudentsMutation.isPending ? (
-                <>
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
-                  동기화 중...
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-sync mr-2"></i>
-                  Google 클래스룸 동기화
-                </>
-              )}
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex space-x-3">
+              <Button
+                onClick={() => window.open('/api/login', '_blank')}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
+              >
+                <i className="fas fa-google mr-2"></i>
+                Google Classroom 연결
+              </Button>
+              <Button
+                onClick={syncStudents}
+                disabled={syncStudentsMutation.isPending}
+                className="bg-green-600 hover:bg-green-700 text-white font-medium korean-text"
+              >
+                {syncStudentsMutation.isPending ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    동기화 중...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-sync mr-2"></i>
+                    Google 클래스룸 동기화
+                  </>
+                )}
+              </Button>
+            </div>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text">
