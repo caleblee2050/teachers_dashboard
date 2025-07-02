@@ -55,7 +55,7 @@ export function getSession() {
   });
 }
 
-async function upsertUser(profile: any) {
+async function upsertUser(profile: any, accessToken?: string, refreshToken?: string) {
   console.log('Upserting user:', profile.id, profile.emails?.[0]?.value);
   
   await storage.upsertUser({
@@ -64,6 +64,8 @@ async function upsertUser(profile: any) {
     firstName: profile.name?.givenName || null,
     lastName: profile.name?.familyName || null,
     profileImageUrl: profile.photos?.[0]?.value || null,
+    googleAccessToken: accessToken || null,
+    googleRefreshToken: refreshToken || null,
   });
 }
 
@@ -128,7 +130,14 @@ export async function setupAuth(app: Express) {
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      callbackURL: callbackURL
+      callbackURL: callbackURL,
+      scope: [
+        'profile',
+        'email',
+        'https://www.googleapis.com/auth/classroom.courses.readonly',
+        'https://www.googleapis.com/auth/classroom.rosters.readonly',
+        'https://www.googleapis.com/auth/classroom.coursework.students'
+      ]
     },
     async (accessToken: string, refreshToken: string, profile: any, done: any) => {
       console.log('=== Google OAuth Verify Function ===');
@@ -137,8 +146,8 @@ export async function setupAuth(app: Express) {
       console.log('Profile Name:', profile.displayName);
       
       try {
-        await upsertUser(profile);
-        console.log('User upserted successfully');
+        await upsertUser(profile, accessToken, refreshToken);
+        console.log('User upserted successfully with Google tokens');
         
         const user = {
           id: profile.id,

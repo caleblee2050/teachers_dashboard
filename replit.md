@@ -107,6 +107,18 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- July 02, 2025. Google Classroom student synchronization completed
+  - Implemented complete Google Classroom student list synchronization
+  - Added automatic student import with duplicate detection and prevention
+  - Extended database schema to store Google OAuth tokens for Classroom API access
+  - Created sync API endpoints with comprehensive error handling
+  - Added green "Google 클래스룸 동기화" button to student management page
+  - Implemented detailed sync reporting (added/skipped/errors) with user feedback
+- July 02, 2025. Button UI improvements across all pages
+  - Enhanced all button visibility with color-coded system (blue for primary, red for delete, green for sync)
+  - Added clear text labels and icons to all interactive buttons
+  - Improved student management page with better delete button styling
+  - Standardized button colors and hover states across dashboard, library, and content generator
 - July 02, 2025. File upload restrictions and button UI improvements
   - Restricted file uploads to DOCX and TXT files only for reliable text processing
   - Removed PDF support due to extraction reliability issues

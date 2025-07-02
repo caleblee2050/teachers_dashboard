@@ -127,6 +127,61 @@ export class GoogleClassroomService {
     }
   }
 
+  async getStudents(): Promise<any[]> {
+    try {
+      // Try to refresh token if access token is expired
+      if (this.oauth2Client.credentials.refresh_token) {
+        try {
+          await this.oauth2Client.refreshAccessToken();
+        } catch (refreshError) {
+          console.error('Failed to refresh token:', refreshError);
+        }
+      }
+
+      const courses = await this.getCourses();
+      const allStudents = new Map();
+
+      for (const course of courses) {
+        try {
+          const studentsResponse = await this.classroom.courses.students.list({
+            courseId: course.id,
+          });
+
+          const students = studentsResponse.data.students || [];
+          
+          for (const student of students) {
+            const studentId = student.profile?.id;
+            const studentName = student.profile?.name?.fullName;
+            const studentEmail = student.profile?.emailAddress;
+
+            if (studentId && studentName && studentEmail) {
+              // Use email as unique identifier to avoid duplicates
+              if (!allStudents.has(studentEmail)) {
+                allStudents.set(studentEmail, {
+                  id: studentId,
+                  name: studentName,
+                  email: studentEmail,
+                  courses: [course.name]
+                });
+              } else {
+                // Add course to existing student
+                const existingStudent = allStudents.get(studentEmail);
+                existingStudent.courses.push(course.name);
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to get students for course ${course.id}:`, error);
+        }
+      }
+
+      return Array.from(allStudents.values());
+    } catch (error: any) {
+      console.error('Error getting students:', error);
+      throw error;
+    }
+  }
+
   async checkPermissions(): Promise<boolean> {
     try {
       // Try to refresh token if access token is expired

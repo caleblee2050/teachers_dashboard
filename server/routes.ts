@@ -463,6 +463,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Google Classroom student sync routes
+  app.get('/api/classroom/students', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = req.user;
+      
+      if (!user.googleAccessToken || !user.googleRefreshToken) {
+        return res.status(401).json({ 
+          message: 'Google authentication required. Please connect your Google account first.' 
+        });
+      }
+
+      const classroomService = await createClassroomService(user);
+      const students = await classroomService.getStudents();
+      
+      res.json(students);
+    } catch (error: any) {
+      console.error('Error fetching classroom students:', error);
+      
+      if (error.code === 401 || error.status === 401) {
+        res.status(401).json({ 
+          message: 'Google authentication expired. Please reconnect your Google account.' 
+        });
+      } else if (error.code === 403 || error.status === 403) {
+        res.status(403).json({ 
+          message: 'Google Classroom API access denied. Please check API permissions and ensure Classroom API is enabled in Google Cloud Console.' 
+        });
+      } else {
+        res.status(500).json({ message: 'Failed to fetch classroom students' });
+      }
+    }
+  });
+
+  app.post('/api/classroom/sync-students', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = req.user;
+      const userId = user.id;
+      
+      if (!user.googleAccessToken || !user.googleRefreshToken) {
+        return res.status(401).json({ 
+          message: 'Google authentication required. Please connect your Google account first.' 
+        });
+      }
+
+      const classroomService = await createClassroomService(user);
+      const classroomStudents = await classroomService.getStudents();
+      
+      // Get existing students to avoid duplicates
+      const existingStudents = await storage.getStudentsByTeacher(userId);
+      const existingEmails = new Set(existingStudents.map(s => s.email));
+      
+      const syncResults = {
+        added: 0,
+        skipped: 0,
+        errors: [] as string[]
+      };
+      
+      for (const classroomStudent of classroomStudents) {
+        try {
+          if (!existingEmails.has(classroomStudent.email)) {
+            const studentData = {
+              name: classroomStudent.name,
+              email: classroomStudent.email,
+              teacherId: userId,
+            };
+            
+            const validatedData = insertStudentSchema.parse(studentData);
+            await storage.createStudent(validatedData);
+            syncResults.added++;
+          } else {
+            syncResults.skipped++;
+          }
+        } catch (error) {
+          console.error(`Failed to add student ${classroomStudent.email}:`, error);
+          syncResults.errors.push(`Failed to add ${classroomStudent.name} (${classroomStudent.email})`);
+        }
+      }
+      
+      res.json({
+        message: 'Student synchronization completed',
+        results: syncResults,
+        totalClassroomStudents: classroomStudents.length
+      });
+      
+    } catch (error: any) {
+      console.error('Error syncing classroom students:', error);
+      
+      if (error.code === 401 || error.status === 401) {
+        res.status(401).json({ 
+          message: 'Google authentication expired. Please reconnect your Google account.' 
+        });
+      } else if (error.code === 403 || error.status === 403) {
+        res.status(403).json({ 
+          message: 'Google Classroom API access denied. Please check API permissions and ensure Classroom API is enabled in Google Cloud Console.' 
+        });
+      } else {
+        res.status(500).json({ message: 'Failed to sync classroom students' });
+      }
+    }
+  });
+
   // Dashboard stats route
   app.get('/api/dashboard/stats', isAuthenticated, async (req: any, res) => {
     try {

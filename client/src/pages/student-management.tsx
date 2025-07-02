@@ -1,39 +1,44 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { isUnauthorizedError } from '@/lib/authUtils';
+import { insertStudentSchema } from '@shared/schema';
 
-const addStudentSchema = z.object({
-  name: z.string().min(1, "이름을 입력해주세요"),
-  email: z.string().email("올바른 이메일 주소를 입력해주세요"),
-});
-
-type AddStudentForm = z.infer<typeof addStudentSchema>;
+type AddStudentForm = {
+  name: string;
+  email: string;
+};
 
 export default function StudentManagement() {
-  const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const { toast } = useToast();
 
-  const { data: students, isLoading } = useQuery({
-    queryKey: ['/api/students'],
+  const addStudentFormSchema = z.object({
+    name: z.string().min(1, '이름을 입력해주세요'),
+    email: z.string().email('올바른 이메일 주소를 입력해주세요')
   });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<AddStudentForm>({
-    resolver: zodResolver(addStudentSchema),
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<AddStudentForm>({
+    resolver: zodResolver(addStudentFormSchema),
+    defaultValues: {
+      name: '',
+      email: ''
+    }
+  });
+
+  const { data: students = [], isLoading: studentsLoading } = useQuery({
+    queryKey: ['/api/students'],
+    staleTime: 30000,
   });
 
   const addStudentMutation = useMutation({
@@ -102,21 +107,60 @@ export default function StudentManagement() {
     },
   });
 
-  const handleDeleteStudent = (studentId: string, studentName: string) => {
-    if (confirm(`"${studentName}" 학생을 삭제하시겠습니까?`)) {
-      deleteStudentMutation.mutate(studentId);
-    }
+  const syncStudentsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/classroom/sync-students');
+      return response;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/students'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      
+      const { results } = data;
+      let description = `${results.added}명의 새 학생이 추가되었습니다.`;
+      if (results.skipped > 0) {
+        description += ` ${results.skipped}명은 이미 등록되어 건너뛰었습니다.`;
+      }
+      if (results.errors.length > 0) {
+        description += ` ${results.errors.length}명의 학생 추가에 실패했습니다.`;
+      }
+      
+      toast({
+        title: "Google 클래스룸 동기화 완료",
+        description,
+      });
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "인증 필요",
+          description: "Google 계정 연결이 필요합니다. 다시 로그인해주세요.",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      
+      const errorMessage = error.message || "Google 클래스룸 동기화에 실패했습니다.";
+      toast({
+        title: "동기화 오류",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const syncStudents = () => {
+    syncStudentsMutation.mutate();
   };
 
   const onSubmit = (data: AddStudentForm) => {
     addStudentMutation.mutate(data);
   };
 
-  const getInitials = (name: string) => {
-    return name.charAt(0).toUpperCase();
-  };
-
-  const getRandomColor = (index: number) => {
+  const getAvatarColor = (index: number) => {
     const colors = [
       'bg-purple-100 text-purple-600',
       'bg-blue-100 text-blue-600',
@@ -136,164 +180,170 @@ export default function StudentManagement() {
             <h2 className="text-2xl font-bold text-gray-900 mb-2 korean-text">학생 관리</h2>
             <p className="text-gray-600 korean-text">학생들을 관리하고 생성된 콘텐츠를 공유하세요.</p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text">
-                <i className="fas fa-plus mr-2"></i>
-                학생 추가
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="korean-text">새 학생 추가</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div>
-                  <Label htmlFor="name" className="korean-text">이름</Label>
-                  <Input
-                    id="name"
-                    {...register('name')}
-                    placeholder="학생 이름을 입력하세요"
-                    className="korean-text"
-                  />
-                  {errors.name && (
-                    <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="email" className="korean-text">이메일</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    {...register('email')}
-                    placeholder="student@school.edu"
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>
-                  )}
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsAddDialogOpen(false)}
-                    className="korean-text"
-                  >
-                    취소
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={addStudentMutation.isPending}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
-                  >
-                    {addStudentMutation.isPending ? (
-                      <>
-                        <i className="fas fa-spinner fa-spin mr-2"></i>
-                        추가 중...
-                      </>
-                    ) : (
-                      '추가'
+          <div className="flex space-x-3">
+            <Button
+              onClick={syncStudents}
+              disabled={syncStudentsMutation.isPending}
+              className="bg-green-600 hover:bg-green-700 text-white font-medium korean-text"
+            >
+              {syncStudentsMutation.isPending ? (
+                <>
+                  <i className="fas fa-spinner fa-spin mr-2"></i>
+                  동기화 중...
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-sync mr-2"></i>
+                  Google 클래스룸 동기화
+                </>
+              )}
+            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text">
+                  <i className="fas fa-plus mr-2"></i>
+                  학생 추가
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="korean-text">새 학생 추가</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  <div>
+                    <Label htmlFor="name" className="korean-text">이름</Label>
+                    <Input
+                      id="name"
+                      {...register('name')}
+                      placeholder="학생 이름을 입력하세요"
+                      className="korean-text"
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
                     )}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  </div>
+                  <div>
+                    <Label htmlFor="email" className="korean-text">이메일</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      {...register('email')}
+                      placeholder="student@school.edu"
+                    />
+                    {errors.email && (
+                      <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>
+                    )}
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsAddDialogOpen(false)}
+                      className="korean-text"
+                    >
+                      취소
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={addStudentMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
+                    >
+                      {addStudentMutation.isPending ? (
+                        <>
+                          <i className="fas fa-spinner fa-spin mr-2"></i>
+                          추가 중...
+                        </>
+                      ) : (
+                        '추가'
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
 
-      {/* Students Table */}
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-6">
-              <div className="space-y-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex items-center space-x-4 animate-pulse">
-                    <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-                    </div>
-                    <div className="h-4 bg-gray-200 rounded w-20"></div>
-                    <div className="h-4 bg-gray-200 rounded w-16"></div>
-                    <div className="w-8 h-8 bg-gray-200 rounded"></div>
-                  </div>
-                ))}
+      {studentsLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {students && Array.isArray(students) && students.length > 0 ? (
+            <>
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900 korean-text">
+                  등록된 학생 ({students.length}명)
+                </h3>
               </div>
-            </div>
-          ) : students && students.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider korean-text">
-                      학생 정보
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider korean-text">
-                      등록일
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider korean-text">
-                      최근 활동
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider korean-text">
-                      관리
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {students.map((student: any, index: number) => (
-                    <tr key={student.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 ${getRandomColor(index)}`}>
-                            <span className="text-sm font-medium">{getInitials(student.name)}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {students.map((student: any, index: number) => (
+                  <Card key={student.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${getAvatarColor(index)}`}>
+                            {student.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-gray-900">{student.name}</div>
-                            <div className="text-sm text-gray-500">{student.email}</div>
+                            <CardTitle className="text-lg korean-text">{student.name}</CardTitle>
+                            <p className="text-sm text-gray-500">{student.email}</p>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(student.createdAt).toLocaleDateString('ko-KR')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 korean-text">
-                        -
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <Button
+                          variant="ghost"
                           size="sm"
-                          variant="destructive"
-                          onClick={() => handleDeleteStudent(student.id, student.name)}
+                          onClick={() => deleteStudentMutation.mutate(student.id)}
                           disabled={deleteStudentMutation.isPending}
-                          className="bg-red-600 hover:bg-red-700 text-white"
+                          className="bg-red-600 hover:bg-red-700 text-white font-medium px-3 py-1"
                         >
-                          <i className="fas fa-trash mr-1"></i>
+                          <i className="fas fa-trash text-xs mr-1"></i>
                           삭제
                         </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <Badge variant="secondary" className="korean-text">
+                          <i className="fas fa-calendar-alt mr-1 text-xs"></i>
+                          {new Date(student.createdAt).toLocaleDateString('ko-KR')}
+                        </Badge>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs korean-text"
+                          >
+                            <i className="fas fa-share-alt mr-1"></i>
+                            콘텐츠 공유
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           ) : (
-            <div className="p-12 text-center">
-              <i className="fas fa-users text-gray-300 text-6xl mb-4"></i>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2 korean-text">등록된 학생이 없습니다</h3>
-              <p className="text-gray-500 mb-6 korean-text">학생을 추가하여 생성된 콘텐츠를 공유해보세요.</p>
-              <Button 
-                onClick={() => setIsAddDialogOpen(true)} 
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
-              >
-                <i className="fas fa-plus mr-2"></i>
-                첫 번째 학생 추가하기
-              </Button>
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-12 text-center">
+                <i className="fas fa-users text-gray-300 text-6xl mb-4"></i>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 korean-text">등록된 학생이 없습니다</h3>
+                <p className="text-gray-500 mb-6 korean-text">학생을 추가하여 생성된 콘텐츠를 공유해보세요.</p>
+                <Button 
+                  onClick={() => setIsAddDialogOpen(true)} 
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
+                >
+                  <i className="fas fa-plus mr-2"></i>
+                  첫 번째 학생 추가하기
+                </Button>
+              </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 }

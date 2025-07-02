@@ -30,6 +30,8 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
+  googleAccessToken: text("google_access_token"),
+  googleRefreshToken: text("google_refresh_token"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
