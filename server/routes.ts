@@ -95,6 +95,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // File routes
+  app.post('/api/files/reprocess/:fileId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { fileId } = req.params;
+      
+      const file = await storage.getFile(fileId);
+      if (!file || file.teacherId !== userId) {
+        return res.status(404).json({ message: 'File not found' });
+      }
+
+      // Re-extract text from file
+      try {
+        const extractedText = await extractTextFromFile(file.filePath, file.fileType);
+        const updatedFile = await storage.updateFileText(fileId, extractedText);
+        res.json(updatedFile);
+      } catch (error) {
+        console.error('Failed to re-extract text:', error);
+        res.status(500).json({ message: 'Failed to re-process file' });
+      }
+    } catch (error) {
+      console.error('File reprocess error:', error);
+      res.status(500).json({ message: 'Failed to reprocess file' });
+    }
+  });
+
   app.post('/api/files/upload', isAuthenticated, upload.single('file'), async (req: any, res) => {
     try {
       if (!req.file) {
