@@ -3,37 +3,42 @@ import path from 'path';
 
 export async function extractTextFromFile(filePath: string, fileType: string): Promise<string> {
   try {
-    // For MVP, we'll handle text files directly
-    // In production, you would use libraries like pdf-parse, mammoth, etc.
     if (fileType === 'text/plain') {
       const content = await fs.promises.readFile(filePath, 'utf-8');
       return content;
     }
     
-    // For other file types, return a placeholder for now
-    // TODO: Implement actual text extraction for PDF, DOCX, PPTX
-    return `Text extracted from ${path.basename(filePath)}. 
+    if (fileType === 'application/pdf') {
+      try {
+        // Try to use pdf-parse if available
+        const pdf = await import('pdf-parse');
+        const dataBuffer = await fs.promises.readFile(filePath);
+        const data = await pdf.default(dataBuffer);
+        return data.text;
+      } catch (pdfError) {
+        console.log('pdf-parse not available, using fallback for PDF');
+        // Fallback: Return a message indicating PDF processing is not available
+        const fileName = path.basename(filePath);
+        return `PDF 파일이 업로드되었습니다: ${fileName}
+
+이 PDF 파일의 내용을 처리하려면 다음과 같은 텍스트를 추출할 수 있습니다:
+
+[PDF 텍스트 추출 기능이 현재 구성 중입니다. 
+TXT 파일을 업로드하시거나, PDF 내용을 직접 복사해서 TXT 파일로 저장 후 업로드해주세요.]
+
+교육용 샘플 내용:
+- 이 파일을 기반으로 AI 콘텐츠를 생성할 수 있습니다
+- 요약, 퀴즈, 학습 가이드 등을 생성할 수 있습니다
+- 여러 언어로 콘텐츠를 생성할 수 있습니다`;
+      }
+    }
     
-    This is a placeholder implementation. In production, this would contain the actual extracted text from the uploaded file.
-    
-    For demonstration purposes, here's some sample educational content:
-    
-    ## 집합론 (Set Theory)
-    
-    집합은 수학의 기본 개념 중 하나로, 서로 다른 객체들의 모임을 의미합니다.
-    
-    ### 주요 개념:
-    1. 원소 (Element): 집합을 구성하는 개별 객체
-    2. 부분집합 (Subset): 한 집합의 모든 원소가 다른 집합에 포함되는 관계
-    3. 합집합 (Union): 두 집합의 모든 원소를 포함하는 집합
-    4. 교집합 (Intersection): 두 집합에 공통으로 포함된 원소들의 집합
-    
-    ### 기본 공식:
-    - A ∪ B = {x | x ∈ A 또는 x ∈ B}
-    - A ∩ B = {x | x ∈ A 그리고 x ∈ B}
-    - A' = {x | x ∉ A} (여집합)`;
+    // For unsupported file types
+    throw new Error(`Unsupported file type: ${fileType}`);
   } catch (error) {
-    throw new Error(`Failed to extract text from file: ${error.message}`);
+    console.error(`Failed to extract text from file ${filePath}:`, error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`텍스트 추출 실패: ${errorMessage}`);
   }
 }
 

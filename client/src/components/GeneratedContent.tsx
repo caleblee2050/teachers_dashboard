@@ -130,7 +130,23 @@ export default function GeneratedContent({
     <Card>
       <div className="p-6 border-b border-gray-200">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 korean-text">생성된 콘텐츠</h3>
+          <div className="flex items-center space-x-3">
+            <h3 className="text-lg font-semibold text-gray-900 korean-text">생성된 콘텐츠</h3>
+            {onContentSelect && filteredContent.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={filteredContent.length > 0 && filteredContent.every(item => selectedContent.includes(item.id))}
+                  onCheckedChange={(checked) => {
+                    filteredContent.forEach(item => {
+                      onContentSelect(item.id, checked as boolean);
+                    });
+                  }}
+                  className="mr-1"
+                />
+                <span className="text-sm text-gray-600 korean-text">전체 선택</span>
+              </div>
+            )}
+          </div>
           <div className="flex items-center space-x-2">
             {selectedContent && selectedContent.length > 0 && onDeleteSelected && (
               <Button

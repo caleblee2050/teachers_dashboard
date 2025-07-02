@@ -248,7 +248,23 @@ export default function Dashboard() {
         <Card>
           <div className="p-6 border-b border-gray-200">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900 korean-text">최근 업로드</h3>
+              <div className="flex items-center space-x-3">
+                <h3 className="text-lg font-semibold text-gray-900 korean-text">최근 업로드</h3>
+{recentFiles && Array.isArray(recentFiles) && recentFiles.length > 0 ? (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={recentFiles.slice(0, 3).length > 0 && recentFiles.slice(0, 3).every((file: any) => selectedFiles.includes(file.id))}
+                      onCheckedChange={(checked) => {
+                        recentFiles.slice(0, 3).forEach((file: any) => {
+                          handleFileSelect(file.id, checked as boolean);
+                        });
+                      }}
+                      className="mr-1"
+                    />
+                    <span className="text-sm text-gray-600 korean-text">전체 선택</span>
+                  </div>
+                ) : null}
+              </div>
               <div className="flex items-center space-x-2">
                 {selectedFiles.length > 0 && (
                   <Button
