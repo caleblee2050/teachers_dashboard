@@ -6,13 +6,7 @@ import dotenv from "dotenv";
 // Load environment variables from .env file
 dotenv.config();
 
-// Force override with new Google OAuth credentials
-process.env.GOOGLE_CLIENT_ID = "1037784984511-u1mvd4jjjj1qngp6n30bgk4eh69a71lr.apps.googleusercontent.com";
-process.env.GOOGLE_CLIENT_SECRET = "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";
 
-console.log('Updated Google OAuth credentials:');
-console.log('Client ID:', process.env.GOOGLE_CLIENT_ID?.substring(0, 25) + '...');
-console.log('Client Secret:', process.env.GOOGLE_CLIENT_SECRET?.substring(0, 15) + '...');
 
 const app = express();
 app.use(express.json());
