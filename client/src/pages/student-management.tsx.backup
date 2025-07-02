@@ -48,65 +48,52 @@ export default function StudentManagement() {
   });
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<AddStudentForm>({
-    resolver: zodResolver(addStudentFormSchema)
+    resolver: zodResolver(addStudentFormSchema),
+    defaultValues: {
+      name: '',
+      email: ''
+    }
   });
 
-  const {
-    data: students,
-    isLoading: studentsLoading,
-    error: studentsError
-  } = useQuery({
+  const { data: students = [], isLoading: studentsLoading } = useQuery({
     queryKey: ['/api/students'],
-    queryFn: async () => {
-      const response = await fetch('/api/students');
-      if (!response.ok) {
-        if (response.status === 401) {
-          setLocation('/');
-          return [];
-        }
-        throw new Error('Failed to fetch students');
-      }
-      return response.json();
-    },
+    staleTime: 30000,
   });
 
-  const {
-    data: permissions,
-    isLoading: permissionsLoading
-  } = useQuery({
+  const { data: classroomPermissions } = useQuery({
     queryKey: ['/api/classroom/check-permissions'],
-    queryFn: async () => {
-      const response = await fetch('/api/classroom/check-permissions');
-      if (!response.ok) {
-        return { hasPermissions: false };
-      }
-      return response.json();
-    },
+    staleTime: 60000,
   });
 
   const addStudentMutation = useMutation({
     mutationFn: async (data: AddStudentForm) => {
-      const response = await apiRequest('POST', '/api/students', data);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add student');
-      }
-      return response.json();
+      await apiRequest('POST', '/api/students', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/students'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      toast({
+        title: "학생 추가됨",
+        description: "새 학생이 성공적으로 추가되었습니다.",
+      });
       reset();
       setIsAddDialogOpen(false);
-      toast({
-        title: "학생이 추가되었습니다",
-        description: "새 학생이 성공적으로 등록되었습니다.",
-      });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
       toast({
-        title: "오류가 발생했습니다",
-        description: error.message,
+        title: "오류",
+        description: "학생 추가에 실패했습니다.",
         variant: "destructive",
       });
     },
@@ -114,29 +101,31 @@ export default function StudentManagement() {
 
   const deleteStudentMutation = useMutation({
     mutationFn: async (studentId: string) => {
-      const response = await apiRequest('DELETE', `/api/students/${studentId}`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete student');
-      }
-      return response.json();
+      await apiRequest('DELETE', `/api/students/${studentId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/students'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       toast({
-        title: "학생이 삭제되었습니다",
+        title: "학생 삭제됨",
         description: "학생이 성공적으로 삭제되었습니다.",
       });
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       if (isUnauthorizedError(error)) {
-        setLocation('/');
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
         return;
       }
       toast({
-        title: "오류가 발생했습니다",
-        description: error.message,
+        title: "오류",
+        description: "학생 삭제에 실패했습니다.",
         variant: "destructive",
       });
     },
@@ -178,50 +167,54 @@ export default function StudentManagement() {
       if (results.errors.length > 0) {
         description += ` ${results.errors.length}명의 학생 추가에 실패했습니다.`;
       }
-
+      
       toast({
-        title: "동기화 완료",
-        description: description,
+        title: "Google 클래스룸 동기화 완료",
+        description,
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       if (isUnauthorizedError(error)) {
-        setLocation('/');
+        toast({
+          title: "인증 필요",
+          description: "Google 계정 연결이 필요합니다. 다시 로그인해주세요.",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
         return;
       }
       
-      let errorMessage = "Google Classroom 동기화 중 오류가 발생했습니다.";
-      if (error.message.includes('insufficient authentication scopes')) {
-        errorMessage = "Google Classroom 권한이 부족합니다. 다시 연결해주세요.";
-      } else if (error.message.includes('API has not been used')) {
-        errorMessage = "Google Classroom API가 활성화되지 않았습니다.";
-      }
+      const errorMessage = error.message || "Google 클래스룸 동기화에 실패했습니다.";
       
-      toast({
-        title: "동기화 실패",
-        description: errorMessage,
-        variant: "destructive",
-        action: error.message.includes('API has not been used') ? (
-          <ToastAction 
-            altText="도움말 보기"
-            onClick={() => window.open('https://console.cloud.google.com/apis/library/classroom.googleapis.com', '_blank')}
-          >
-            API 활성화
-          </ToastAction>
-        ) : undefined,
-      });
+      // Check if it's an authentication error and suggest re-login
+      if (errorMessage.includes('Google authentication required') || errorMessage.includes('authentication required')) {
+        toast({
+          title: "Google 인증 필요",
+          description: "Google Classroom 접근을 위해 다시 로그인이 필요합니다.",
+          variant: "destructive",
+          action: (
+            <ToastAction
+              altText="Google 로그인"
+              onClick={() => window.open('/api/login', '_blank')}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Google 로그인
+            </ToastAction>
+          ),
+        });
+      } else {
+        toast({
+          title: "동기화 오류",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     },
   });
 
   const syncStudents = () => {
-    if (!permissions?.hasPermissions) {
-      toast({
-        title: "권한이 필요합니다",
-        description: "먼저 대시보드에서 Google Classroom에 연결해주세요.",
-        variant: "destructive",
-      });
-      return;
-    }
     syncStudentsMutation.mutate();
   };
 
@@ -251,22 +244,22 @@ export default function StudentManagement() {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
-              onClick={syncStudents}
-              disabled={syncStudentsMutation.isPending}
-              className="bg-green-600 hover:bg-green-700 text-white font-medium korean-text"
-            >
-              {syncStudentsMutation.isPending ? (
-                <>
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
-                  동기화 중...
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-sync mr-2"></i>
-                  Google 클래스룸 동기화
-                </>
-              )}
-            </Button>
+                onClick={syncStudents}
+                disabled={syncStudentsMutation.isPending}
+                className="bg-green-600 hover:bg-green-700 text-white font-medium korean-text"
+              >
+                {syncStudentsMutation.isPending ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    동기화 중...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-sync mr-2"></i>
+                    Google 클래스룸 동기화
+                  </>
+                )}
+              </Button>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text">
@@ -274,7 +267,7 @@ export default function StudentManagement() {
                   학생 추가
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent>
                 <DialogHeader>
                   <DialogTitle className="korean-text">새 학생 추가</DialogTitle>
                 </DialogHeader>
@@ -283,13 +276,12 @@ export default function StudentManagement() {
                     <Label htmlFor="name" className="korean-text">이름</Label>
                     <Input
                       id="name"
-                      type="text"
-                      placeholder="이름을 입력하세요"
                       {...register('name')}
+                      placeholder="학생 이름을 입력하세요"
                       className="korean-text"
                     />
                     {errors.name && (
-                      <p className="text-sm text-red-600 mt-1 korean-text">{errors.name.message}</p>
+                      <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
                     )}
                   </div>
                   <div>
@@ -297,11 +289,11 @@ export default function StudentManagement() {
                     <Input
                       id="email"
                       type="email"
-                      placeholder="student@example.com"
                       {...register('email')}
+                      placeholder="student@school.edu"
                     />
                     {errors.email && (
-                      <p className="text-sm text-red-600 mt-1 korean-text">{errors.email.message}</p>
+                      <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>
                     )}
                   </div>
                   <div className="flex justify-end space-x-2">
@@ -316,7 +308,7 @@ export default function StudentManagement() {
                     <Button
                       type="submit"
                       disabled={addStudentMutation.isPending}
-                      className="bg-blue-600 hover:bg-blue-700 text-white korean-text"
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
                     >
                       {addStudentMutation.isPending ? (
                         <>
@@ -359,24 +351,37 @@ export default function StudentManagement() {
                           </div>
                           <div>
                             <CardTitle className="text-lg korean-text">{student.name}</CardTitle>
-                            <p className="text-sm text-gray-600">{student.email}</p>
+                            <p className="text-sm text-gray-500">{student.email}</p>
                           </div>
                         </div>
                         <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => deleteStudentMutation.mutate(student.id)}
                           disabled={deleteStudentMutation.isPending}
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                          className="bg-red-600 hover:bg-red-700 text-white font-medium px-3 py-1"
                         >
-                          <i className="fas fa-trash text-sm"></i>
+                          <i className="fas fa-trash text-xs mr-1"></i>
+                          삭제
                         </Button>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex items-center justify-between text-sm text-gray-600">
-                        <span className="korean-text">등록일</span>
-                        <span>{new Date(student.createdAt).toLocaleDateString('ko-KR')}</span>
+                      <div className="flex items-center justify-between">
+                        <Badge variant="secondary" className="korean-text">
+                          <i className="fas fa-calendar-alt mr-1 text-xs"></i>
+                          {new Date(student.createdAt).toLocaleDateString('ko-KR')}
+                        </Badge>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs korean-text"
+                          >
+                            <i className="fas fa-share-alt mr-1"></i>
+                            콘텐츠 공유
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -384,34 +389,13 @@ export default function StudentManagement() {
               </div>
             </>
           ) : (
-            <div className="text-center py-12">
-              <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <i className="fas fa-users text-3xl text-gray-400"></i>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2 korean-text">등록된 학생이 없습니다</h3>
-              <p className="text-gray-600 mb-6 korean-text">
-                첫 번째 학생을 추가하거나 Google Classroom에서 동기화하세요.
-              </p>
-              <div className="space-y-3">
-                <Button
-                  onClick={syncStudents}
-                  disabled={syncStudentsMutation.isPending || !permissions?.hasPermissions}
-                  className="bg-green-600 hover:bg-green-700 text-white font-medium korean-text mr-3"
-                >
-                  {syncStudentsMutation.isPending ? (
-                    <>
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
-                      동기화 중...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-sync mr-2"></i>
-                      Google 클래스룸 동기화
-                    </>
-                  )}
-                </Button>
-                <Button
-                  onClick={() => setIsAddDialogOpen(true)}
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-12 text-center">
+                <i className="fas fa-users text-gray-300 text-6xl mb-4"></i>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 korean-text">등록된 학생이 없습니다</h3>
+                <p className="text-gray-500 mb-6 korean-text">학생을 추가하여 생성된 콘텐츠를 공유해보세요.</p>
+                <Button 
+                  onClick={() => setIsAddDialogOpen(true)} 
                   className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
                 >
                   <i className="fas fa-plus mr-2"></i>
