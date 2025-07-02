@@ -13,7 +13,7 @@ import {
   type InsertStudent,
 } from "@shared/schema";
 import { nanoid } from "nanoid";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db } from "./db";
 
 export interface IStorage {
@@ -188,7 +188,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getFilesByTeacher(teacherId: string): Promise<File[]> {
-    return await db.select().from(files).where(eq(files.teacherId, teacherId));
+    return await db.select().from(files)
+      .where(eq(files.teacherId, teacherId))
+      .orderBy(desc(files.createdAt));
   }
 
   async getFile(id: string): Promise<File | undefined> {

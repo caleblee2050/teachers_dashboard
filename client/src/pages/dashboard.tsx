@@ -37,6 +37,9 @@ export default function Dashboard() {
     enabled: isAuthenticated,
   });
 
+  // Debug log for files
+  console.log('Dashboard files data:', { recentFiles, filesLoading, isAuthenticated });
+
   const { data: recentContent, isLoading: contentLoading } = useQuery({
     queryKey: ['/api/content'],
     enabled: isAuthenticated,
@@ -55,7 +58,7 @@ export default function Dashboard() {
       {/* Dashboard Header */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-2 korean-text">
-          안녕하세요, {user?.firstName || '선생님'}!
+          안녕하세요, {(user as any)?.firstName || '선생님'}!
         </h2>
         <p className="text-gray-600 korean-text">
           오늘도 학생들을 위한 멋진 수업을 준비해보세요.
@@ -73,7 +76,7 @@ export default function Dashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 korean-text">업로드된 자료</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {statsLoading ? '...' : dashboardStats?.uploadedFiles || 0}
+                  {statsLoading ? '...' : (dashboardStats as any)?.uploadedFiles || 0}
                 </p>
               </div>
             </div>
@@ -89,7 +92,7 @@ export default function Dashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 korean-text">생성된 콘텐츠</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {statsLoading ? '...' : dashboardStats?.generatedContent || 0}
+                  {statsLoading ? '...' : (dashboardStats as any)?.generatedContent || 0}
                 </p>
               </div>
             </div>
@@ -105,7 +108,7 @@ export default function Dashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 korean-text">등록된 학생</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {statsLoading ? '...' : dashboardStats?.students || 0}
+                  {statsLoading ? '...' : (dashboardStats as any)?.students || 0}
                 </p>
               </div>
             </div>
@@ -121,7 +124,7 @@ export default function Dashboard() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 korean-text">공유된 링크</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {statsLoading ? '...' : dashboardStats?.sharedLinks || 0}
+                  {statsLoading ? '...' : (dashboardStats as any)?.sharedLinks || 0}
                 </p>
               </div>
             </div>
@@ -159,7 +162,7 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-            ) : recentFiles && recentFiles.length > 0 ? (
+            ) : recentFiles && Array.isArray(recentFiles) && recentFiles.length > 0 ? (
               <div className="space-y-4">
                 {recentFiles.slice(0, 3).map((file: any) => (
                   <div key={file.id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
@@ -196,11 +199,11 @@ export default function Dashboard() {
         </Card>
 
         {/* AI Content Generation Panel */}
-        <ContentGenerator files={recentFiles || []} />
+        <ContentGenerator files={Array.isArray(recentFiles) ? recentFiles : []} />
       </div>
 
       {/* Generated Content Display */}
-      <GeneratedContent content={recentContent || []} />
+      <GeneratedContent content={Array.isArray(recentContent) ? recentContent : []} />
     </div>
   );
 }
