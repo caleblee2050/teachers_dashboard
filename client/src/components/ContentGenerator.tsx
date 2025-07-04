@@ -18,6 +18,7 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
   const [selectedLanguage, setSelectedLanguage] = useState<string>("ko");
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(["ko"]);
   const [useMultiLanguage, setUseMultiLanguage] = useState<boolean>(false);
+  const [includePodcast, setIncludePodcast] = useState<boolean>(false);
 
   const availableFiles = files?.filter(file => file.extractedText) || [];
 
@@ -32,7 +33,7 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
   ];
 
   const generateAllContentMutation = useMutation({
-    mutationFn: async ({ fileId, languages }: { fileId: string; languages: string[] }) => {
+    mutationFn: async ({ fileId, languages, includePodcast }: { fileId: string; languages: string[]; includePodcast?: boolean }) => {
       const contentTypes = ['summary', 'quiz', 'study_guide'];
       const results = [];
       
@@ -45,6 +46,22 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
           } catch (error) {
             console.error(`Failed to generate ${type} in ${language}:`, error);
             results.push({ type, language, error: String(error) });
+          }
+        }
+        
+        // 팟캐스트 생성 (각 언어별 요약 기반)
+        if (includePodcast) {
+          try {
+            // 먼저 해당 언어의 요약 콘텐츠 찾기
+            const summaryResult = results.find(r => r.type === 'summary' && r.language === language && r.data);
+            if (summaryResult) {
+              const response = await apiRequest('POST', `/api/content/${summaryResult.data.id}/podcast`, { language });
+              const data = await response.json();
+              results.push({ type: 'podcast', language, data });
+            }
+          } catch (error) {
+            console.error(`Failed to generate podcast in ${language}:`, error);
+            results.push({ type: 'podcast', language, error: String(error) });
           }
         }
       }
@@ -133,6 +150,7 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
     generateAllContentMutation.mutate({
       fileId: selectedFileId,
       languages: languagesToGenerate,
+      includePodcast,
     });
   };
 
@@ -217,6 +235,22 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
             </div>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2 korean-text">
+              추가 옵션
+            </label>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="includePodcast"
+                checked={includePodcast}
+                onCheckedChange={(checked) => setIncludePodcast(checked === true)}
+              />
+              <label htmlFor="includePodcast" className="text-sm text-gray-600 korean-text">
+                팟캐스트도 함께 생성 (요약 기반)
+              </label>
+            </div>
+          </div>
+
           <div className="pt-4 border-t border-gray-200">
             <Button
               size="lg"
@@ -227,17 +261,17 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
               {generateAllContentMutation.isPending ? (
                 <>
                   <i className="fas fa-spinner fa-spin mr-3"></i>
-                  AI 콘텐츠 생성 중... (요약, 퀴즈, 학습가이드)
+                  AI 콘텐츠 생성 중... {includePodcast ? '(요약, 퀴즈, 학습가이드, 팟캐스트)' : '(요약, 퀴즈, 학습가이드)'}
                 </>
               ) : (
                 <>
                   <i className="fas fa-magic mr-3"></i>
-                  통합 콘텐츠 생성하기 (요약/퀴즈/학습가이드)
+                  통합 콘텐츠 생성하기 {includePodcast ? '(요약/퀴즈/학습가이드/팟캐스트)' : '(요약/퀴즈/학습가이드)'}
                 </>
               )}
             </Button>
             <p className="text-xs text-gray-500 mt-2 text-center korean-text">
-              선택한 언어로 요약, 퀴즈, 학습가이드가 모두 생성됩니다
+              선택한 언어로 {includePodcast ? '요약, 퀴즈, 학습가이드, 팟캐스트가' : '요약, 퀴즈, 학습가이드가'} 모두 생성됩니다
             </p>
           </div>
         </div>

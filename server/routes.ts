@@ -71,6 +71,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
+  // Serve uploaded files (including audio files)
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
   // Debug route to check session
   app.get('/api/session', (req: any, res) => {
     console.log('Session check:', {
@@ -416,6 +419,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting content:', error);
       res.status(500).json({ message: 'Failed to delete content' });
+    }
+  });
+
+  // Podcast generation route
+  app.post('/api/content/:id/podcast', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const contentId = req.params.id;
+      const { language = 'ko' } = req.body;
+
+      // 기존 콘텐츠 가져오기
+      const userContent = await storage.getGeneratedContentByTeacher(userId);
+      const existingContent = userContent.find(c => c.id === contentId);
+      
+      if (!existingContent) {
+        return res.status(404).json({ message: 'Content not found' });
+      }
+
+      // 팟캐스트 스크립트 생성
+      const podcastData = await generatePodcastScript(existingContent, language);
+      
+      // 오디오 파일 경로 생성
+      const timestamp = Date.now();
+      const audioFileName = `podcast_${timestamp}.mp3`;
+      const audioFilePath = path.join(process.cwd(), 'uploads', audioFileName);
+      
+      try {
+        // 오디오 생성 시도
+        await generatePodcastAudio(podcastData.script, audioFilePath);
+        podcastData.audioFilePath = `/uploads/${audioFileName}`;
+        podcastData.duration = 300; // 기본 5분 설정
+      } catch (audioError) {
+        console.warn('Audio generation failed, proceeding with script only:', audioError);
+        // 오디오 생성 실패 시 스크립트만 저장
+      }
+
+      // 팟캐스트 콘텐츠 저장
+      const newContent = await storage.createGeneratedContent({
+        fileId: existingContent.fileId,
+        teacherId: userId,
+        contentType: 'podcast',
+        title: podcastData.title,
+        content: podcastData,
+        language,
+        shareToken: nanoid(16),
+      });
+
+      res.json(newContent);
+    } catch (error) {
+      console.error('Error generating podcast:', error);
+      res.status(500).json({ message: 'Failed to generate podcast' });
     }
   });
 

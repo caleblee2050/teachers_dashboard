@@ -401,7 +401,7 @@ export default function GeneratedContent({
                         <p className="text-sm text-gray-700">{item.content.description}</p>
                       </div>
 
-                      {item.content.audioFilePath && (
+                      {item.content.audioFilePath ? (
                         <div className="mb-4">
                           <p className="font-medium korean-text mb-2">오디오:</p>
                           <audio controls className="w-full">
@@ -413,6 +413,12 @@ export default function GeneratedContent({
                               재생 시간: 약 {Math.floor(item.content.duration / 60)}분 {item.content.duration % 60}초
                             </p>
                           )}
+                        </div>
+                      ) : (
+                        <div className="mb-4">
+                          <p className="text-sm text-gray-500 korean-text">
+                            오디오 생성이 현재 일시적으로 비활성화되어 있습니다. 스크립트를 확인하세요.
+                          </p>
                         </div>
                       )}
 

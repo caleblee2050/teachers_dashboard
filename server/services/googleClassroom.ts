@@ -101,13 +101,57 @@ export class GoogleClassroomService {
           formattedDescription += `• ${concept.term}: ${concept.definition}\n`;
         });
         formattedDescription += `\n\n=== 학습 질문 ===\n${contentData.studyQuestions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`;
+      } else if (content.contentType === 'podcast') {
+        formattedDescription += `\n\n=== 팟캐스트 설명 ===\n${contentData.description}`;
+        formattedDescription += `\n\n=== 스크립트 미리보기 ===\n${contentData.script.substring(0, 500)}...`;
+        if (contentData.audioFilePath) {
+          formattedDescription += `\n\n오디오 파일이 포함되어 있습니다.`;
+        }
       }
+
+      // 구글 드라이브에 파일 업로드
+      const drive = google.drive({ version: 'v3', auth: this.oauth2Client });
+      const fileName = `${title.replace(/[^\w\s가-힣-]/g, '')}.txt`;
+      const fileMetadata = {
+        name: fileName,
+        parents: ['root']
+      };
+      
+      const media = {
+        mimeType: 'text/plain',
+        body: formattedDescription
+      };
+
+      const driveFile = await drive.files.create({
+        requestBody: fileMetadata,
+        media: media,
+        fields: 'id'
+      });
+
+      // 파일 권한 설정
+      await drive.permissions.create({
+        fileId: driveFile.data.id!,
+        requestBody: {
+          role: 'reader',
+          type: 'anyone'
+        }
+      });
 
       const assignment = {
         title,
-        description: formattedDescription,
+        description: `${content.title}\n\n콘텐츠 타입: ${content.contentType}\n\n자세한 내용은 첨부된 파일을 확인하세요.`,
         workType: 'ASSIGNMENT',
         state: 'PUBLISHED',
+        materials: [
+          {
+            driveFile: {
+              driveFile: {
+                id: driveFile.data.id,
+                title: fileName
+              }
+            }
+          }
+        ]
       };
 
       const response = await this.classroom.courses.courseWork.create({
