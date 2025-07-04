@@ -40,6 +40,9 @@ export function getSession() {
     createTableIfMissing: false,
     ttl: sessionTtl,
     tableName: "sessions",
+    errorLog: (error: any) => {
+      console.error('Session store error:', error);
+    },
   });
   
   return session({

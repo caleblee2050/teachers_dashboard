@@ -1222,7 +1222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
       
-      archive.on('error', (err) => {
+      archive.on('error', (err: any) => {
         console.error('Archive error:', err);
         res.status(500).json({ message: 'Failed to create ZIP file' });
       });
