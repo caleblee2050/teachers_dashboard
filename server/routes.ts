@@ -674,6 +674,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Classroom batch upload route
+  app.post('/api/classroom/upload-batch', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.googleAccessToken) {
+        return res.status(401).json({ message: 'Google authentication required' });
+      }
+      
+      const { contents, folderName } = req.body;
+      
+      if (!contents || !Array.isArray(contents) || !folderName) {
+        return res.status(400).json({ message: 'Contents array and folder name are required' });
+      }
+      
+      const classroomService = await createClassroomService(user);
+      
+      // Get all courses for the user
+      const courses = await classroomService.getCourses();
+      
+      if (courses.length === 0) {
+        return res.status(404).json({ message: 'No courses found. Please create a course in Google Classroom first.' });
+      }
+      
+      // Use the first active course
+      const activeCourse = courses.find(course => course.state === 'ACTIVE') || courses[0];
+      
+      let totalUploaded = 0;
+      const uploadResults = [];
+      
+      // Upload each content as a separate assignment
+      for (const contentId of contents) {
+        try {
+          const content = await storage.getGeneratedContentByShare(contentId);
+          if (!content) {
+            uploadResults.push({ contentId, success: false, error: 'Content not found' });
+            continue;
+          }
+          
+          const assignmentTitle = `[${folderName}] ${content.title}`;
+          
+          const result = await classroomService.createAssignment(
+            activeCourse.id,
+            assignmentTitle,
+            content.content,
+            undefined, // No due date
+            100 // Default points
+          );
+          
+          if (result.success) {
+            totalUploaded++;
+            uploadResults.push({ contentId, success: true, assignmentId: result.assignmentId });
+          } else {
+            uploadResults.push({ contentId, success: false, error: result.error });
+          }
+        } catch (error: any) {
+          console.error(`Failed to upload content ${contentId}:`, error);
+          uploadResults.push({ contentId, success: false, error: error.message });
+        }
+      }
+      
+      res.json({
+        totalUploaded,
+        totalRequested: contents.length,
+        courseId: activeCourse.id,
+        courseName: activeCourse.name,
+        folderName,
+        results: uploadResults
+      });
+      
+    } catch (error: any) {
+      console.error('Error in batch classroom upload:', error);
+      
+      if (error.code === 401 || error.status === 401) {
+        res.status(401).json({ 
+          message: 'Google authentication expired. Please reconnect your Google account.' 
+        });
+      } else if (error.code === 403 || error.status === 403) {
+        res.status(403).json({ 
+          message: 'Google Classroom API access denied. Please check API permissions and ensure Classroom API is enabled in Google Cloud Console.' 
+        });
+      } else {
+        res.status(500).json({ message: 'Failed to upload content to classroom' });
+      }
+    }
+  });
+
   // Dashboard stats route
   app.get('/api/dashboard/stats', isAuthenticated, async (req: any, res) => {
     try {
