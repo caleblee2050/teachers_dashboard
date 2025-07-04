@@ -371,38 +371,16 @@ AI 오디오 오버뷰 요구사항:
 
 `;
 
-    let contents: any[] = [];
-    
-    if (pdfPath && fs.existsSync(pdfPath)) {
-      console.log(`Uploading PDF for AI Audio Overview: ${pdfPath}`);
-      
-      // PDF 파일 읽기
-      const pdfBuffer = fs.readFileSync(pdfPath);
-      
-      contents.push({
-        inlineData: {
-          data: pdfBuffer.toString('base64'),
-          mimeType: 'application/pdf'
-        }
-      });
-      
-      contents.push({
-        text: overviewPrompt + `PDF 문서의 내용을 분석하여 AI 오디오 오버뷰를 생성해주세요.`
-      });
-    } else {
-      // PDF가 없으면 텍스트 스크립트 사용
-      contents.push({
-        text: overviewPrompt + `\n\n교육 자료:\n${script}`
-      });
-    }
+    // 텍스트만으로 오디오 생성 (PDF 사용 안 함 - 모달리티 제한으로 인해)
+    const contents = [{
+      text: overviewPrompt + `\n\n교육 자료:\n${script}`
+    }];
 
     // AI Audio Overview 생성 시도 - 순서대로 모델 테스트
     let response;
     const modelsToTry = [
-      "gemini-2.0-flash-exp",
-      "gemini-2.5-flash-preview-tts", 
-      "gemini-2.5-pro-preview-tts",
-      "gemini-2.5-flash"
+      "gemini-2.5-flash-preview-tts",
+      "gemini-2.5-pro-preview-tts"
     ];
     
     let lastError;
