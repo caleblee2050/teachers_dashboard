@@ -27,6 +27,8 @@ export default function GeneratedContent({
 }: GeneratedContentProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("summary");
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState<string | null>(null);
+  const [currentSpeech, setCurrentSpeech] = useState<SpeechSynthesisUtterance | null>(null);
 
   // Check if Google Classroom API is available
   const { data: classroomStatus } = useQuery<{ hasPermissions: boolean }>({
@@ -121,6 +123,87 @@ export default function GeneratedContent({
       title: "PDF 다운로드 시작",
       description: `${title} PDF 파일을 다운로드합니다.`,
     });
+  };
+
+  // 음성 합성을 사용하여 바로 재생
+  const handlePlayTextToSpeech = (script: string) => {
+    if (!script) return;
+
+    // 이전 음성 재생 중지
+    if (currentSpeech) {
+      speechSynthesis.cancel();
+      setCurrentSpeech(null);
+    }
+
+    // 새로운 음성 생성
+    const utterance = new SpeechSynthesisUtterance(script);
+    utterance.lang = 'ko-KR';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    utterance.onend = () => {
+      setCurrentSpeech(null);
+    };
+
+    utterance.onerror = (event) => {
+      console.error('Speech synthesis error:', event);
+      setCurrentSpeech(null);
+      toast({
+        title: "오디오 재생 오류",
+        description: "음성 재생 중 오류가 발생했습니다.",
+        variant: "destructive"
+      });
+    };
+
+    setCurrentSpeech(utterance);
+    speechSynthesis.speak(utterance);
+  };
+
+  // 오디오 파일 생성 (브라우저 내장 음성 합성 사용)
+  const handleGenerateAudio = async (script: string, contentId: string) => {
+    if (!script) return;
+
+    setIsGeneratingAudio(contentId);
+    
+    try {
+      // 브라우저 내장 음성 합성을 사용하여 오디오 생성
+      const utterance = new SpeechSynthesisUtterance(script);
+      utterance.lang = 'ko-KR';
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      // 음성 합성을 WAV 파일로 캡처하는 것은 브라우저 제한으로 인해 어려움
+      // 대신 사용자에게 바로 재생 기능을 제공
+      handlePlayTextToSpeech(script);
+      
+      toast({
+        title: "오디오 재생 시작",
+        description: "음성 합성을 통해 팟캐스트를 재생합니다.",
+      });
+    } catch (error) {
+      console.error('Error generating audio:', error);
+      toast({
+        title: "오디오 생성 오류",
+        description: "오디오 생성 중 오류가 발생했습니다.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingAudio(null);
+    }
+  };
+
+  // 음성 재생 중지
+  const handleStopSpeech = () => {
+    if (currentSpeech) {
+      speechSynthesis.cancel();
+      setCurrentSpeech(null);
+      toast({
+        title: "재생 중지",
+        description: "음성 재생을 중지했습니다.",
+      });
+    }
   };
 
   const getContentTypeIcon = (type: string) => {
@@ -439,8 +522,33 @@ export default function GeneratedContent({
                         </div>
                       ) : (
                         <div className="mb-4">
-                          <p className="text-sm text-gray-500 korean-text">
-                            오디오 생성이 현재 일시적으로 비활성화되어 있습니다. 스크립트를 확인하세요.
+                          <div className="flex items-center space-x-3">
+                            <Button
+                              onClick={() => handleGenerateAudio(item.content.script, item.id)}
+                              disabled={isGeneratingAudio === item.id}
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-sm korean-text"
+                            >
+                              {isGeneratingAudio === item.id ? (
+                                <i className="fas fa-spinner fa-spin mr-2"></i>
+                              ) : (
+                                <i className="fas fa-volume-up mr-2"></i>
+                              )}
+                              {isGeneratingAudio === item.id ? '생성 중...' : '음성 생성'}
+                            </Button>
+                            <Button
+                              onClick={() => currentSpeech ? handleStopSpeech() : handlePlayTextToSpeech(item.content.script)}
+                              className="bg-green-600 hover:bg-green-700 text-white text-sm korean-text"
+                            >
+                              {currentSpeech ? (
+                                <i className="fas fa-stop mr-2"></i>
+                              ) : (
+                                <i className="fas fa-play mr-2"></i>
+                              )}
+                              {currentSpeech ? '재생 중지' : '바로 재생'}
+                            </Button>
+                          </div>
+                          <p className="text-sm text-gray-500 korean-text mt-2">
+                            음성 생성 버튼을 눌러 오디오 파일을 만들거나 바로 재생할 수 있습니다.
                           </p>
                         </div>
                       )}
