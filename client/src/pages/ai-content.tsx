@@ -238,12 +238,10 @@ export default function AIContent() {
       <Card className="mb-6">
         <CardContent className="p-6">
           <Tabs value={selectedContentType} onValueChange={setSelectedContentType}>
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="all" className="korean-text">전체</TabsTrigger>
               <TabsTrigger value="integrated" className="korean-text">통합 자료</TabsTrigger>
-              <TabsTrigger value="summary" className="korean-text">요약</TabsTrigger>
-              <TabsTrigger value="quiz" className="korean-text">퀴즈</TabsTrigger>
-              <TabsTrigger value="study_guide" className="korean-text">학습 가이드</TabsTrigger>
+              <TabsTrigger value="podcast" className="korean-text">팟캐스트</TabsTrigger>
             </TabsList>
           </Tabs>
         </CardContent>

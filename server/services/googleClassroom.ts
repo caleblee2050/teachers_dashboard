@@ -115,6 +115,31 @@ export class GoogleClassroomService {
         if (contentData.audioFilePath) {
           formattedDescription += `\n\n오디오 파일과 PDF 파일이 포함되어 있습니다.`;
         }
+      } else if (content.contentType === 'integrated') {
+        formattedDescription += `\n\n=== 통합 교육 자료 ===\n`;
+        
+        if (contentData.studyGuide) {
+          formattedDescription += `\n--- 학습 가이드 ---\n`;
+          formattedDescription += `학습 목표:\n${contentData.studyGuide.learningObjectives.map((obj: string, i: number) => `${i + 1}. ${obj}`).join('\n')}\n`;
+          formattedDescription += `주요 개념:\n${contentData.studyGuide.keyConcepts.map((concept: any) => `• ${concept.term}: ${concept.definition}`).join('\n')}\n`;
+        }
+        
+        if (contentData.summary) {
+          formattedDescription += `\n--- 요약 ---\n${contentData.summary.mainContent}\n`;
+          formattedDescription += `주요 개념: ${contentData.summary.keyConcepts.join(', ')}\n`;
+        }
+        
+        if (contentData.quiz) {
+          formattedDescription += `\n--- 퀴즈 ---\n`;
+          contentData.quiz.questions.slice(0, 3).forEach((q: any, i: number) => {
+            formattedDescription += `${i + 1}. ${q.question}\n`;
+            if (q.options) {
+              formattedDescription += `   정답: ${q.correctAnswer}\n`;
+            }
+          });
+        }
+        
+        formattedDescription += `\n상세한 내용은 첨부된 PDF 파일을 확인하세요.`;
       }
 
       // 구글 드라이브에 파일들 업로드
@@ -180,11 +205,72 @@ export class GoogleClassroomService {
         }
       });
 
-      // 2. 팟캐스트의 경우 추가 파일들 업로드
-      if (content.contentType === 'podcast' && contentData.audioFilePath) {
-        const fs = require('fs');
-        const path = require('path');
+      // 2. PDF 파일 생성 및 업로드 (모든 콘텐츠 타입)
+      const fs = require('fs');
+      const path = require('path');
+      const { generatePDF } = require('./pdfGenerator');
+      
+      try {
+        // PDF 생성
+        const timestamp = Date.now();
+        const pdfFileName = `${title.replace(/[^\w\s가-힣-]/g, '')}_${timestamp}.pdf`;
+        const pdfFilePath = path.join(process.cwd(), 'uploads', pdfFileName);
         
+        await generatePDF({
+          title: content.title,
+          contentType: content.contentType,
+          content: content.content,
+          language: content.language
+        }, pdfFilePath);
+
+        // PDF 파일을 Google Drive에 업로드
+        if (fs.existsSync(pdfFilePath)) {
+          const pdfFileMetadata = {
+            name: `${title.replace(/[^\w\s가-힣-]/g, '')}.pdf`,
+            parents: ['root']
+          };
+          
+          const pdfMedia = {
+            mimeType: 'application/pdf',
+            body: fs.createReadStream(pdfFilePath)
+          };
+
+          const pdfDriveFile = await drive.files.create({
+            requestBody: pdfFileMetadata,
+            media: pdfMedia,
+            fields: 'id'
+          });
+
+          await drive.permissions.create({
+            fileId: pdfDriveFile.data.id!,
+            requestBody: {
+              role: 'reader',
+              type: 'anyone'
+            }
+          });
+
+          uploadedFiles.push({
+            driveFile: {
+              id: pdfDriveFile.data.id!,
+              title: `${title.replace(/[^\w\s가-힣-]/g, '')}.pdf`
+            }
+          });
+
+          // 임시 PDF 파일 삭제
+          setTimeout(() => {
+            try {
+              fs.unlinkSync(pdfFilePath);
+            } catch (e) {
+              console.error('Error cleaning up PDF file:', e);
+            }
+          }, 5000);
+        }
+      } catch (pdfError) {
+        console.error('Error generating/uploading PDF:', pdfError);
+      }
+
+      // 3. 팟캐스트의 경우 오디오 파일 업로드
+      if (content.contentType === 'podcast' && contentData.audioFilePath) {
         try {
           // 오디오 파일 업로드
           const audioFilePath = path.join(process.cwd(), contentData.audioFilePath);
@@ -222,48 +308,7 @@ export class GoogleClassroomService {
             });
           }
 
-          // PDF 파일도 있다면 업로드
-          const uploadDir = path.join(process.cwd(), 'uploads');
-          const pdfFiles = fs.readdirSync(uploadDir).filter((file: string) => 
-            file.startsWith('podcast_content_') && file.endsWith('.pdf')
-          );
-          
-          if (pdfFiles.length > 0) {
-            const latestPdfFile = pdfFiles.sort().pop();
-            const pdfFilePath = path.join(uploadDir, latestPdfFile!);
-            
-            const pdfFileName = `${title.replace(/[^\w\s가-힣-]/g, '')}_content.pdf`;
-            const pdfFileMetadata = {
-              name: pdfFileName,
-              parents: ['root']
-            };
-            
-            const pdfMedia = {
-              mimeType: 'application/pdf',
-              body: fs.createReadStream(pdfFilePath)
-            };
 
-            const pdfDriveFile = await drive.files.create({
-              requestBody: pdfFileMetadata,
-              media: pdfMedia,
-              fields: 'id'
-            });
-
-            await drive.permissions.create({
-              fileId: pdfDriveFile.data.id!,
-              requestBody: {
-                role: 'reader',
-                type: 'anyone'
-              }
-            });
-
-            uploadedFiles.push({
-              driveFile: {
-                id: pdfDriveFile.data.id!,
-                title: pdfFileName
-              }
-            });
-          }
         } catch (fileError) {
           console.warn('Error uploading additional files:', fileError);
           // Continue with text file only

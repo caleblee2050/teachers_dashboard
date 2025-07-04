@@ -26,7 +26,7 @@ export default function GeneratedContent({
   isDeleting = false 
 }: GeneratedContentProps) {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("summary");
+  const [activeTab, setActiveTab] = useState("integrated");
   const [isGeneratingAudio, setIsGeneratingAudio] = useState<string | null>(null);
   const [currentSpeech, setCurrentSpeech] = useState<SpeechSynthesisUtterance | null>(null);
 
@@ -216,6 +216,8 @@ export default function GeneratedContent({
         return 'fas fa-book text-accent';
       case 'podcast':
         return 'fas fa-microphone text-purple-600';
+      case 'integrated':
+        return 'fas fa-layer-group text-orange-600';
       default:
         return 'fas fa-file text-gray-600';
     }
@@ -231,6 +233,8 @@ export default function GeneratedContent({
         return '학습 가이드';
       case 'podcast':
         return '팟캐스트';
+      case 'integrated':
+        return '통합 교육 자료';
       default:
         return type;
     }
@@ -250,6 +254,8 @@ export default function GeneratedContent({
         return 'bg-orange-50 border-orange-200';
       case 'podcast':
         return 'bg-purple-50 border-purple-200';
+      case 'integrated':
+        return 'bg-orange-50 border-orange-200';
       default:
         return 'bg-gray-50 border-gray-200';
     }
@@ -298,9 +304,7 @@ export default function GeneratedContent({
         </div>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
-            <TabsTrigger value="summary" className="korean-text">요약</TabsTrigger>
-            <TabsTrigger value="quiz" className="korean-text">퀴즈</TabsTrigger>
-            <TabsTrigger value="study_guide" className="korean-text">학습가이드</TabsTrigger>
+            <TabsTrigger value="integrated" className="korean-text">통합 교육 자료</TabsTrigger>
             <TabsTrigger value="podcast" className="korean-text">팟캐스트</TabsTrigger>
           </TabsList>
         </Tabs>

@@ -47,7 +47,42 @@ export async function generatePDF(contentData: ContentData, outputPath: string):
     } else if (contentData.contentType === 'podcast') {
       yPosition = addPodcastContent(doc, contentData.content, margin, yPosition, maxWidth);
     } else if (contentData.contentType === 'integrated') {
-      yPosition = addIntegratedContent(doc, contentData.content, margin, yPosition, maxWidth);
+      // Handle integrated content
+      doc.setFontSize(16);
+      doc.text('1. 학습 가이드', margin, yPosition);
+      yPosition += 15;
+      
+      if (contentData.content.studyGuide) {
+        yPosition = addStudyGuideContent(doc, contentData.content.studyGuide, margin, yPosition, maxWidth);
+        yPosition += 20;
+      }
+      
+      // 새 페이지 추가
+      doc.addPage();
+      yPosition = 20;
+      
+      // 2. 요약
+      doc.setFontSize(16);
+      doc.text('2. 요약', margin, yPosition);
+      yPosition += 15;
+      
+      if (contentData.content.summary) {
+        yPosition = addSummaryContent(doc, contentData.content.summary, margin, yPosition, maxWidth);
+        yPosition += 20;
+      }
+      
+      // 새 페이지 추가
+      doc.addPage();
+      yPosition = 20;
+      
+      // 3. 퀴즈
+      doc.setFontSize(16);
+      doc.text('3. 퀴즈', margin, yPosition);
+      yPosition += 15;
+      
+      if (contentData.content.quiz) {
+        yPosition = addQuizContent(doc, contentData.content.quiz, margin, yPosition, maxWidth);
+      }
     }
     
     // Save PDF
@@ -257,46 +292,7 @@ function addPodcastContent(doc: jsPDF, content: any, margin: number, yPosition: 
   return yPosition;
 }
 
-function addIntegratedContent(doc: jsPDF, content: any, margin: number, yPosition: number, maxWidth: number): number {
-  // 1. 학습 가이드
-  doc.setFontSize(16);
-  doc.text('1. 학습 가이드', margin, yPosition);
-  yPosition += 15;
-  
-  if (content.studyGuide) {
-    yPosition = addStudyGuideContent(doc, content.studyGuide, margin, yPosition, maxWidth);
-    yPosition += 20;
-  }
-  
-  // 새 페이지 추가
-  doc.addPage();
-  yPosition = 20;
-  
-  // 2. 요약
-  doc.setFontSize(16);
-  doc.text('2. 요약', margin, yPosition);
-  yPosition += 15;
-  
-  if (content.summary) {
-    yPosition = addSummaryContent(doc, content.summary, margin, yPosition, maxWidth);
-    yPosition += 20;
-  }
-  
-  // 새 페이지 추가
-  doc.addPage();
-  yPosition = 20;
-  
-  // 3. 퀴즈
-  doc.setFontSize(16);
-  doc.text('3. 퀴즈', margin, yPosition);
-  yPosition += 15;
-  
-  if (content.quiz) {
-    yPosition = addQuizContent(doc, content.quiz, margin, yPosition, maxWidth);
-  }
-  
-  return yPosition;
-}
+
 
 function getContentTypeLabel(type: string): string {
   switch (type) {
