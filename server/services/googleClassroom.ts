@@ -74,16 +74,18 @@ export class GoogleClassroomService {
       // Format content based on type
       let formattedDescription = description;
       
-      if (content.type === 'summary') {
-        formattedDescription += `\n\n=== 요약 ===\n${content.data.mainContent}`;
-        formattedDescription += `\n\n=== 주요 개념 ===\n${content.data.keyConcepts.map((concept: string, i: number) => `${i + 1}. ${concept}`).join('\n')}`;
+      const contentData = content.content as any;
+      
+      if (content.contentType === 'summary') {
+        formattedDescription += `\n\n=== 요약 ===\n${contentData.mainContent}`;
+        formattedDescription += `\n\n=== 주요 개념 ===\n${contentData.keyConcepts.map((concept: string, i: number) => `${i + 1}. ${concept}`).join('\n')}`;
         
-        if (content.data.formulas && content.data.formulas.length > 0) {
-          formattedDescription += `\n\n=== 공식 ===\n${content.data.formulas.join('\n')}`;
+        if (contentData.formulas && contentData.formulas.length > 0) {
+          formattedDescription += `\n\n=== 공식 ===\n${contentData.formulas.join('\n')}`;
         }
-      } else if (content.type === 'quiz') {
+      } else if (content.contentType === 'quiz') {
         formattedDescription += `\n\n=== 퀴즈 ===\n`;
-        content.data.questions.forEach((q: any, i: number) => {
+        contentData.questions.forEach((q: any, i: number) => {
           formattedDescription += `\n${i + 1}. ${q.question}\n`;
           if (q.options) {
             q.options.forEach((option: string, j: number) => {
@@ -92,13 +94,13 @@ export class GoogleClassroomService {
           }
           formattedDescription += `   정답: ${q.correctAnswer}\n   설명: ${q.explanation}\n`;
         });
-      } else if (content.type === 'study_guide') {
-        formattedDescription += `\n\n=== 학습 목표 ===\n${content.data.learningObjectives.map((obj: string, i: number) => `${i + 1}. ${obj}`).join('\n')}`;
+      } else if (content.contentType === 'study_guide') {
+        formattedDescription += `\n\n=== 학습 목표 ===\n${contentData.learningObjectives.map((obj: string, i: number) => `${i + 1}. ${obj}`).join('\n')}`;
         formattedDescription += `\n\n=== 주요 개념 ===\n`;
-        content.data.keyConcepts.forEach((concept: any) => {
+        contentData.keyConcepts.forEach((concept: any) => {
           formattedDescription += `• ${concept.term}: ${concept.definition}\n`;
         });
-        formattedDescription += `\n\n=== 학습 질문 ===\n${content.data.studyQuestions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`;
+        formattedDescription += `\n\n=== 학습 질문 ===\n${contentData.studyQuestions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`;
       }
 
       const assignment = {

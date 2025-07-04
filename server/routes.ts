@@ -732,6 +732,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           console.log(`Found content: ${content.title} (${content.contentType})`);
+          console.log(`Content data sample:`, JSON.stringify(content.content).substring(0, 200) + '...');
           const assignmentTitle = `[${folderName}] ${content.title}`;
           
           console.log(`Creating assignment: ${assignmentTitle}`);
