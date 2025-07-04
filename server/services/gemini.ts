@@ -378,7 +378,7 @@ export async function generatePodcastAudio(script: string, outputPath: string, p
 
     // Gemini에서 오디오 생성 요청
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-2.5-flash",
       contents: [{
         role: "user",
         parts: contents
