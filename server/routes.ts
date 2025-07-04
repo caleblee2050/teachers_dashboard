@@ -719,9 +719,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const result = await classroomService.createAssignment(
             activeCourse.id,
             assignmentTitle,
-            content.content,
-            undefined, // No due date
-            100 // Default points
+            `AI 생성 콘텐츠 - ${content.contentType}`,
+            content
           );
           
           if (result.success) {
