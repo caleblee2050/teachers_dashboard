@@ -34,19 +34,17 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
 
   const generateAllContentMutation = useMutation({
     mutationFn: async ({ fileId, languages, includePodcast }: { fileId: string; languages: string[]; includePodcast?: boolean }) => {
-      const contentTypes = ['summary', 'quiz', 'study_guide'];
       const results = [];
       
       for (const language of languages) {
-        for (const type of contentTypes) {
-          try {
-            const response = await apiRequest('POST', `/api/generate/${type}`, { fileId, language });
-            const data = await response.json();
-            results.push({ type, language, data });
-          } catch (error) {
-            console.error(`Failed to generate ${type} in ${language}:`, error);
-            results.push({ type, language, error: String(error) });
-          }
+        try {
+          // 통합 콘텐츠 생성 (학습가이드, 요약, 퀴즈를 한 번에)
+          const response = await apiRequest('POST', `/api/generate/integrated`, { fileId, language });
+          const data = await response.json();
+          results.push({ type: 'integrated', language, data });
+        } catch (error) {
+          console.error(`Failed to generate integrated content in ${language}:`, error);
+          results.push({ type: 'integrated', language, error: String(error) });
         }
         
       }

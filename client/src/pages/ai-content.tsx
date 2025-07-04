@@ -192,6 +192,8 @@ export default function AIContent() {
         return 'fas fa-question-circle text-green-600';
       case 'study_guide':
         return 'fas fa-book text-purple-600';
+      case 'integrated':
+        return 'fas fa-layer-group text-orange-600';
       default:
         return 'fas fa-file text-gray-600';
     }
@@ -205,6 +207,8 @@ export default function AIContent() {
         return '퀴즈';
       case 'study_guide':
         return '학습 가이드';
+      case 'integrated':
+        return '통합 교육 자료';
       default:
         return type;
     }
@@ -234,8 +238,9 @@ export default function AIContent() {
       <Card className="mb-6">
         <CardContent className="p-6">
           <Tabs value={selectedContentType} onValueChange={setSelectedContentType}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="all" className="korean-text">전체</TabsTrigger>
+              <TabsTrigger value="integrated" className="korean-text">통합 자료</TabsTrigger>
               <TabsTrigger value="summary" className="korean-text">요약</TabsTrigger>
               <TabsTrigger value="quiz" className="korean-text">퀴즈</TabsTrigger>
               <TabsTrigger value="study_guide" className="korean-text">학습 가이드</TabsTrigger>

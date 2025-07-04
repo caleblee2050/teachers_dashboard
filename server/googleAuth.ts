@@ -137,7 +137,8 @@ export async function setupAuth(app: Express) {
         'https://www.googleapis.com/auth/classroom.courses.readonly',
         'https://www.googleapis.com/auth/classroom.rosters.readonly',
         'https://www.googleapis.com/auth/classroom.coursework.students',
-        'https://www.googleapis.com/auth/drive.readonly'
+        'https://www.googleapis.com/auth/drive.readonly',
+        'https://www.googleapis.com/auth/drive.file'
       ]
     },
     async (accessToken: string, refreshToken: string, profile: any, done: any) => {

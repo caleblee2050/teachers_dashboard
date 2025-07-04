@@ -39,6 +39,13 @@ export interface StudyGuideContent {
   additionalResources?: string[];
 }
 
+export interface IntegratedContent {
+  title: string;
+  studyGuide: StudyGuideContent;
+  summary: SummaryContent;
+  quiz: QuizContent;
+}
+
 const languageNames = {
   'ko': '한국어',
   'en': 'English',
@@ -454,5 +461,137 @@ AI 오디오 오버뷰 요구사항:
     }
     
     throw new Error(`Failed to generate AI Audio Overview: ${error}`);
+  }
+}
+
+export async function generateIntegratedContent(text: string, language: 'ko' | 'en' | 'ja' | 'zh' | 'th' | 'vi' | 'fil'): Promise<IntegratedContent> {
+  if (!apiKey || !ai) {
+    throw new Error("Gemini API key not configured. Please add GEMINI_API_KEY environment variable.");
+  }
+
+  const languageName = languageNames[language];
+  const prompt = `다음 교육 자료를 바탕으로 통합 교육 콘텐츠를 생성해주세요. 학습 가이드, 요약, 퀴즈를 포함한 완전한 교육 자료를 만들어주세요.
+
+교육 자료:
+${text}
+
+다음 구조로 JSON 형식으로 작성해주세요:
+{
+  "title": "전체 콘텐츠 제목",
+  "studyGuide": {
+    "title": "학습 가이드 제목",
+    "learningObjectives": ["학습 목표 1", "학습 목표 2", "학습 목표 3"],
+    "keyConcepts": [
+      {
+        "term": "핵심 개념",
+        "definition": "개념 정의"
+      }
+    ],
+    "studyQuestions": ["학습 질문 1", "학습 질문 2"],
+    "additionalResources": ["추가 자료 1", "추가 자료 2"]
+  },
+  "summary": {
+    "title": "요약 제목",
+    "keyConcepts": ["핵심 개념 1", "핵심 개념 2"],
+    "mainContent": "주요 내용 요약",
+    "formulas": ["공식 1", "공식 2"]
+  },
+  "quiz": {
+    "title": "퀴즈 제목",
+    "questions": [
+      {
+        "question": "질문 내용",
+        "type": "multiple_choice",
+        "options": ["선택지 1", "선택지 2", "선택지 3", "선택지 4"],
+        "correctAnswer": "정답",
+        "explanation": "정답 설명"
+      }
+    ]
+  }
+}
+
+모든 내용은 ${languageName}로 작성해주세요.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      config: {
+        systemInstruction: `You are an expert educational content creator. Generate comprehensive integrated educational content including study guide, summary, and quiz based on the provided material. Always respond in valid JSON format using the exact structure requested.`,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            studyGuide: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                learningObjectives: { type: "array", items: { type: "string" } },
+                keyConcepts: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      term: { type: "string" },
+                      definition: { type: "string" }
+                    },
+                    required: ["term", "definition"]
+                  }
+                },
+                studyQuestions: { type: "array", items: { type: "string" } },
+                additionalResources: { type: "array", items: { type: "string" } }
+              },
+              required: ["title", "learningObjectives", "keyConcepts", "studyQuestions"]
+            },
+            summary: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                keyConcepts: { type: "array", items: { type: "string" } },
+                mainContent: { type: "string" },
+                formulas: { type: "array", items: { type: "string" } }
+              },
+              required: ["title", "keyConcepts", "mainContent"]
+            },
+            quiz: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                questions: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      question: { type: "string" },
+                      type: { type: "string" },
+                      options: { type: "array", items: { type: "string" } },
+                      correctAnswer: { type: "string" },
+                      explanation: { type: "string" }
+                    },
+                    required: ["question", "type", "correctAnswer", "explanation"]
+                  }
+                }
+              },
+              required: ["title", "questions"]
+            }
+          },
+          required: ["title", "studyGuide", "summary", "quiz"]
+        }
+      },
+      contents: prompt
+    });
+
+    const rawJson = response.text;
+    console.log(`Integrated content raw JSON: ${rawJson}`);
+
+    if (rawJson) {
+      const data: IntegratedContent = JSON.parse(rawJson);
+      return data;
+    } else {
+      throw new Error("Empty response from model");
+    }
+  } catch (error) {
+    console.error('Error generating integrated content:', error);
+    throw new Error(`Failed to generate integrated content: ${error}`);
   }
 }

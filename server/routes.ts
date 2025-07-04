@@ -5,7 +5,7 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./googleAuth";
-import { generateSummary, generateQuiz, generateStudyGuide, generatePodcastScript, generatePodcastAudio } from "./services/gemini";
+import { generateSummary, generateQuiz, generateStudyGuide, generatePodcastScript, generatePodcastAudio, generateIntegratedContent } from "./services/gemini";
 import { extractTextFromFile } from "./services/fileProcessor";
 import { createClassroomService } from "./services/googleClassroom";
 import { createDriveService } from "./services/googleDrive";
@@ -270,7 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { type } = req.params;
       const { fileId, language = 'ko' } = req.body;
 
-      if (!['summary', 'quiz', 'study_guide'].includes(type)) {
+      if (!['summary', 'quiz', 'study_guide', 'integrated'].includes(type)) {
         return res.status(400).json({ message: 'Invalid content type' });
       }
 
@@ -298,6 +298,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         case 'study_guide':
           generatedData = await generateStudyGuide(file.extractedText, language);
           title = `${file.originalName} - 학습 가이드`;
+          break;
+        case 'integrated':
+          generatedData = await generateIntegratedContent(file.extractedText, language);
+          title = `${file.originalName} - 통합 교육 자료`;
           break;
       }
 
