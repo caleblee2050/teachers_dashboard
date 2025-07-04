@@ -773,17 +773,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Upload each content as a separate assignment
       console.log(`Starting to upload ${contents.length} contents...`);
-      for (const contentId of contents) {
-        console.log(`Processing content ID: ${contentId}`);
+      console.log('Contents array:', contents);
+      
+      for (let i = 0; i < contents.length; i++) {
+        const contentId = contents[i];
+        console.log(`Processing content [${i}]: ${JSON.stringify(contentId)} (type: ${typeof contentId})`);
+        
+        // Ensure contentId is a string
+        const actualContentId = typeof contentId === 'string' ? contentId : contentId?.id || String(contentId);
+        console.log(`Actual content ID to use: ${actualContentId}`);
+        
         try {
           // Get all content for the teacher and find by ID
           const allContent = await storage.getGeneratedContentByTeacher(userId);
-          const content = allContent.find(c => c.id === contentId);
+          const content = allContent.find(c => c.id === actualContentId);
           
           if (!content) {
-            console.log(`Content not found: ${contentId}`);
+            console.log(`Content not found: ${actualContentId}`);
             console.log(`Available content IDs:`, allContent.map(c => c.id));
-            uploadResults.push({ contentId, success: false, error: 'Content not found' });
+            uploadResults.push({ contentId: actualContentId, success: false, error: 'Content not found' });
             continue;
           }
           
@@ -803,13 +811,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (result.success) {
             totalUploaded++;
-            uploadResults.push({ contentId, success: true, assignmentId: result.assignmentId });
+            uploadResults.push({ contentId: actualContentId, success: true, assignmentId: result.assignmentId });
           } else {
-            uploadResults.push({ contentId, success: false, error: result.error });
+            uploadResults.push({ contentId: actualContentId, success: false, error: result.error });
           }
         } catch (error: any) {
-          console.error(`Failed to upload content ${contentId}:`, error);
-          uploadResults.push({ contentId, success: false, error: error.message });
+          console.error(`Failed to upload content ${actualContentId}:`, error);
+          uploadResults.push({ contentId: actualContentId, success: false, error: error.message });
         }
       }
       

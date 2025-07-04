@@ -49,15 +49,21 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
           }
         }
         
-        // 팟캐스트 생성 (각 언어별 요약 기반)
-        if (includePodcast) {
+      }
+      
+      // 팟캐스트 생성 (각 언어별로 요약 생성 후)
+      if (includePodcast) {
+        for (const language of languages) {
           try {
-            // 먼저 해당 언어의 요약 콘텐츠 찾기
+            // 해당 언어의 요약 콘텐츠 찾기
             const summaryResult = results.find(r => r.type === 'summary' && r.language === language && r.data);
-            if (summaryResult) {
+            if (summaryResult && summaryResult.data && summaryResult.data.id) {
               const response = await apiRequest('POST', `/api/content/${summaryResult.data.id}/podcast`, { language });
               const data = await response.json();
               results.push({ type: 'podcast', language, data });
+            } else {
+              console.error(`No summary found for language ${language}`);
+              results.push({ type: 'podcast', language, error: 'No summary content found' });
             }
           } catch (error) {
             console.error(`Failed to generate podcast in ${language}:`, error);

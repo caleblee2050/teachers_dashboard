@@ -137,11 +137,14 @@ export class GoogleClassroomService {
         }
       });
 
+      // 과제 생성 (학생들이 제출할 수 있는 과제)
       const assignment = {
         title,
-        description: `${content.title}\n\n콘텐츠 타입: ${content.contentType}\n\n자세한 내용은 첨부된 파일을 확인하세요.`,
+        description: `${content.title}\n\n콘텐츠 타입: ${content.contentType}\n\n자세한 내용은 첨부된 파일을 확인하세요.\n\n이 과제에 대한 여러분의 생각이나 질문을 제출해 주세요.`,
         workType: 'ASSIGNMENT',
         state: 'PUBLISHED',
+        submissionModificationMode: 'MODIFIABLE_UNTIL_TURNED_IN',
+        assigneeMode: 'ALL_STUDENTS',
         materials: [
           {
             driveFile: {
@@ -151,7 +154,13 @@ export class GoogleClassroomService {
               }
             }
           }
-        ]
+        ],
+        // 학생 제출 설정
+        assignment: {
+          studentWorkFolder: {
+            // 학생 작업 폴더 자동 생성
+          }
+        }
       };
 
       const response = await this.classroom.courses.courseWork.create({
