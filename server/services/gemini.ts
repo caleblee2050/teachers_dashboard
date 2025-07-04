@@ -396,25 +396,22 @@ AI 오디오 오버뷰 요구사항:
       });
     }
 
-    // Gemini 2.5 Flash Preview TTS 또는 Pro Preview TTS로 AI 오디오 오버뷰 생성
+    // AI Audio Overview 생성 시도 - 순서대로 모델 테스트
     let response;
-    try {
-      // 최신 Gemini 2.0 Flash 실험 모델 사용
-      response = await ai.models.generateContent({
-        model: "gemini-2.0-flash-exp",
-        contents: [{
-          role: "user",
-          parts: contents
-        }],
-        config: {
-          responseModalities: ["AUDIO"]
-        }
-      });
-    } catch (flashError) {
-      console.log('Gemini 2.0 Flash Exp failed, trying legacy models...');
+    const modelsToTry = [
+      "gemini-2.0-flash-exp",
+      "gemini-2.5-flash-preview-tts", 
+      "gemini-2.5-pro-preview-tts",
+      "gemini-2.5-flash"
+    ];
+    
+    let lastError;
+    
+    for (const modelName of modelsToTry) {
       try {
+        console.log(`Trying audio generation with model: ${modelName}`);
         response = await ai.models.generateContent({
-          model: "gemini-2.5-flash-preview",
+          model: modelName,
           contents: [{
             role: "user",
             parts: contents
@@ -423,19 +420,17 @@ AI 오디오 오버뷰 요구사항:
             responseModalities: ["AUDIO"]
           }
         });
-      } catch (legacyError) {
-        console.log('Legacy models failed, trying Pro Preview...');
-        response = await ai.models.generateContent({
-          model: "gemini-2.5-pro-preview",
-          contents: [{
-            role: "user",
-            parts: contents
-          }],
-          config: {
-            responseModalities: ["AUDIO"]
-          }
-        });
+        console.log(`Successfully generated audio with model: ${modelName}`);
+        break; // 성공하면 루프 종료
+      } catch (error: any) {
+        console.log(`Model ${modelName} failed:`, error.message || error);
+        lastError = error;
+        continue; // 다음 모델 시도
       }
+    }
+    
+    if (!response) {
+      throw lastError || new Error("All audio generation models failed");
     }
 
     const candidates = response.candidates;

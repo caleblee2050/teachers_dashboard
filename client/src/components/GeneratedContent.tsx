@@ -160,37 +160,34 @@ export default function GeneratedContent({
     speechSynthesis.speak(utterance);
   };
 
-  // 오디오 파일 생성 (브라우저 내장 음성 합성 사용)
-  const handleGenerateAudio = async (script: string, contentId: string) => {
-    if (!script) return;
-
-    setIsGeneratingAudio(contentId);
-    
-    try {
-      // 브라우저 내장 음성 합성을 사용하여 오디오 생성
-      const utterance = new SpeechSynthesisUtterance(script);
-      utterance.lang = 'ko-KR';
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-
-      // 음성 합성을 WAV 파일로 캡처하는 것은 브라우저 제한으로 인해 어려움
-      // 대신 사용자에게 바로 재생 기능을 제공
-      handlePlayTextToSpeech(script);
-      
+  // AI 오디오 재생 (서버에서 생성된 실제 오디오 파일 사용)
+  const handlePlayAIAudio = (audioFilePath: string) => {
+    if (!audioFilePath) {
       toast({
-        title: "오디오 재생 시작",
-        description: "음성 합성을 통해 팟캐스트를 재생합니다.",
-      });
-    } catch (error) {
-      console.error('Error generating audio:', error);
-      toast({
-        title: "오디오 생성 오류",
-        description: "오디오 생성 중 오류가 발생했습니다.",
+        title: "오디오 파일 없음",
+        description: "생성된 오디오 파일이 없습니다.",
         variant: "destructive"
       });
-    } finally {
-      setIsGeneratingAudio(null);
+      return;
+    }
+
+    try {
+      // 서버에서 생성된 오디오 파일 재생
+      const filename = audioFilePath.split('/').pop() || '';
+      const audio = new Audio(`/uploads/${filename}`);
+      audio.play();
+      
+      toast({
+        title: "AI 오디오 재생 시작",
+        description: "Gemini AI가 생성한 팟캐스트를 재생합니다.",
+      });
+    } catch (error) {
+      console.error('Error playing AI audio:', error);
+      toast({
+        title: "오디오 재생 오류",
+        description: "AI 오디오 재생 중 오류가 발생했습니다.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -527,18 +524,23 @@ export default function GeneratedContent({
                       ) : (
                         <div className="mb-4">
                           <div className="flex items-center space-x-3">
-                            <Button
-                              onClick={() => handleGenerateAudio(item.content.script, item.id)}
-                              disabled={isGeneratingAudio === item.id}
-                              className="bg-blue-600 hover:bg-blue-700 text-white text-sm korean-text"
-                            >
-                              {isGeneratingAudio === item.id ? (
-                                <i className="fas fa-spinner fa-spin mr-2"></i>
-                              ) : (
+                            {item.content.audioFilePath ? (
+                              <Button
+                                onClick={() => handlePlayAIAudio(item.content.audioFilePath)}
+                                className="bg-green-600 hover:bg-green-700 text-white text-sm korean-text"
+                              >
+                                <i className="fas fa-play mr-2"></i>
+                                AI 오디오 재생
+                              </Button>
+                            ) : (
+                              <Button
+                                onClick={() => handlePlayTextToSpeech(item.content.script)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-sm korean-text"
+                              >
                                 <i className="fas fa-volume-up mr-2"></i>
-                              )}
-                              {isGeneratingAudio === item.id ? '생성 중...' : '음성 생성'}
-                            </Button>
+                                브라우저 TTS 재생
+                              </Button>
+                            )}
                             <Button
                               onClick={() => currentSpeech ? handleStopSpeech() : handlePlayTextToSpeech(item.content.script)}
                               className="bg-green-600 hover:bg-green-700 text-white text-sm korean-text"
