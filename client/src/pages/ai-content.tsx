@@ -23,15 +23,22 @@ export default function AIContent() {
       )
     : [];
 
+  // Debug: Log the content data
+  console.log('Generated content:', generatedContent);
+  console.log('Filtered content:', filteredContent);
+
   // Group content by language instead of topic folder
   const groupedContentByLanguage = filteredContent.reduce((groups: any, content: any) => {
     const language = content.language || 'ko';
+    console.log('Processing content:', content.id, 'language:', language);
     if (!groups[language]) {
       groups[language] = [];
     }
     groups[language].push(content);
     return groups;
   }, {});
+
+  console.log('Grouped by language:', groupedContentByLanguage);
 
   // Generate folder names by language
   const getLanguageFolderName = (language: string): string => {
