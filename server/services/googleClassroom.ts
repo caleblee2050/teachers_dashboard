@@ -33,6 +33,14 @@ export class GoogleClassroomService {
       refresh_token: refreshToken,
     });
 
+    // 토큰 자동 갱신 설정
+    this.oauth2Client.on('tokens', (tokens) => {
+      if (tokens.refresh_token) {
+        // 새로운 토큰 저장 로직은 필요시 추가
+        console.log('New tokens received');
+      }
+    });
+
     this.classroom = google.classroom({ version: 'v1', auth: this.oauth2Client });
   }
 
@@ -125,19 +133,45 @@ export class GoogleClassroomService {
         body: formattedDescription
       };
 
-      const textDriveFile = await drive.files.create({
-        requestBody: textFileMetadata,
-        media: textMedia,
-        fields: 'id'
-      });
+      let textDriveFile;
+      try {
+        textDriveFile = await drive.files.create({
+          requestBody: textFileMetadata,
+          media: textMedia,
+          fields: 'id'
+        });
 
-      await drive.permissions.create({
-        fileId: textDriveFile.data.id!,
-        requestBody: {
-          role: 'reader',
-          type: 'anyone'
+        await drive.permissions.create({
+          fileId: textDriveFile.data.id!,
+          requestBody: {
+            role: 'reader',
+            type: 'anyone'
+          }
+        });
+      } catch (driveError: any) {
+        if (driveError.code === 401) {
+          // 토큰 갱신 시도
+          console.log('Refreshing Google tokens...');
+          await this.oauth2Client.refreshAccessToken();
+          
+          // 재시도
+          textDriveFile = await drive.files.create({
+            requestBody: textFileMetadata,
+            media: textMedia,
+            fields: 'id'
+          });
+
+          await drive.permissions.create({
+            fileId: textDriveFile.data.id!,
+            requestBody: {
+              role: 'reader',
+              type: 'anyone'
+            }
+          });
+        } else {
+          throw driveError;
         }
-      });
+      }
 
       uploadedFiles.push({
         driveFile: {
