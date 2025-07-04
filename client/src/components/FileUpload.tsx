@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import GoogleDriveFileSelector from "./GoogleDriveFileSelector";
 
 export default function FileUpload() {
   const { toast } = useToast();
@@ -157,13 +158,29 @@ export default function FileUpload() {
               <p className="text-lg font-medium text-gray-900 mb-2 korean-text">
                 파일을 드래그하여 업로드하거나
               </p>
-              <Button
-                onClick={handleButtonClick}
-                className="bg-primary text-white hover:bg-primary/90 korean-text"
-              >
-                파일 선택하기
-              </Button>
-              <p className="text-sm text-gray-500 mt-2 korean-text">
+              <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+                <Button
+                  onClick={handleButtonClick}
+                  className="bg-blue-600 hover:bg-blue-700 text-white korean-text"
+                >
+                  <i className="fas fa-folder-open mr-2"></i>
+                  내 컴퓨터에서 선택
+                </Button>
+                <span className="text-gray-400 korean-text">또는</span>
+                <GoogleDriveFileSelector onFileUploaded={() => {
+                  queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+                }}>
+                  <Button
+                    variant="outline"
+                    className="border-blue-600 text-blue-600 hover:bg-blue-50 korean-text"
+                  >
+                    <i className="fab fa-google-drive mr-2"></i>
+                    Google Drive에서 선택
+                  </Button>
+                </GoogleDriveFileSelector>
+              </div>
+              <p className="text-sm text-gray-500 mt-3 korean-text">
                 최대 10MB, DOCX와 TXT 형식 지원
               </p>
             </>

@@ -127,17 +127,17 @@ export default function AIContent() {
         </div>
       ) : Object.keys(groupedContent).length > 0 ? (
         <div className="space-y-8">
-          {Object.entries(groupedContent).map(([folderName, contents]: [string, any[]]) => (
+          {Object.entries(groupedContent).map(([folderName, contents]) => (
             <div key={folderName} className="space-y-4">
               <div className="flex items-center space-x-3 border-b border-gray-200 pb-3">
                 <i className="fas fa-folder text-yellow-600"></i>
                 <h3 className="text-lg font-semibold text-gray-900 korean-text">{folderName}</h3>
                 <Badge variant="outline" className="text-xs">
-                  {contents.length}개 콘텐츠
+                  {(contents as any[]).length}개 콘텐츠
                 </Badge>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ml-6">
-                {contents.map((content: any) => (
+                {(contents as any[]).map((content: any) => (
                   <Card key={content.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">

@@ -8,6 +8,7 @@ import { setupAuth, isAuthenticated } from "./googleAuth";
 import { generateSummary, generateQuiz, generateStudyGuide } from "./services/gemini";
 import { extractTextFromFile } from "./services/fileProcessor";
 import { createClassroomService } from "./services/googleClassroom";
+import { createDriveService } from "./services/googleDrive";
 import { insertFileSchema, insertGeneratedContentSchema, insertStudentSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -581,6 +582,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         res.status(500).json({ message: 'Failed to sync classroom students' });
+      }
+    }
+  });
+
+  // Google Drive API routes
+  app.get('/api/drive/files', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.googleAccessToken) {
+        return res.status(401).json({ message: 'Google authentication required' });
+      }
+      
+      const driveService = await createDriveService(user);
+      const query = req.query.q as string;
+      const files = await driveService.getFiles(query);
+      
+      res.json(files);
+    } catch (error: any) {
+      console.error('Error fetching Drive files:', error);
+      
+      if (error.code === 401 || error.status === 401) {
+        res.status(401).json({ 
+          message: 'Google authentication expired. Please reconnect your Google account.' 
+        });
+      } else {
+        res.status(500).json({ message: 'Failed to fetch Google Drive files' });
+      }
+    }
+  });
+
+  app.post('/api/drive/upload', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.googleAccessToken) {
+        return res.status(401).json({ message: 'Google authentication required' });
+      }
+      
+      const { fileId, fileName } = req.body;
+      
+      if (!fileId || !fileName) {
+        return res.status(400).json({ message: 'File ID and name are required' });
+      }
+      
+      const driveService = await createDriveService(user);
+      
+      // Download file from Google Drive
+      const fileBuffer = await driveService.downloadFile(fileId);
+      const fileMetadata = await driveService.getFileMetadata(fileId);
+      
+      // Save file locally
+      const timestamp = Date.now();
+      const sanitizedName = fileName.replace(/[^a-zA-Z0-9가-힣\s\-_.]/g, '');
+      const localFileName = `${timestamp}-${sanitizedName}`;
+      const localFilePath = path.join(uploadDir, localFileName);
+      
+      fs.writeFileSync(localFilePath, fileBuffer);
+      
+      // Extract text from the file
+      const extractedText = await extractTextFromFile(localFilePath, fileMetadata.mimeType);
+      
+      // Create file record
+      const fileData = {
+        teacherId: userId,
+        filename: localFileName,
+        originalName: fileName,
+        fileType: fileMetadata.mimeType,
+        fileSize: parseInt(fileMetadata.size || '0'),
+        filePath: localFilePath,
+        extractedText: extractedText
+      };
+      
+      const validatedData = insertFileSchema.parse(fileData);
+      const savedFile = await storage.createFile(validatedData);
+      
+      res.json(savedFile);
+    } catch (error: any) {
+      console.error('Error uploading from Drive:', error);
+      
+      if (error.code === 401 || error.status === 401) {
+        res.status(401).json({ 
+          message: 'Google authentication expired. Please reconnect your Google account.' 
+        });
+      } else {
+        res.status(500).json({ message: 'Failed to upload file from Google Drive' });
       }
     }
   });
