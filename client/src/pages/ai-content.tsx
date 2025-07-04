@@ -54,9 +54,9 @@ export default function AIContent() {
 
   // Classroom upload mutation
   const classroomUploadMutation = useMutation({
-    mutationFn: async ({ contents, folderName }: { contents: any[], folderName: string }) => {
+    mutationFn: async ({ contents, folderName }: { contents: string[], folderName: string }) => {
       return apiRequest('/api/classroom/upload-batch', 'POST', {
-        contents: contents.map(content => content.id),
+        contents,
         folderName,
       });
     },
