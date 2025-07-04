@@ -294,6 +294,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           break;
       }
 
+      // Create folder name based on file and language
+      const languageNames = {
+        ko: '한국어',
+        en: 'English',
+        ja: '日本語',
+        zh: '中文',
+        th: 'ไทย',
+        vi: 'Tiếng Việt',
+        fil: 'Filipino'
+      };
+      
+      const fileName = file.originalName.replace(/\.[^/.]+$/, ""); // Remove extension
+      const folderName = `${fileName} - ${languageNames[language as keyof typeof languageNames] || language}`;
+
       const contentData = {
         fileId,
         teacherId: userId,
@@ -301,6 +315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         language,
         title,
         content: generatedData,
+        folderName,
       };
 
       const validatedData = insertGeneratedContentSchema.parse(contentData);

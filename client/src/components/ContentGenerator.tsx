@@ -31,36 +31,51 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
     { code: 'fil', name: 'Filipino' }
   ];
 
-  const generateContentMutation = useMutation({
-    mutationFn: async ({ type, fileId, languages }: { type: string; fileId: string; languages: string[] }) => {
-      if (languages.length === 1) {
-        const response = await apiRequest('POST', `/api/generate/${type}`, { fileId, language: languages[0] });
-        return await response.json();
-      } else {
-        // Generate for multiple languages
-        const results = await Promise.all(
-          languages.map(async (lang) => {
-            const response = await apiRequest('POST', `/api/generate/${type}`, { fileId, language: lang });
-            return await response.json();
-          })
-        );
-        return results;
+  const generateAllContentMutation = useMutation({
+    mutationFn: async ({ fileId, languages }: { fileId: string; languages: string[] }) => {
+      const contentTypes = ['summary', 'quiz', 'study_guide'];
+      const results = [];
+      
+      for (const language of languages) {
+        for (const type of contentTypes) {
+          try {
+            const response = await apiRequest('POST', `/api/generate/${type}`, { fileId, language });
+            const data = await response.json();
+            results.push({ type, language, data });
+          } catch (error) {
+            console.error(`Failed to generate ${type} in ${language}:`, error);
+            results.push({ type, language, error: String(error) });
+          }
+        }
       }
+      
+      return results;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (results, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/content'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       
-      const typeLabels = {
-        summary: '요약',
-        quiz: '퀴즈',
-        study_guide: '학습 가이드'
-      };
+      const successfulGenerations = results.filter(r => !r.error);
+      const failedGenerations = results.filter(r => r.error);
       
-      toast({
-        title: "콘텐츠 생성 완료",
-        description: `${typeLabels[variables.type as keyof typeof typeLabels]}가 성공적으로 생성되었습니다.`,
-      });
+      if (successfulGenerations.length > 0) {
+        const languageNames = variables.languages.map(code => 
+          languages.find(l => l.code === code)?.name || code
+        ).join(', ');
+        
+        toast({
+          title: "통합 콘텐츠 생성 완료",
+          description: `${languageNames}로 요약, 퀴즈, 학습가이드가 생성되었습니다. (${successfulGenerations.length}개 성공)`,
+        });
+      }
+      
+      if (failedGenerations.length > 0) {
+        toast({
+          title: "일부 생성 실패",
+          description: `${failedGenerations.length}개 콘텐츠 생성에 실패했습니다.`,
+          variant: "destructive",
+        });
+      }
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -94,7 +109,7 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
     }
   };
 
-  const handleGenerate = (type: string) => {
+  const handleGenerateAll = () => {
     if (!selectedFileId) {
       toast({
         title: "파일을 선택해주세요",
@@ -115,8 +130,7 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
       return;
     }
 
-    generateContentMutation.mutate({
-      type,
+    generateAllContentMutation.mutate({
       fileId: selectedFileId,
       languages: languagesToGenerate,
     });
@@ -203,45 +217,28 @@ export default function ContentGenerator({ files }: ContentGeneratorProps) {
             </div>
           </div>
 
-          <div className="space-y-3 pt-2">
+          <div className="pt-4 border-t border-gray-200">
             <Button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
-              onClick={() => handleGenerate('summary')}
-              disabled={generateContentMutation.isPending || !selectedFileId || (useMultiLanguage && selectedLanguages.length === 0)}
+              size="lg"
+              className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 hover:from-blue-700 hover:via-purple-700 hover:to-green-700 text-white font-bold py-4 korean-text shadow-lg"
+              onClick={handleGenerateAll}
+              disabled={generateAllContentMutation.isPending || !selectedFileId || (useMultiLanguage && selectedLanguages.length === 0)}
             >
-              {generateContentMutation.isPending ? (
-                <i className="fas fa-spinner fa-spin mr-2"></i>
+              {generateAllContentMutation.isPending ? (
+                <>
+                  <i className="fas fa-spinner fa-spin mr-3"></i>
+                  AI 콘텐츠 생성 중... (요약, 퀴즈, 학습가이드)
+                </>
               ) : (
-                <i className="fas fa-file-text mr-2"></i>
+                <>
+                  <i className="fas fa-magic mr-3"></i>
+                  통합 콘텐츠 생성하기 (요약/퀴즈/학습가이드)
+                </>
               )}
-              요약 생성하기
             </Button>
-
-            <Button
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium korean-text"
-              onClick={() => handleGenerate('quiz')}
-              disabled={generateContentMutation.isPending || !selectedFileId || (useMultiLanguage && selectedLanguages.length === 0)}
-            >
-              {generateContentMutation.isPending ? (
-                <i className="fas fa-spinner fa-spin mr-2"></i>
-              ) : (
-                <i className="fas fa-question-circle mr-2"></i>
-              )}
-              퀴즈 생성하기
-            </Button>
-
-            <Button
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium korean-text"
-              onClick={() => handleGenerate('study_guide')}
-              disabled={generateContentMutation.isPending || !selectedFileId || (useMultiLanguage && selectedLanguages.length === 0)}
-            >
-              {generateContentMutation.isPending ? (
-                <i className="fas fa-spinner fa-spin mr-2"></i>
-              ) : (
-                <i className="fas fa-book mr-2"></i>
-              )}
-              학습 가이드 생성하기
-            </Button>
+            <p className="text-xs text-gray-500 mt-2 text-center korean-text">
+              선택한 언어로 요약, 퀴즈, 학습가이드가 모두 생성됩니다
+            </p>
           </div>
         </div>
       </CardContent>

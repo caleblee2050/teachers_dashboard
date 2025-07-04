@@ -59,6 +59,7 @@ export const generatedContent = pgTable("generated_content", {
   title: text("title").notNull(),
   content: jsonb("content").notNull(),
   shareToken: varchar("share_token").unique(),
+  folderName: text("folder_name"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

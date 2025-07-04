@@ -14,9 +14,21 @@ export default function AIContent() {
     queryKey: ['/api/content'],
   });
 
-  const filteredContent = generatedContent?.filter((content: any) => 
-    selectedContentType === 'all' || content.contentType === selectedContentType
-  );
+  const filteredContent = Array.isArray(generatedContent) 
+    ? generatedContent.filter((content: any) => 
+        selectedContentType === 'all' || content.contentType === selectedContentType
+      )
+    : [];
+
+  // Group content by folder
+  const groupedContent = filteredContent.reduce((groups: any, content: any) => {
+    const folderName = content.folderName || '기타';
+    if (!groups[folderName]) {
+      groups[folderName] = [];
+    }
+    groups[folderName].push(content);
+    return groups;
+  }, {});
 
   const copyShareLink = (shareToken: string) => {
     const shareUrl = `${window.location.origin}/api/share/${shareToken}`;
@@ -31,11 +43,11 @@ export default function AIContent() {
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'summary':
-        return 'fas fa-file-text text-primary';
+        return 'fas fa-file-text text-blue-600';
       case 'quiz':
-        return 'fas fa-question-circle text-secondary';
+        return 'fas fa-question-circle text-green-600';
       case 'study_guide':
-        return 'fas fa-book text-accent';
+        return 'fas fa-book text-purple-600';
       default:
         return 'fas fa-file text-gray-600';
     }
@@ -54,15 +66,24 @@ export default function AIContent() {
     }
   };
 
-  const getLanguageLabel = (lang: string) => {
-    return lang === 'ko' ? '한국어' : 'English';
+  const getLanguageLabel = (language: string) => {
+    const languageLabels = {
+      ko: '한국어',
+      en: 'English',
+      ja: '日本語',
+      zh: '中文',
+      th: 'ไทย',
+      vi: 'Tiếng Việt',
+      fil: 'Filipino'
+    };
+    return languageLabels[language as keyof typeof languageLabels] || language;
   };
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-2 korean-text">AI 생성 콘텐츠</h2>
-        <p className="text-gray-600 korean-text">생성된 AI 콘텐츠를 확인하고 관리하세요.</p>
+        <p className="text-gray-600 korean-text">생성된 AI 콘텐츠를 주제별 폴더로 확인하고 관리하세요.</p>
       </div>
 
       {/* Content Type Filter */}
@@ -104,124 +125,72 @@ export default function AIContent() {
             </Card>
           ))}
         </div>
-      ) : filteredContent && filteredContent.length > 0 ? (
-        <div className="space-y-6">
-          {filteredContent.map((content: any) => (
-            <Card key={content.id}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <i className={getContentTypeIcon(content.contentType)}></i>
-                    <h3 className="font-semibold text-gray-900">{content.title}</h3>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="secondary">{getLanguageLabel(content.language)}</Badge>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => copyShareLink(content.shareToken)}
-                    >
-                      <i className="fas fa-share-alt mr-2"></i>
-                      공유
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Content Preview */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  {content.contentType === 'summary' && (
-                    <div>
-                      <h4 className="font-medium mb-2 korean-text">핵심 개념:</h4>
-                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                        {content.content.keyConcepts?.slice(0, 3).map((concept: string, index: number) => (
-                          <li key={index}>{concept}</li>
-                        ))}
-                      </ul>
-                      {content.content.keyConcepts?.length > 3 && (
-                        <p className="text-sm text-gray-500 mt-2 korean-text">
-                          ... 및 {content.content.keyConcepts.length - 3}개 더
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {content.contentType === 'quiz' && (
-                    <div>
-                      <h4 className="font-medium mb-2 korean-text">퀴즈 미리보기:</h4>
-                      {content.content.questions?.slice(0, 1).map((question: any, index: number) => (
-                        <div key={index} className="text-sm">
-                          <p className="font-medium">{question.question}</p>
-                          {question.options && (
-                            <div className="mt-2 ml-4 space-y-1">
-                              {question.options.slice(0, 2).map((option: string, optIndex: number) => (
-                                <p key={optIndex} className="text-gray-600">
-                                  {optIndex + 1}. {option}
-                                </p>
-                              ))}
-                              <p className="text-gray-500 korean-text">...</p>
-                            </div>
-                          )}
+      ) : Object.keys(groupedContent).length > 0 ? (
+        <div className="space-y-8">
+          {Object.entries(groupedContent).map(([folderName, contents]: [string, any[]]) => (
+            <div key={folderName} className="space-y-4">
+              <div className="flex items-center space-x-3 border-b border-gray-200 pb-3">
+                <i className="fas fa-folder text-yellow-600"></i>
+                <h3 className="text-lg font-semibold text-gray-900 korean-text">{folderName}</h3>
+                <Badge variant="outline" className="text-xs">
+                  {contents.length}개 콘텐츠
+                </Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ml-6">
+                {contents.map((content: any) => (
+                  <Card key={content.id} className="hover:shadow-lg transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <i className={getContentTypeIcon(content.contentType)}></i>
+                          <span className="text-sm font-medium text-gray-700 korean-text">
+                            {getContentTypeLabel(content.contentType)}
+                          </span>
                         </div>
-                      ))}
-                      <p className="text-sm text-gray-500 mt-2 korean-text">
-                        총 {content.content.questions?.length}문항
-                      </p>
-                    </div>
-                  )}
-
-                  {content.contentType === 'study_guide' && (
-                    <div>
-                      <h4 className="font-medium mb-2 korean-text">학습 목표:</h4>
-                      <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
-                        {content.content.learningObjectives?.slice(0, 2).map((objective: string, index: number) => (
-                          <li key={index}>{objective}</li>
-                        ))}
-                      </ul>
-                      {content.content.learningObjectives?.length > 2 && (
-                        <p className="text-sm text-gray-500 mt-2 korean-text">
-                          ... 및 {content.content.learningObjectives.length - 2}개 더
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">
-                    생성일: {new Date(content.createdAt).toLocaleDateString('ko-KR')} {new Date(content.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <div className="flex space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => copyShareLink(content.shareToken)}
-                    >
-                      공유 링크 복사
-                    </Button>
-                    <Button size="sm" className="korean-text">
-                      Classroom에 공유
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                        <Badge variant="secondary" className="text-xs">
+                          {getLanguageLabel(content.language)}
+                        </Badge>
+                      </div>
+                      <h4 className="font-medium text-gray-900 mb-3 line-clamp-2 korean-text text-sm">
+                        {content.title}
+                      </h4>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-500">
+                          {new Date(content.createdAt).toLocaleDateString('ko-KR')}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => copyShareLink(content.shareToken)}
+                        >
+                          <i className="fas fa-share-alt mr-1"></i>
+                          공유
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       ) : (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <i className="fas fa-robot text-gray-300 text-6xl mb-4"></i>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2 korean-text">
-              {selectedContentType === 'all' ? '생성된 콘텐츠가 없습니다' : `생성된 ${getContentTypeLabel(selectedContentType)}가 없습니다`}
-            </h3>
-            <p className="text-gray-500 mb-6 korean-text">
-              파일을 업로드하고 AI 콘텐츠를 생성해보세요.
-            </p>
-            <Button onClick={() => window.location.href = '/'} className="korean-text">
-              콘텐츠 생성하기
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="text-center py-12">
+          <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <i className="fas fa-robot text-3xl text-gray-400"></i>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 korean-text">생성된 콘텐츠가 없습니다</h3>
+          <p className="text-gray-600 mb-6 korean-text">
+            업로드한 파일로 AI 콘텐츠를 생성해보세요.
+          </p>
+          <Button 
+            onClick={() => window.location.href = '/my-library'}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium korean-text"
+          >
+            <i className="fas fa-plus mr-2"></i>
+            콘텐츠 생성하러 가기
+          </Button>
+        </div>
       )}
     </div>
   );
