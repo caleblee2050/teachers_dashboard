@@ -1,4 +1,6 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
+import * as fs from "fs";
+import * as path from "path";
 
 // This API key is from Gemini Developer API Key, not vertex AI API Key
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -263,5 +265,140 @@ Please format your response as JSON with the following structure:
   } catch (error) {
     console.error('Gemini study guide generation error:', error);
     throw new Error(`Failed to generate study guide: ${error}`);
+  }
+}
+
+export interface PodcastContent {
+  title: string;
+  description: string;
+  script: string;
+  audioFilePath?: string;
+  duration?: number;
+}
+
+export async function generatePodcastScript(content: any, language: 'ko' | 'en' | 'ja' | 'zh' | 'th' | 'vi' | 'fil'): Promise<PodcastContent> {
+  if (!apiKey || !ai) {
+    throw new Error("Gemini API key not configured. Please add GEMINI_API_KEY environment variable.");
+  }
+
+  try {
+    const languageInstruction = getLanguageInstruction(language);
+    
+    // 콘텐츠 타입에 따라 다른 접근 방식 사용
+    let contentText = '';
+    if (content.contentType === 'summary') {
+      contentText = `제목: ${content.title}\n\n주요 내용:\n${content.content.mainContent}\n\n핵심 개념:\n${content.content.keyConcepts.join(', ')}`;
+    } else if (content.contentType === 'quiz') {
+      contentText = `제목: ${content.title}\n\n퀴즈 문제들:\n${content.content.questions.map((q: any, i: number) => `${i + 1}. ${q.question}`).join('\n')}`;
+    } else if (content.contentType === 'study_guide') {
+      contentText = `제목: ${content.title}\n\n학습 목표:\n${content.content.learningObjectives.join('\n')}\n\n핵심 개념:\n${content.content.keyConcepts.map((c: any) => `- ${c.term}: ${c.definition}`).join('\n')}`;
+    }
+
+    const prompt = `${languageInstruction}
+
+Create an engaging podcast script based on the following educational content. The script should feature two hosts having a natural conversation:
+- Host A: Main presenter, introduces topics and asks questions
+- Host B: Expert, provides explanations and answers
+
+The conversation should be educational yet engaging, approximately 5-7 minutes long.
+
+Educational content:
+${contentText}
+
+Please format your response as JSON:
+{
+  "title": "Podcast episode title",
+  "description": "Brief episode description",
+  "script": "Host A: Hello everyone...\\nHost B: Hi there..."
+}`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            description: { type: "string" },
+            script: { type: "string" }
+          },
+          required: ["title", "description", "script"]
+        }
+      },
+      contents: prompt,
+    });
+
+    const rawJson = response.text;
+    if (!rawJson) {
+      throw new Error("Empty response from Gemini");
+    }
+
+    const data: PodcastContent = JSON.parse(rawJson);
+    return data;
+  } catch (error) {
+    console.error('Gemini podcast script generation error:', error);
+    throw new Error(`Failed to generate podcast script: ${error}`);
+  }
+}
+
+export async function generatePodcastAudio(script: string, outputPath: string): Promise<string> {
+  if (!apiKey || !ai) {
+    throw new Error("Gemini API key not configured. Please add GEMINI_API_KEY environment variable.");
+  }
+
+  try {
+    // Gemini 2.5 Flash를 사용하여 오디오 생성
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      config: {
+        responseModalities: [Modality.TEXT, Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: "Puck" // 또는 다른 사용 가능한 음성
+            }
+          }
+        }
+      },
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `다음 팟캐스트 스크립트를 자연스러운 대화 형식으로 읽어주세요:\n\n${script}` }]
+        }
+      ]
+    });
+
+    const candidates = response.candidates;
+    if (!candidates || candidates.length === 0) {
+      throw new Error("No audio generated");
+    }
+
+    const content = candidates[0].content;
+    if (!content || !content.parts) {
+      throw new Error("No audio content in response");
+    }
+
+    // 오디오 데이터 찾기
+    for (const part of content.parts) {
+      if (part.inlineData && part.inlineData.mimeType?.startsWith('audio/') && part.inlineData.data) {
+        const audioData = Buffer.from(part.inlineData.data as string, 'base64');
+        
+        // 업로드 폴더에 저장
+        const uploadDir = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        
+        fs.writeFileSync(outputPath, audioData);
+        console.log(`Podcast audio saved to: ${outputPath}`);
+        return outputPath;
+      }
+    }
+
+    throw new Error("No audio data found in response");
+  } catch (error) {
+    console.error('Error generating podcast audio:', error);
+    throw new Error(`Failed to generate podcast audio: ${error}`);
   }
 }

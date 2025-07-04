@@ -5,12 +5,14 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./googleAuth";
-import { generateSummary, generateQuiz, generateStudyGuide } from "./services/gemini";
+import { generateSummary, generateQuiz, generateStudyGuide, generatePodcastScript, generatePodcastAudio } from "./services/gemini";
 import { extractTextFromFile } from "./services/fileProcessor";
 import { createClassroomService } from "./services/googleClassroom";
 import { createDriveService } from "./services/googleDrive";
 import { insertFileSchema, insertGeneratedContentSchema, insertStudentSchema } from "@shared/schema";
 import { z } from "zod";
+import { nanoid } from "nanoid";
+import express from "express";
 
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -952,6 +954,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: '재인증 처리 중 오류가 발생했습니다.' });
     }
   });
+
+  // Generate podcast from content
+  app.post('/api/content/:id/podcast', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { language = 'ko' } = req.body;
+
+      // Get the content
+      const allContent = await storage.getGeneratedContentByTeacher(req.user.id);
+      const content = allContent.find(c => c.id === id);
+      
+      if (!content) {
+        return res.status(404).json({ message: 'Content not found' });
+      }
+
+      console.log(`Generating podcast for content: ${content.title}`);
+
+      // Generate podcast script
+      const podcastData = await generatePodcastScript(content, language);
+      
+      // Generate unique filename for audio
+      const timestamp = Date.now();
+      const audioFileName = `podcast-${id}-${timestamp}.mp3`;
+      const audioFilePath = path.join(process.cwd(), 'uploads', audioFileName);
+
+      try {
+        // Generate audio file
+        const generatedAudioPath = await generatePodcastAudio(podcastData.script, audioFilePath);
+        podcastData.audioFilePath = `/uploads/${audioFileName}`;
+        
+        // Get audio file stats for duration (basic approximation)
+        const stats = fs.statSync(generatedAudioPath);
+        podcastData.duration = Math.round(stats.size / 16000); // Rough estimation
+      } catch (audioError) {
+        console.warn('Audio generation failed, returning script only:', audioError);
+        // Continue without audio file - user will get script only
+      }
+
+      // Save podcast as new content
+      const podcastContent = await storage.createGeneratedContent({
+        fileId: content.fileId,
+        teacherId: req.user.id,
+        contentType: 'podcast',
+        language,
+        title: `${content.title} - 팟캐스트`,
+        content: podcastData,
+        shareToken: nanoid(),
+        folderName: content.folderName
+      });
+
+      res.json(podcastContent);
+    } catch (error) {
+      console.error('Error generating podcast:', error);
+      res.status(500).json({ message: 'Failed to generate podcast' });
+    }
+  });
+
+  // Serve uploaded files (including audio files)
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   const httpServer = createServer(app);
   return httpServer;

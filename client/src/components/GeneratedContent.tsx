@@ -67,6 +67,38 @@ export default function GeneratedContent({
     },
   });
 
+  // Podcast generation mutation
+  const generatePodcastMutation = useMutation({
+    mutationFn: async ({ contentId, language }: { contentId: string, language: string }) => {
+      const response = await apiRequest('POST', `/api/content/${contentId}/podcast`, { language });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/content'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      toast({
+        title: "팟캐스트 생성 완료",
+        description: "AI 팟캐스트가 성공적으로 생성되었습니다.",
+      });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => window.location.href = "/api/login", 500);
+        return;
+      }
+      toast({
+        title: "팟캐스트 생성 실패",
+        description: "팟캐스트 생성 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const copyShareLink = (shareToken: string) => {
     const shareUrl = `${window.location.origin}/api/share/${shareToken}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
@@ -85,6 +117,8 @@ export default function GeneratedContent({
         return 'fas fa-question-circle text-secondary';
       case 'study_guide':
         return 'fas fa-book text-accent';
+      case 'podcast':
+        return 'fas fa-microphone text-purple-600';
       default:
         return 'fas fa-file text-gray-600';
     }
@@ -98,6 +132,8 @@ export default function GeneratedContent({
         return '퀴즈';
       case 'study_guide':
         return '학습 가이드';
+      case 'podcast':
+        return '팟캐스트';
       default:
         return type;
     }
@@ -115,6 +151,8 @@ export default function GeneratedContent({
         return 'bg-green-50 border-green-200';
       case 'study_guide':
         return 'bg-orange-50 border-orange-200';
+      case 'podcast':
+        return 'bg-purple-50 border-purple-200';
       default:
         return 'bg-gray-50 border-gray-200';
     }
@@ -166,6 +204,7 @@ export default function GeneratedContent({
             <TabsTrigger value="summary" className="korean-text">요약</TabsTrigger>
             <TabsTrigger value="quiz" className="korean-text">퀴즈</TabsTrigger>
             <TabsTrigger value="study_guide" className="korean-text">학습가이드</TabsTrigger>
+            <TabsTrigger value="podcast" className="korean-text">팟캐스트</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -190,6 +229,18 @@ export default function GeneratedContent({
                   </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant="secondary">{getLanguageLabel(item.language)}</Badge>
+                    {item.contentType !== 'podcast' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => generatePodcastMutation.mutate({ contentId: item.id, language: item.language })}
+                        disabled={generatePodcastMutation.isPending}
+                        className="text-purple-600 hover:text-purple-800"
+                      >
+                        <i className="fas fa-microphone mr-1"></i>
+                        팟캐스트
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
@@ -338,6 +389,44 @@ export default function GeneratedContent({
                               </p>
                             )}
                           </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {item.contentType === 'podcast' && (
+                    <div>
+                      <div className="mb-4">
+                        <p className="font-medium korean-text mb-2">팟캐스트 설명:</p>
+                        <p className="text-sm text-gray-700">{item.content.description}</p>
+                      </div>
+
+                      {item.content.audioFilePath && (
+                        <div className="mb-4">
+                          <p className="font-medium korean-text mb-2">오디오:</p>
+                          <audio controls className="w-full">
+                            <source src={item.content.audioFilePath} type="audio/mpeg" />
+                            브라우저가 오디오를 지원하지 않습니다.
+                          </audio>
+                          {item.content.duration && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              재생 시간: 약 {Math.floor(item.content.duration / 60)}분 {item.content.duration % 60}초
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {item.content.script && (
+                        <div>
+                          <p className="font-medium korean-text mb-2">스크립트 미리보기:</p>
+                          <div className="bg-gray-50 p-3 rounded text-sm max-h-32 overflow-y-auto">
+                            {item.content.script.split('\n').slice(0, 5).map((line: string, index: number) => (
+                              <p key={index} className="mb-1">{line}</p>
+                            ))}
+                            {item.content.script.split('\n').length > 5 && (
+                              <p className="text-gray-500 korean-text">... 스크립트 계속</p>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
