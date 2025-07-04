@@ -107,15 +107,18 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
-- July 04, 2025. PDF export functionality and podcast audio generation improvements
+- July 04, 2025. Integrated content generation workflow with PDF and audio upload to Google Classroom
+  - Implemented complete 6-step workflow: content generation → PDF creation → Gemini upload → podcast generation → file collection → classroom upload
+  - Enhanced Gemini integration to accept PDF files for high-quality audio generation using gemini-2.0-flash-exp model
+  - Added comprehensive file upload system for Google Classroom (text, PDF, and audio files)
+  - Improved podcast generation to use both script and PDF content for better quality
+  - Added multi-file attachment support for Google Classroom assignments
+  - Enhanced assignment descriptions to list all attached file types (text, PDF, audio)
+  - Fixed audio generation using Gemini's AUDIO responseModalities with Aoede voice
   - Added comprehensive PDF export feature for individual and batch content download
   - Implemented jsPDF-based PDF generation with proper Korean text support
   - Created ZIP file packaging for batch downloads with archiver library
   - Enhanced PDF export UI with dedicated download controls in AI content page
-  - Implemented browser-based speech synthesis for podcast audio generation
-  - Added real-time audio playback and control buttons (play/stop) for podcasts
-  - Fixed Gemini audio generation limitations by using Web Speech API
-  - Fixed batch classroom upload content ID processing errors
   - Added red-themed PDF download buttons across content management interfaces
 - July 02, 2025. Google Classroom connection and synchronization issues resolved
   - Fixed Google OAuth token storage and retrieval from database

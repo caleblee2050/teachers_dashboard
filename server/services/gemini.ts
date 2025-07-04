@@ -342,25 +342,89 @@ Please format your response as JSON:
   }
 }
 
-export async function generatePodcastAudio(script: string, outputPath: string): Promise<string> {
-  // 현재 Gemini 모델이 음성 생성을 지원하지 않으므로 클라이언트 측에서 처리
-  // 오디오 URL은 클라이언트에서 생성할 수 있도록 빈 파일 생성
-  const fs = require('fs');
-  const path = require('path');
-  
+export async function generatePodcastAudio(script: string, outputPath: string, pdfPath?: string): Promise<string> {
+  if (!apiKey || !ai) {
+    throw new Error("Gemini API key not configured. Please add GEMINI_API_KEY environment variable.");
+  }
+
   try {
-    // 스크립트 텍스트를 파일로 저장하여 클라이언트에서 사용할 수 있도록 함
-    const scriptPath = outputPath.replace('.mp3', '.txt');
-    fs.writeFileSync(scriptPath, script, 'utf8');
+    console.log('Starting podcast audio generation with Gemini...');
     
-    // 더미 오디오 파일 생성 (클라이언트에서 실제 오디오로 교체)
-    const dummyAudioContent = Buffer.from('placeholder audio content');
-    fs.writeFileSync(outputPath, dummyAudioContent);
+    // PDF 파일이 있으면 함께 업로드
+    let contents: any[] = [];
     
-    console.log(`Podcast script saved to: ${scriptPath}`);
-    return outputPath;
+    if (pdfPath && fs.existsSync(pdfPath)) {
+      console.log(`Uploading PDF file: ${pdfPath}`);
+      
+      // PDF 파일 읽기
+      const pdfBuffer = fs.readFileSync(pdfPath);
+      
+      contents.push({
+        inlineData: {
+          data: pdfBuffer.toString('base64'),
+          mimeType: 'application/pdf'
+        }
+      });
+      
+      contents.push({
+        text: `이 PDF 문서의 내용을 바탕으로 5분 분량의 자연스러운 한국어 팟캐스트 오디오를 생성해주세요. 교육적이고 이해하기 쉬운 톤으로 설명해주세요.`
+      });
+    } else {
+      // PDF가 없으면 텍스트 스크립트만 사용
+      contents.push({
+        text: `다음 스크립트를 바탕으로 5분 분량의 자연스러운 한국어 팟캐스트 오디오를 생성해주세요:\n\n${script}`
+      });
+    }
+
+    // Gemini에서 오디오 생성 요청
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash-exp",
+      contents: [{
+        role: "user",
+        parts: contents
+      }],
+      config: {
+        responseModalities: ["AUDIO"],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: "Aoede"
+            }
+          }
+        }
+      }
+    });
+
+    const candidates = response.candidates;
+    if (!candidates || candidates.length === 0) {
+      throw new Error("No audio generated from Gemini");
+    }
+
+    const content = candidates[0].content;
+    if (!content || !content.parts) {
+      throw new Error("No audio content in response");
+    }
+
+    // 오디오 데이터 찾기 및 저장
+    for (const part of content.parts) {
+      if (part.inlineData && part.inlineData.mimeType?.startsWith('audio/') && part.inlineData.data) {
+        const audioData = Buffer.from(part.inlineData.data as string, 'base64');
+        
+        // 업로드 폴더 확인 및 생성
+        const uploadDir = path.dirname(outputPath);
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        
+        fs.writeFileSync(outputPath, audioData);
+        console.log(`Podcast audio saved to: ${outputPath}`);
+        return outputPath;
+      }
+    }
+
+    throw new Error("No audio data found in Gemini response");
   } catch (error) {
-    console.error('Error preparing podcast audio:', error);
-    throw new Error(`Failed to prepare podcast audio: ${error}`);
+    console.error('Error generating podcast audio with Gemini:', error);
+    throw new Error(`Failed to generate podcast audio: ${error}`);
   }
 }

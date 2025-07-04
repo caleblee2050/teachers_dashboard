@@ -441,16 +441,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 팟캐스트 스크립트 생성
       const podcastData = await generatePodcastScript(existingContent, language);
       
-      // 오디오 파일 경로 생성
+      // 1. PDF 파일 먼저 생성
+      let pdfPath: string | undefined;
+      try {
+        const timestamp = Date.now();
+        const pdfFileName = `podcast_content_${timestamp}.pdf`;
+        pdfPath = path.join(process.cwd(), 'uploads', pdfFileName);
+        
+        // Generate PDF from podcast content
+        await generatePDF({
+          title: podcastData.title,
+          contentType: 'podcast',
+          content: podcastData,
+          language
+        }, pdfPath);
+        
+        console.log(`PDF generated for podcast: ${pdfPath}`);
+      } catch (pdfError) {
+        console.warn('PDF generation failed for podcast:', pdfError);
+        // Continue without PDF
+      }
+
+      // 2. 생성된 PDF와 스크립트를 Gemini에 제공하여 오디오 생성
       const timestamp = Date.now();
       const audioFileName = `podcast_${timestamp}.mp3`;
       const audioFilePath = path.join(process.cwd(), 'uploads', audioFileName);
       
       try {
-        // 오디오 생성 시도
-        await generatePodcastAudio(podcastData.script, audioFilePath);
+        // Gemini를 사용하여 PDF 기반 오디오 생성
+        await generatePodcastAudio(podcastData.script, audioFilePath, pdfPath);
         podcastData.audioFilePath = `/uploads/${audioFileName}`;
-        podcastData.duration = 300; // 기본 5분 설정
+        
+        // 파일 크기로 재생 시간 추정
+        const stats = fs.statSync(audioFilePath);
+        podcastData.duration = Math.round(stats.size / 16000); // 기본 추정
+        
+        console.log(`Podcast audio generated successfully with PDF: ${audioFilePath}`);
       } catch (audioError) {
         console.warn('Audio generation failed, proceeding with script only:', audioError);
         // 오디오 생성 실패 시 스크립트만 저장
