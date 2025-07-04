@@ -87,15 +87,20 @@ export default function AIContent() {
     selectedLanguageFolders.forEach(language => {
       const contents = groupedContentByLanguage[language] || [];
       const folderName = getLanguageFolderName(language);
-      classroomUploadMutation.mutate({ contents, folderName });
+      classroomUploadMutation.mutate({ contents: contents.map((c: any) => c.id), folderName });
     });
   };
 
   const handleUploadAllFolders = () => {
-    Object.keys(groupedContentByLanguage).forEach(language => {
+    const allUploads = Object.keys(groupedContentByLanguage).map(language => {
       const contents = groupedContentByLanguage[language] || [];
       const folderName = getLanguageFolderName(language);
-      classroomUploadMutation.mutate({ contents, folderName });
+      return { contents: contents.map((c: any) => c.id), folderName };
+    });
+    
+    // Upload all folders sequentially
+    allUploads.forEach(upload => {
+      classroomUploadMutation.mutate(upload);
     });
   };
 

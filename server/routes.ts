@@ -677,51 +677,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Classroom batch upload route
   app.post('/api/classroom/upload-batch', isAuthenticated, async (req: any, res) => {
     try {
+      console.log('=== Batch Upload Started ===');
+      console.log('Request body:', req.body);
+      
       const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user?.googleAccessToken) {
+        console.log('No Google access token found');
         return res.status(401).json({ message: 'Google authentication required' });
       }
       
       const { contents, folderName } = req.body;
       
       if (!contents || !Array.isArray(contents) || !folderName) {
+        console.log('Invalid request data:', { contents, folderName });
         return res.status(400).json({ message: 'Contents array and folder name are required' });
       }
       
+      console.log(`Creating classroom service for user: ${userId}`);
       const classroomService = await createClassroomService(user);
       
       // Get all courses for the user
+      console.log('Getting classroom courses...');
       const courses = await classroomService.getCourses();
+      console.log(`Found ${courses.length} courses:`, courses.map(c => ({ id: c.id, name: c.name, state: c.state })));
       
       if (courses.length === 0) {
+        console.log('No courses found');
         return res.status(404).json({ message: 'No courses found. Please create a course in Google Classroom first.' });
       }
       
       // Use the first active course
       const activeCourse = courses.find(course => course.state === 'ACTIVE') || courses[0];
+      console.log(`Using course: ${activeCourse.name} (${activeCourse.id})`);
       
       let totalUploaded = 0;
       const uploadResults = [];
       
       // Upload each content as a separate assignment
+      console.log(`Starting to upload ${contents.length} contents...`);
       for (const contentId of contents) {
+        console.log(`Processing content ID: ${contentId}`);
         try {
           const content = await storage.getGeneratedContentByShare(contentId);
           if (!content) {
+            console.log(`Content not found: ${contentId}`);
             uploadResults.push({ contentId, success: false, error: 'Content not found' });
             continue;
           }
           
+          console.log(`Found content: ${content.title} (${content.contentType})`);
           const assignmentTitle = `[${folderName}] ${content.title}`;
           
+          console.log(`Creating assignment: ${assignmentTitle}`);
           const result = await classroomService.createAssignment(
             activeCourse.id,
             assignmentTitle,
             `AI 생성 콘텐츠 - ${content.contentType}`,
             content
           );
+          
+          console.log(`Assignment creation result:`, result);
           
           if (result.success) {
             totalUploaded++;
