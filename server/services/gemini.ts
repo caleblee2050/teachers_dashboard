@@ -348,13 +348,26 @@ export async function generatePodcastAudio(script: string, outputPath: string, p
   }
 
   try {
-    console.log('Starting podcast audio generation with Gemini...');
+    console.log('Starting AI Audio Overview generation with Gemini 2.5 Flash Preview TTS...');
     
-    // PDF 파일이 있으면 함께 업로드
+    // AI 오디오 오버뷰를 위한 프롬프트 - NotebookLM 스타일
+    const overviewPrompt = `다음 교육 자료를 바탕으로 NotebookLM 스타일의 AI 오디오 오버뷰를 생성해주세요.
+
+AI 오디오 오버뷰 요구사항:
+- 두 명의 AI 호스트가 자연스럽고 편안한 대화 형태로 진행
+- 교육 내용을 이해하기 쉽게 요약하고 설명
+- 핵심 포인트들을 대화를 통해 강조
+- 호스트들이 서로 질문하고 답변하며 내용을 풀어나감
+- 5-8분 분량의 팟캐스트 형태
+- 한국어로 자연스럽게 생성
+- 교육적이면서도 흥미롭게 전달
+
+`;
+
     let contents: any[] = [];
     
     if (pdfPath && fs.existsSync(pdfPath)) {
-      console.log(`Uploading PDF file: ${pdfPath}`);
+      console.log(`Uploading PDF for AI Audio Overview: ${pdfPath}`);
       
       // PDF 파일 읽기
       const pdfBuffer = fs.readFileSync(pdfPath);
@@ -367,59 +380,50 @@ export async function generatePodcastAudio(script: string, outputPath: string, p
       });
       
       contents.push({
-        text: `이 PDF 문서의 내용을 바탕으로 두 명의 AI 호스트가 대화하는 형태의 교육용 AI 오디오 오버뷰를 생성해주세요. 
-
-요구사항:
-- 두 명의 AI 호스트 (호스트 A, 호스트 B)가 자연스럽게 대화하는 형태
-- 교육 내용을 쉽고 재미있게 설명
-- 5-8분 분량의 오디오
-- 한국어로 생성
-- 교육적이고 이해하기 쉬운 톤으로 NotebookLM 스타일의 AI 오디오 오버뷰를 만들어주세요.`
+        text: overviewPrompt + `PDF 문서의 내용을 분석하여 AI 오디오 오버뷰를 생성해주세요.`
       });
     } else {
       // PDF가 없으면 텍스트 스크립트 사용
       contents.push({
-        text: `다음 교육 자료를 바탕으로 두 명의 AI 호스트가 대화하는 형태의 교육용 AI 오디오 오버뷰를 생성해주세요.
-
-요구사항:
-- 두 명의 AI 호스트 (호스트 A, 호스트 B)가 자연스럽게 대화하는 형태
-- 교육 내용을 쉽고 재미있게 설명
-- 5-8분 분량의 오디오
-- 한국어로 생성
-- 교육적이고 이해하기 쉬운 톤으로 NotebookLM 스타일의 AI 오디오 오버뷰를 만들어주세요.
-
-교육 자료:
-${script}`
+        text: overviewPrompt + `\n\n교육 자료:\n${script}`
       });
     }
 
-    // Gemini에서 오디오 생성 요청
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview",
-      contents: [{
-        role: "user",
-        parts: contents
-      }],
-      config: {
-        responseModalities: ["AUDIO"],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: {
-              voiceName: "Aoede"
-            }
-          }
+    // Gemini 2.5 Flash Preview TTS 또는 Pro Preview TTS로 AI 오디오 오버뷰 생성
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{
+          role: "user",
+          parts: contents
+        }],
+        config: {
+          responseModalities: ["AUDIO"]
         }
-      }
-    });
+      });
+    } catch (flashError) {
+      console.log('Flash Preview TTS failed, trying Pro Preview TTS...');
+      response = await ai.models.generateContent({
+        model: "gemini-2.5-pro-preview-tts",
+        contents: [{
+          role: "user",
+          parts: contents
+        }],
+        config: {
+          responseModalities: ["AUDIO"]
+        }
+      });
+    }
 
     const candidates = response.candidates;
     if (!candidates || candidates.length === 0) {
-      throw new Error("No audio generated from Gemini");
+      throw new Error("No AI Audio Overview generated from Gemini");
     }
 
     const content = candidates[0].content;
     if (!content || !content.parts) {
-      throw new Error("No audio content in response");
+      throw new Error("No audio content in AI Audio Overview response");
     }
 
     // 오디오 데이터 찾기 및 저장
@@ -434,14 +438,14 @@ ${script}`
         }
         
         fs.writeFileSync(outputPath, audioData);
-        console.log(`Podcast audio saved to: ${outputPath}`);
+        console.log(`AI Audio Overview saved to: ${outputPath}`);
         return outputPath;
       }
     }
 
-    throw new Error("No audio data found in Gemini response");
+    throw new Error("No audio data found in Gemini AI Audio Overview response");
   } catch (error) {
-    console.error('Error generating podcast audio with Gemini:', error);
-    throw new Error(`Failed to generate podcast audio: ${error}`);
+    console.error('Error generating AI Audio Overview with Gemini:', error);
+    throw new Error(`Failed to generate AI Audio Overview: ${error}`);
   }
 }
