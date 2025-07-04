@@ -399,8 +399,9 @@ AI 오디오 오버뷰 요구사항:
     // Gemini 2.5 Flash Preview TTS 또는 Pro Preview TTS로 AI 오디오 오버뷰 생성
     let response;
     try {
+      // 최신 Gemini 2.0 Flash 실험 모델 사용
       response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview",
+        model: "gemini-2.0-flash-exp",
         contents: [{
           role: "user",
           parts: contents
@@ -410,17 +411,31 @@ AI 오디오 오버뷰 요구사항:
         }
       });
     } catch (flashError) {
-      console.log('Flash Preview TTS failed, trying Pro Preview TTS...');
-      response = await ai.models.generateContent({
-        model: "gemini-2.5-pro-preview",
-        contents: [{
-          role: "user",
-          parts: contents
-        }],
-        config: {
-          responseModalities: ["AUDIO"]
-        }
-      });
+      console.log('Gemini 2.0 Flash Exp failed, trying legacy models...');
+      try {
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-preview",
+          contents: [{
+            role: "user",
+            parts: contents
+          }],
+          config: {
+            responseModalities: ["AUDIO"]
+          }
+        });
+      } catch (legacyError) {
+        console.log('Legacy models failed, trying Pro Preview...');
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-pro-preview",
+          contents: [{
+            role: "user",
+            parts: contents
+          }],
+          config: {
+            responseModalities: ["AUDIO"]
+          }
+        });
+      }
     }
 
     const candidates = response.candidates;
@@ -455,12 +470,13 @@ AI 오디오 오버뷰 요구사항:
     console.error('Error generating AI Audio Overview with Gemini:', error);
     
     // 할당량 초과 시 특별 처리
-    if (error.message.includes('exceeded your current quota') || error.message.includes('RESOURCE_EXHAUSTED')) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('exceeded your current quota') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
       console.log('Gemini API quota exceeded. Please wait and try again later, or upgrade your plan.');
       throw new Error('Gemini API 할당량이 초과되었습니다. 잠시 후 다시 시도해주시거나 플랜을 업그레이드해주세요.');
     }
     
-    throw new Error(`Failed to generate AI Audio Overview: ${error}`);
+    throw new Error(`Failed to generate AI Audio Overview: ${errorMessage}`);
   }
 }
 
