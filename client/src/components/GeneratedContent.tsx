@@ -109,6 +109,20 @@ export default function GeneratedContent({
     });
   };
 
+  const downloadPDF = (contentId: string, title: string) => {
+    const link = document.createElement('a');
+    link.href = `/api/content/${contentId}/pdf`;
+    link.download = `${title}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "PDF 다운로드 시작",
+      description: `${title} PDF 파일을 다운로드합니다.`,
+    });
+  };
+
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'summary':
@@ -241,6 +255,15 @@ export default function GeneratedContent({
                         팟캐스트
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => downloadPDF(item.id, item.title)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <i className="fas fa-file-pdf mr-1"></i>
+                      PDF
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"

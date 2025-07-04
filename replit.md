@@ -107,6 +107,14 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- July 04, 2025. PDF export functionality and podcast audio generation improvements
+  - Added comprehensive PDF export feature for individual and batch content download
+  - Implemented jsPDF-based PDF generation with proper Korean text support
+  - Created ZIP file packaging for batch downloads with archiver library
+  - Enhanced PDF export UI with dedicated download controls in AI content page
+  - Improved podcast audio generation with Gemini 2.5 Flash audio capabilities
+  - Fixed batch classroom upload content ID processing errors
+  - Added red-themed PDF download buttons across content management interfaces
 - July 02, 2025. Google Classroom connection and synchronization issues resolved
   - Fixed Google OAuth token storage and retrieval from database
   - Modified user deserialization to include fresh Google tokens from database

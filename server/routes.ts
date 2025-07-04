@@ -9,6 +9,7 @@ import { generateSummary, generateQuiz, generateStudyGuide, generatePodcastScrip
 import { extractTextFromFile } from "./services/fileProcessor";
 import { createClassroomService } from "./services/googleClassroom";
 import { createDriveService } from "./services/googleDrive";
+import { generatePDF } from "./services/pdfGenerator";
 import { insertFileSchema, insertGeneratedContentSchema, insertStudentSchema } from "@shared/schema";
 import { z } from "zod";
 import { nanoid } from "nanoid";
@@ -1070,6 +1071,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error generating podcast:', error);
       res.status(500).json({ message: 'Failed to generate podcast' });
+    }
+  });
+
+  // PDF export route
+  app.get('/api/content/:id/pdf', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const contentId = req.params.id;
+      
+      // Get content
+      const allContent = await storage.getGeneratedContentByTeacher(userId);
+      const content = allContent.find(c => c.id === contentId);
+      
+      if (!content) {
+        return res.status(404).json({ message: 'Content not found' });
+      }
+      
+      // Generate PDF
+      const timestamp = Date.now();
+      const fileName = `${content.title.replace(/[^a-zA-Z0-9가-힣]/g, '_')}_${timestamp}.pdf`;
+      const outputPath = path.join(uploadDir, fileName);
+      
+      await generatePDF({
+        title: content.title,
+        contentType: content.contentType,
+        content: content.content,
+        language: content.language
+      }, outputPath);
+      
+      // Send file
+      res.download(outputPath, fileName, (err: any) => {
+        if (err) {
+          console.error('Error sending PDF:', err);
+          res.status(500).json({ message: 'Failed to download PDF' });
+        }
+        
+        // Clean up temporary file
+        setTimeout(() => {
+          try {
+            fs.unlinkSync(outputPath);
+          } catch (e) {
+            console.error('Error cleaning up PDF file:', e);
+          }
+        }, 5000);
+      });
+      
+    } catch (error: any) {
+      console.error('Error generating PDF:', error);
+      res.status(500).json({ message: 'Failed to generate PDF' });
+    }
+  });
+
+  // Batch PDF export route
+  app.post('/api/content/batch-pdf', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { contentIds, folderName } = req.body;
+      
+      if (!contentIds || !Array.isArray(contentIds) || contentIds.length === 0) {
+        return res.status(400).json({ message: 'Content IDs are required' });
+      }
+      
+      // Get all content
+      const allContent = await storage.getGeneratedContentByTeacher(userId);
+      const contents = allContent.filter(c => contentIds.includes(c.id));
+      
+      if (contents.length === 0) {
+        return res.status(404).json({ message: 'No content found' });
+      }
+      
+      const timestamp = Date.now();
+      const zipFileName = `${folderName || 'AI_Content'}_${timestamp}.zip`;
+      const zipPath = path.join(uploadDir, zipFileName);
+      
+      // Create PDFs for each content
+      const pdfPaths: string[] = [];
+      for (const content of contents) {
+        const fileName = `${content.title.replace(/[^a-zA-Z0-9가-힣]/g, '_')}.pdf`;
+        const outputPath = path.join(uploadDir, `temp_${timestamp}_${fileName}`);
+        
+        await generatePDF({
+          title: content.title,
+          contentType: content.contentType,
+          content: content.content,
+          language: content.language
+        }, outputPath);
+        
+        pdfPaths.push(outputPath);
+      }
+      
+      // Create zip file
+      const archiver = require('archiver');
+      const output = fs.createWriteStream(zipPath);
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      
+      output.on('close', () => {
+        // Send zip file
+        res.download(zipPath, zipFileName, (err: any) => {
+          if (err) {
+            console.error('Error sending ZIP:', err);
+            res.status(500).json({ message: 'Failed to download ZIP' });
+          }
+          
+          // Clean up temporary files
+          setTimeout(() => {
+            try {
+              fs.unlinkSync(zipPath);
+              pdfPaths.forEach(pdfPath => {
+                try {
+                  fs.unlinkSync(pdfPath);
+                } catch (e) {
+                  console.error('Error cleaning up PDF:', e);
+                }
+              });
+            } catch (e) {
+              console.error('Error cleaning up ZIP file:', e);
+            }
+          }, 5000);
+        });
+      });
+      
+      archive.on('error', (err) => {
+        console.error('Archive error:', err);
+        res.status(500).json({ message: 'Failed to create ZIP file' });
+      });
+      
+      archive.pipe(output);
+      
+      // Add PDF files to archive
+      contents.forEach((content, index) => {
+        const fileName = `${content.title.replace(/[^a-zA-Z0-9가-힣]/g, '_')}.pdf`;
+        archive.file(pdfPaths[index], { name: fileName });
+      });
+      
+      archive.finalize();
+      
+    } catch (error: any) {
+      console.error('Error generating batch PDF:', error);
+      res.status(500).json({ message: 'Failed to generate batch PDF' });
     }
   });
 
