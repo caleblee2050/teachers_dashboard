@@ -720,9 +720,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const contentId of contents) {
         console.log(`Processing content ID: ${contentId}`);
         try {
-          const content = await storage.getGeneratedContentByShare(contentId);
+          // Get all content for the teacher and find by ID
+          const allContent = await storage.getGeneratedContentByTeacher(userId);
+          const content = allContent.find(c => c.id === contentId);
+          
           if (!content) {
             console.log(`Content not found: ${contentId}`);
+            console.log(`Available content IDs:`, allContent.map(c => c.id));
             uploadResults.push({ contentId, success: false, error: 'Content not found' });
             continue;
           }
