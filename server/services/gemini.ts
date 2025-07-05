@@ -283,7 +283,7 @@ export interface PodcastContent {
   duration?: number;
 }
 
-export async function generatePodcastScript(content: any, language: 'ko' | 'en' | 'ja' | 'zh' | 'th' | 'vi' | 'fil'): Promise<PodcastContent> {
+export async function generatePodcastScript(originalText: string, language: 'ko' | 'en' | 'ja' | 'zh' | 'th' | 'vi' | 'fil'): Promise<PodcastContent> {
   if (!apiKey || !ai) {
     throw new Error("Gemini API key not configured. Please add GEMINI_API_KEY environment variable.");
   }
@@ -291,15 +291,11 @@ export async function generatePodcastScript(content: any, language: 'ko' | 'en' 
   try {
     const languageInstruction = getLanguageInstruction(language);
     
-    // 콘텐츠 타입에 따라 다른 접근 방식 사용
-    let contentText = '';
-    if (content.contentType === 'summary') {
-      contentText = `제목: ${content.title}\n\n주요 내용:\n${content.content.mainContent}\n\n핵심 개념:\n${content.content.keyConcepts.join(', ')}`;
-    } else if (content.contentType === 'quiz') {
-      contentText = `제목: ${content.title}\n\n퀴즈 문제들:\n${content.content.questions.map((q: any, i: number) => `${i + 1}. ${q.question}`).join('\n')}`;
-    } else if (content.contentType === 'study_guide') {
-      contentText = `제목: ${content.title}\n\n학습 목표:\n${content.content.learningObjectives.join('\n')}\n\n핵심 개념:\n${content.content.keyConcepts.map((c: any) => `- ${c.term}: ${c.definition}`).join('\n')}`;
-    }
+    // 원본 텍스트 길이 제한 (너무 긴 경우 처음 부분만 사용)
+    const maxTextLength = 4000; // 토큰 제한 고려
+    const contentText = originalText.length > maxTextLength 
+      ? originalText.substring(0, maxTextLength) + "..."
+      : originalText;
 
     const prompt = `${languageInstruction}
 
@@ -309,13 +305,15 @@ Create an engaging podcast script based on the following educational content. Th
 
 The conversation should be educational yet engaging, approximately 5-7 minutes long.
 
+Important: Base the podcast content ONLY on the provided educational material below. Do not add external information.
+
 Educational content:
 ${contentText}
 
 Please format your response as JSON:
 {
-  "title": "Podcast episode title",
-  "description": "Brief episode description",
+  "title": "Podcast episode title based on the content",
+  "description": "Brief episode description about the content",
   "script": "Host A: Hello everyone...\\nHost B: Hi there..."
 }`;
 

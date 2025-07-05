@@ -523,27 +523,36 @@ export default function GeneratedContent({
                             )}
                           </div>
                         ) : (
-                          <div className="flex items-center space-x-3">
-                            <Button
-                              onClick={() => handlePlayTextToSpeech(item.content.script)}
-                              disabled={!item.content.script}
-                              className="bg-blue-600 hover:bg-blue-700 text-white text-sm korean-text disabled:opacity-50"
-                            >
-                              <i className="fas fa-volume-up mr-2"></i>
-                              브라우저 TTS 재생
-                            </Button>
-                            <Button
-                              onClick={() => currentSpeech ? handleStopSpeech() : handlePlayTextToSpeech(item.content.script)}
-                              disabled={!item.content.script}
-                              className="bg-green-600 hover:bg-green-700 text-white text-sm korean-text disabled:opacity-50"
-                            >
-                              {currentSpeech ? (
-                                <i className="fas fa-stop mr-2"></i>
-                              ) : (
-                                <i className="fas fa-play mr-2"></i>
-                              )}
-                              {currentSpeech ? '재생 중지' : '바로 재생'}
-                            </Button>
+                          <div className="space-y-3">
+                            <div className="flex items-center space-x-3">
+                              <Button
+                                onClick={() => handlePlayTextToSpeech(item.content.script)}
+                                disabled={!item.content.script}
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-sm korean-text disabled:opacity-50"
+                              >
+                                <i className="fas fa-volume-up mr-2"></i>
+                                브라우저 TTS 재생
+                              </Button>
+                              <Button
+                                onClick={() => currentSpeech ? handleStopSpeech() : handlePlayTextToSpeech(item.content.script)}
+                                disabled={!item.content.script}
+                                className="bg-green-600 hover:bg-green-700 text-white text-sm korean-text disabled:opacity-50"
+                              >
+                                {currentSpeech ? (
+                                  <i className="fas fa-stop mr-2"></i>
+                                ) : (
+                                  <i className="fas fa-play mr-2"></i>
+                                )}
+                                {currentSpeech ? '재생 중지' : '바로 재생'}
+                              </Button>
+                            </div>
+                            
+                            {/* Debug info */}
+                            <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded">
+                              <p>Script available: {item.content.script ? 'Yes' : 'No'}</p>
+                              <p>Script length: {item.content.script ? item.content.script.length : 0} characters</p>
+                              <p>Content type: {item.contentType}</p>
+                            </div>
                           </div>
                         )}
                         <p className="text-sm text-gray-500 korean-text mt-2">

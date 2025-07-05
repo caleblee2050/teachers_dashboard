@@ -442,8 +442,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Content not found' });
       }
 
-      // 팟캐스트 스크립트 생성
-      const podcastData = await generatePodcastScript(existingContent, language);
+      // 원본 파일 텍스트 가져오기
+      const originalFile = await storage.getFile(existingContent.fileId);
+      if (!originalFile || !originalFile.extractedText) {
+        return res.status(400).json({ message: 'Original file text not found' });
+      }
+
+      console.log('Generating podcast from original file text, length:', originalFile.extractedText.length);
+
+      // 팟캐스트 스크립트 생성 - 원본 파일 텍스트 사용
+      const podcastData = await generatePodcastScript(originalFile.extractedText, language);
       
       // 1. PDF 파일 먼저 생성
       let pdfPath: string | undefined;
