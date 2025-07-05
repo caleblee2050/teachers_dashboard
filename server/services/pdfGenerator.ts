@@ -1,4 +1,4 @@
-import { jsPDF } from 'jspdf';
+import puppeteer from 'puppeteer';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -11,288 +11,269 @@ export interface ContentData {
 
 export async function generatePDF(contentData: ContentData, outputPath: string): Promise<string> {
   try {
-    // Create new PDF document
-    const doc = new jsPDF();
+    // Generate HTML content
+    const htmlContent = generateHTMLContent(contentData);
     
-    // Set Korean font support
-    doc.setFont('helvetica');
-    doc.setFontSize(16);
+    // Launch puppeteer
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
     
-    let yPosition = 20;
-    const pageWidth = doc.internal.pageSize.width;
-    const margin = 20;
-    const maxWidth = pageWidth - 2 * margin;
+    const page = await browser.newPage();
     
-    // Title
-    doc.setFontSize(18);
-    doc.text(contentData.title, margin, yPosition);
-    yPosition += 15;
+    // Set content
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     
-    // Content type and language
-    doc.setFontSize(12);
-    doc.text(`콘텐츠 타입: ${getContentTypeLabel(contentData.contentType)}`, margin, yPosition);
-    yPosition += 10;
-    doc.text(`언어: ${getLanguageLabel(contentData.language)}`, margin, yPosition);
-    yPosition += 15;
-    
-    // Content based on type
-    doc.setFontSize(10);
-    
-    if (contentData.contentType === 'summary') {
-      yPosition = addSummaryContent(doc, contentData.content, margin, yPosition, maxWidth);
-    } else if (contentData.contentType === 'quiz') {
-      yPosition = addQuizContent(doc, contentData.content, margin, yPosition, maxWidth);
-    } else if (contentData.contentType === 'study_guide') {
-      yPosition = addStudyGuideContent(doc, contentData.content, margin, yPosition, maxWidth);
-    } else if (contentData.contentType === 'podcast') {
-      yPosition = addPodcastContent(doc, contentData.content, margin, yPosition, maxWidth);
-    } else if (contentData.contentType === 'integrated') {
-      // Handle integrated content
-      doc.setFontSize(16);
-      doc.text('1. 학습 가이드', margin, yPosition);
-      yPosition += 15;
-      
-      if (contentData.content.studyGuide) {
-        yPosition = addStudyGuideContent(doc, contentData.content.studyGuide, margin, yPosition, maxWidth);
-        yPosition += 20;
+    // Generate PDF
+    await page.pdf({
+      path: outputPath,
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '1in',
+        right: '1in',
+        bottom: '1in',
+        left: '1in'
       }
-      
-      // 새 페이지 추가
-      doc.addPage();
-      yPosition = 20;
-      
-      // 2. 요약
-      doc.setFontSize(16);
-      doc.text('2. 요약', margin, yPosition);
-      yPosition += 15;
-      
-      if (contentData.content.summary) {
-        yPosition = addSummaryContent(doc, contentData.content.summary, margin, yPosition, maxWidth);
-        yPosition += 20;
-      }
-      
-      // 새 페이지 추가
-      doc.addPage();
-      yPosition = 20;
-      
-      // 3. 퀴즈
-      doc.setFontSize(16);
-      doc.text('3. 퀴즈', margin, yPosition);
-      yPosition += 15;
-      
-      if (contentData.content.quiz) {
-        yPosition = addQuizContent(doc, contentData.content.quiz, margin, yPosition, maxWidth);
-      }
-    }
+    });
     
-    // Save PDF
-    const pdfBuffer = doc.output('arraybuffer');
-    fs.writeFileSync(outputPath, Buffer.from(pdfBuffer));
+    await browser.close();
     
     return outputPath;
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    throw new Error(`Failed to generate PDF: ${error}`);
+    console.error('PDF generation error:', error);
+    throw error;
   }
 }
 
-function addSummaryContent(doc: jsPDF, content: any, margin: number, yPosition: number, maxWidth: number): number {
-  doc.setFontSize(14);
-  doc.text('요약', margin, yPosition);
-  yPosition += 10;
+function generateHTMLContent(contentData: ContentData): string {
+  const { title, contentType, content, language } = contentData;
   
-  doc.setFontSize(10);
+  let bodyContent = '';
   
-  // Main content
-  if (content.mainContent) {
-    const lines = doc.splitTextToSize(content.mainContent, maxWidth);
-    doc.text(lines, margin, yPosition);
-    yPosition += lines.length * 5 + 10;
+  if (contentType === 'summary') {
+    bodyContent = generateSummaryHTML(content);
+  } else if (contentType === 'quiz') {
+    bodyContent = generateQuizHTML(content);
+  } else if (contentType === 'study_guide') {
+    bodyContent = generateStudyGuideHTML(content);
+  } else if (contentType === 'podcast') {
+    bodyContent = generatePodcastHTML(content);
+  } else if (contentType === 'integrated') {
+    bodyContent = generateIntegratedHTML(content);
   }
   
-  // Key concepts
-  if (content.keyConcepts && content.keyConcepts.length > 0) {
-    doc.setFontSize(12);
-    doc.text('핵심 개념', margin, yPosition);
-    yPosition += 8;
-    
-    doc.setFontSize(10);
-    content.keyConcepts.forEach((concept: string) => {
-      const lines = doc.splitTextToSize(`• ${concept}`, maxWidth);
-      doc.text(lines, margin, yPosition);
-      yPosition += lines.length * 5 + 3;
-    });
-  }
-  
-  return yPosition;
+  return `
+    <!DOCTYPE html>
+    <html lang="${language}">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${title}</title>
+      <style>
+        body {
+          font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+        }
+        h1 {
+          color: #2563eb;
+          border-bottom: 3px solid #2563eb;
+          padding-bottom: 10px;
+          margin-bottom: 30px;
+        }
+        h2 {
+          color: #1e40af;
+          margin-top: 30px;
+          margin-bottom: 15px;
+        }
+        h3 {
+          color: #1e3a8a;
+          margin-top: 25px;
+          margin-bottom: 10px;
+        }
+        .content-info {
+          background: #f3f4f6;
+          padding: 15px;
+          border-radius: 8px;
+          margin-bottom: 25px;
+        }
+        .key-concepts {
+          background: #fef3c7;
+          padding: 15px;
+          border-radius: 8px;
+          margin: 15px 0;
+        }
+        .quiz-question {
+          background: #f0f9ff;
+          padding: 15px;
+          border-radius: 8px;
+          margin: 15px 0;
+        }
+        .options {
+          margin: 10px 0;
+        }
+        .option {
+          margin: 5px 0;
+          padding: 5px 10px;
+          background: #e5e7eb;
+          border-radius: 4px;
+        }
+        .correct-answer {
+          background: #dcfce7;
+          font-weight: bold;
+        }
+        .podcast-script {
+          background: #fafafa;
+          padding: 20px;
+          border-radius: 8px;
+          font-style: italic;
+          line-height: 1.8;
+        }
+        .learning-objectives {
+          background: #e0f2fe;
+          padding: 15px;
+          border-radius: 8px;
+          margin: 15px 0;
+        }
+        ul, ol {
+          margin: 10px 0;
+          padding-left: 20px;
+        }
+        li {
+          margin: 5px 0;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>${title}</h1>
+      
+      <div class="content-info">
+        <strong>콘텐츠 타입:</strong> ${getContentTypeLabel(contentType)}<br>
+        <strong>언어:</strong> ${getLanguageLabel(language)}<br>
+        <strong>생성일:</strong> ${new Date().toLocaleDateString('ko-KR')}
+      </div>
+      
+      ${bodyContent}
+    </body>
+    </html>
+  `;
 }
 
-function addQuizContent(doc: jsPDF, content: any, margin: number, yPosition: number, maxWidth: number): number {
-  doc.setFontSize(14);
-  doc.text('퀴즈', margin, yPosition);
-  yPosition += 10;
-  
-  doc.setFontSize(10);
-  
-  if (content.questions && content.questions.length > 0) {
-    content.questions.forEach((question: any, index: number) => {
-      // Question
-      doc.setFontSize(11);
-      const questionText = `${index + 1}. ${question.question}`;
-      const questionLines = doc.splitTextToSize(questionText, maxWidth);
-      doc.text(questionLines, margin, yPosition);
-      yPosition += questionLines.length * 5 + 5;
-      
-      // Options
-      if (question.options && question.options.length > 0) {
-        doc.setFontSize(10);
-        question.options.forEach((option: string, optIndex: number) => {
-          const optionText = `   ${String.fromCharCode(65 + optIndex)}. ${option}`;
-          const optionLines = doc.splitTextToSize(optionText, maxWidth);
-          doc.text(optionLines, margin, yPosition);
-          yPosition += optionLines.length * 5 + 2;
-        });
-      }
-      
-      // Answer
-      doc.setFontSize(9);
-      const answerText = `정답: ${question.correctAnswer}`;
-      doc.text(answerText, margin, yPosition);
-      yPosition += 8;
-      
-      // Explanation
-      if (question.explanation) {
-        const explanationText = `설명: ${question.explanation}`;
-        const explanationLines = doc.splitTextToSize(explanationText, maxWidth);
-        doc.text(explanationLines, margin, yPosition);
-        yPosition += explanationLines.length * 5 + 10;
-      }
-      
-      // Check for new page
-      if (yPosition > doc.internal.pageSize.height - 30) {
-        doc.addPage();
-        yPosition = 20;
-      }
-    });
-  }
-  
-  return yPosition;
+function generateSummaryHTML(content: any): string {
+  return `
+    <h2>📝 요약</h2>
+    <div class="key-concepts">
+      <h3>🔑 핵심 개념</h3>
+      <ul>
+        ${content.keyConcepts.map((concept: string) => `<li>${concept}</li>`).join('')}
+      </ul>
+    </div>
+    
+    <h3>📖 주요 내용</h3>
+    <p>${content.mainContent}</p>
+    
+    ${content.formulas && content.formulas.length > 0 ? `
+      <h3>🔢 공식</h3>
+      <ul>
+        ${content.formulas.map((formula: string) => `<li>${formula}</li>`).join('')}
+      </ul>
+    ` : ''}
+  `;
 }
 
-function addStudyGuideContent(doc: jsPDF, content: any, margin: number, yPosition: number, maxWidth: number): number {
-  doc.setFontSize(14);
-  doc.text('학습 가이드', margin, yPosition);
-  yPosition += 10;
-  
-  doc.setFontSize(10);
-  
-  // Learning objectives
-  if (content.learningObjectives && content.learningObjectives.length > 0) {
-    doc.setFontSize(12);
-    doc.text('학습 목표', margin, yPosition);
-    yPosition += 8;
-    
-    doc.setFontSize(10);
-    content.learningObjectives.forEach((objective: string) => {
-      const lines = doc.splitTextToSize(`• ${objective}`, maxWidth);
-      doc.text(lines, margin, yPosition);
-      yPosition += lines.length * 5 + 3;
-    });
-    yPosition += 10;
-  }
-  
-  // Key concepts
-  if (content.keyConcepts && content.keyConcepts.length > 0) {
-    doc.setFontSize(12);
-    doc.text('핵심 개념', margin, yPosition);
-    yPosition += 8;
-    
-    doc.setFontSize(10);
-    content.keyConcepts.forEach((concept: any) => {
-      const conceptText = `• ${concept.term}: ${concept.definition}`;
-      const lines = doc.splitTextToSize(conceptText, maxWidth);
-      doc.text(lines, margin, yPosition);
-      yPosition += lines.length * 5 + 5;
-    });
-    yPosition += 10;
-  }
-  
-  // Study questions
-  if (content.studyQuestions && content.studyQuestions.length > 0) {
-    doc.setFontSize(12);
-    doc.text('학습 문제', margin, yPosition);
-    yPosition += 8;
-    
-    doc.setFontSize(10);
-    content.studyQuestions.forEach((question: string, index: number) => {
-      const questionText = `${index + 1}. ${question}`;
-      const lines = doc.splitTextToSize(questionText, maxWidth);
-      doc.text(lines, margin, yPosition);
-      yPosition += lines.length * 5 + 5;
-    });
-  }
-  
-  return yPosition;
+function generateQuizHTML(content: any): string {
+  return `
+    <h2>📝 퀴즈</h2>
+    ${content.questions.map((question: any, index: number) => `
+      <div class="quiz-question">
+        <h3>문제 ${index + 1}</h3>
+        <p><strong>${question.question}</strong></p>
+        
+        ${question.options ? `
+          <div class="options">
+            ${question.options.map((option: string, optIndex: number) => `
+              <div class="option ${option === question.correctAnswer ? 'correct-answer' : ''}">
+                ${String.fromCharCode(65 + optIndex)}. ${option}
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+        
+        <p><strong>정답:</strong> ${question.correctAnswer}</p>
+        <p><strong>설명:</strong> ${question.explanation}</p>
+      </div>
+    `).join('')}
+  `;
 }
 
-function addPodcastContent(doc: jsPDF, content: any, margin: number, yPosition: number, maxWidth: number): number {
-  doc.setFontSize(14);
-  doc.text('팟캐스트', margin, yPosition);
-  yPosition += 10;
-  
-  doc.setFontSize(10);
-  
-  // Description
-  if (content.description) {
-    doc.setFontSize(12);
-    doc.text('설명', margin, yPosition);
-    yPosition += 8;
+function generateStudyGuideHTML(content: any): string {
+  return `
+    <h2>📚 학습 가이드</h2>
     
-    doc.setFontSize(10);
-    const descLines = doc.splitTextToSize(content.description, maxWidth);
-    doc.text(descLines, margin, yPosition);
-    yPosition += descLines.length * 5 + 10;
-  }
-  
-  // Script
-  if (content.script) {
-    doc.setFontSize(12);
-    doc.text('스크립트', margin, yPosition);
-    yPosition += 8;
+    <div class="learning-objectives">
+      <h3>🎯 학습 목표</h3>
+      <ul>
+        ${content.learningObjectives.map((objective: string) => `<li>${objective}</li>`).join('')}
+      </ul>
+    </div>
     
-    doc.setFontSize(9);
-    const scriptLines = doc.splitTextToSize(content.script, maxWidth);
+    <h3>💡 핵심 개념</h3>
+    ${content.keyConcepts.map((concept: any) => `
+      <div class="key-concepts">
+        <strong>${concept.term}:</strong> ${concept.definition}
+      </div>
+    `).join('')}
     
-    // Split script into pages if needed
-    let currentLine = 0;
-    while (currentLine < scriptLines.length) {
-      const remainingPageHeight = doc.internal.pageSize.height - yPosition - 20;
-      const maxLinesPerPage = Math.floor(remainingPageHeight / 4);
-      
-      if (maxLinesPerPage <= 0) {
-        doc.addPage();
-        yPosition = 20;
-        continue;
-      }
-      
-      const pageLinesEnd = Math.min(currentLine + maxLinesPerPage, scriptLines.length);
-      const pageLines = scriptLines.slice(currentLine, pageLinesEnd);
-      
-      doc.text(pageLines, margin, yPosition);
-      yPosition += pageLines.length * 4;
-      currentLine = pageLinesEnd;
-      
-      if (currentLine < scriptLines.length) {
-        doc.addPage();
-        yPosition = 20;
-      }
-    }
-  }
-  
-  return yPosition;
+    <h3>❓ 학습 질문</h3>
+    <ol>
+      ${content.studyQuestions.map((question: string) => `<li>${question}</li>`).join('')}
+    </ol>
+    
+    ${content.additionalResources && content.additionalResources.length > 0 ? `
+      <h3>📖 추가 자료</h3>
+      <ul>
+        ${content.additionalResources.map((resource: string) => `<li>${resource}</li>`).join('')}
+      </ul>
+    ` : ''}
+  `;
 }
 
+function generatePodcastHTML(content: any): string {
+  return `
+    <h2>🎙️ 팟캐스트</h2>
+    
+    <div class="content-info">
+      <strong>제목:</strong> ${content.title}<br>
+      <strong>설명:</strong> ${content.description}
+    </div>
+    
+    <h3>📝 스크립트</h3>
+    <div class="podcast-script">
+      ${content.script.replace(/\n/g, '<br>')}
+    </div>
+  `;
+}
 
+function generateIntegratedHTML(content: any): string {
+  return `
+    <h2>📚 통합 학습 자료</h2>
+    
+    ${generateStudyGuideHTML(content.studyGuide)}
+    
+    <div style="page-break-before: always;"></div>
+    
+    ${generateSummaryHTML(content.summary)}
+    
+    <div style="page-break-before: always;"></div>
+    
+    ${generateQuizHTML(content.quiz)}
+  `;
+}
 
 function getContentTypeLabel(type: string): string {
   switch (type) {
@@ -300,7 +281,7 @@ function getContentTypeLabel(type: string): string {
     case 'quiz': return '퀴즈';
     case 'study_guide': return '학습 가이드';
     case 'podcast': return '팟캐스트';
-    case 'integrated': return '통합 교육 자료';
+    case 'integrated': return '통합 콘텐츠';
     default: return type;
   }
 }

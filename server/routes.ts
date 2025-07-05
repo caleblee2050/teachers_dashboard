@@ -994,6 +994,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Classroom sync endpoint
+  app.get('/api/classroom/sync', isAuthenticated, async (req: any, res) => {
+    try {
+      const classroomService = await createClassroomService(req.user);
+      const syncResult = await classroomService.syncAssignments();
+      
+      res.json({
+        success: true,
+        data: syncResult
+      });
+    } catch (error) {
+      console.error('Error syncing classroom:', error);
+      res.status(500).json({ 
+        message: 'Google Classroom 동기화에 실패했습니다.',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Delete classroom assignment endpoint
+  app.delete('/api/classroom/assignment/:courseId/:assignmentId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { courseId, assignmentId } = req.params;
+      
+      const classroomService = await createClassroomService(req.user);
+      const success = await classroomService.deleteAssignment(courseId, assignmentId);
+      
+      if (success) {
+        res.json({ success: true, message: '과제가 성공적으로 삭제되었습니다.' });
+      } else {
+        res.status(400).json({ success: false, message: '과제 삭제에 실패했습니다.' });
+      }
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      res.status(500).json({ 
+        message: '과제 삭제 중 오류가 발생했습니다.',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   app.get('/api/classroom/check-permissions', isAuthenticated, async (req: any, res) => {
     try {
       console.log('Checking classroom permissions for user:', req.user?.id);

@@ -547,12 +547,7 @@ export default function GeneratedContent({
                               </Button>
                             </div>
                             
-                            {/* Debug info */}
-                            <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded">
-                              <p>Script available: {item.content.script ? 'Yes' : 'No'}</p>
-                              <p>Script length: {item.content.script ? item.content.script.length : 0} characters</p>
-                              <p>Content type: {item.contentType}</p>
-                            </div>
+
                           </div>
                         )}
                         <p className="text-sm text-gray-500 korean-text mt-2">

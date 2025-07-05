@@ -25,6 +25,11 @@ export default function Sidebar() {
       label: '학생 관리',
     },
     {
+      path: '/classroom-sync',
+      icon: 'fas fa-school',
+      label: 'Classroom 동기화',
+    },
+    {
       path: '/shared',
       icon: 'fas fa-share-alt',
       label: '공유 콘텐츠',

@@ -453,6 +453,69 @@ export class GoogleClassroomService {
       return false;
     }
   }
+
+  async getAssignments(courseId: string): Promise<any[]> {
+    try {
+      const response = await this.classroom.courses.courseWork.list({
+        courseId: courseId,
+      });
+
+      return response.data.courseWork?.map(assignment => ({
+        id: assignment.id,
+        title: assignment.title,
+        description: assignment.description,
+        state: assignment.state,
+        creationTime: assignment.creationTime,
+        updateTime: assignment.updateTime,
+      })) || [];
+    } catch (error: any) {
+      console.error('Error fetching assignments:', error);
+      throw new Error('Failed to fetch assignments');
+    }
+  }
+
+  async deleteAssignment(courseId: string, assignmentId: string): Promise<boolean> {
+    try {
+      await this.classroom.courses.courseWork.delete({
+        courseId: courseId,
+        id: assignmentId,
+      });
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting assignment:', error);
+      return false;
+    }
+  }
+
+  async syncAssignments(): Promise<{ courses: any[], assignments: any[] }> {
+    try {
+      const courses = await this.getCourses();
+      const allAssignments: any[] = [];
+
+      for (const course of courses) {
+        try {
+          const assignments = await this.getAssignments(course.id);
+          const assignmentsWithCourse = assignments.map(assignment => ({
+            ...assignment,
+            courseId: course.id,
+            courseName: course.name,
+          }));
+          allAssignments.push(...assignmentsWithCourse);
+        } catch (error) {
+          console.error(`Error fetching assignments for course ${course.id}:`, error);
+          // Continue with other courses
+        }
+      }
+
+      return {
+        courses,
+        assignments: allAssignments,
+      };
+    } catch (error: any) {
+      console.error('Error syncing assignments:', error);
+      throw new Error('Failed to sync assignments');
+    }
+  }
 }
 
 export async function createClassroomService(user: any): Promise<GoogleClassroomService> {
