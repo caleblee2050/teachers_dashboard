@@ -47,10 +47,15 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
 
   const uploadMutation = useMutation({
     mutationFn: async (data: { courseId: string; contentId: string; title: string; description: string }) => {
+      console.log('=== ClassroomUploadDialog: Starting upload ===');
+      console.log('Upload data:', data);
+      
       const response = await apiRequest('POST', '/api/classroom/upload', data);
+      console.log('Upload response received:', response);
       return response;
     },
     onSuccess: (data) => {
+      console.log('Upload successful:', data);
       toast({
         title: "업로드 완료",
         description: `Google Classroom에 성공적으로 업로드되었습니다.`,
@@ -69,6 +74,8 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
         errorMessage = "Google Classroom 권한이 필요합니다. 다시 로그인해주세요.";
       } else if (error.message?.includes('API')) {
         errorMessage = "Google Classroom API 오류가 발생했습니다.";
+      } else if (error.message?.includes('찾을 수 없습니다')) {
+        errorMessage = "콘텐츠를 찾을 수 없습니다. 페이지를 새로고침해보세요.";
       }
       
       toast({

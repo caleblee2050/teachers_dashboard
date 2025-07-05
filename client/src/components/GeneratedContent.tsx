@@ -508,42 +508,34 @@ export default function GeneratedContent({
                         <p className="text-sm text-gray-700">{item.content.description}</p>
                       </div>
 
-                      {item.content.audioFilePath ? (
-                        <div className="mb-4">
-                          <p className="font-medium korean-text mb-2">오디오:</p>
-                          <audio controls className="w-full">
-                            <source src={item.content.audioFilePath} type="audio/mpeg" />
-                            브라우저가 오디오를 지원하지 않습니다.
-                          </audio>
-                          {item.content.duration && (
-                            <p className="text-sm text-gray-500 mt-1">
-                              재생 시간: 약 {Math.floor(item.content.duration / 60)}분 {item.content.duration % 60}초
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="mb-4">
-                          <div className="flex items-center space-x-3">
-                            {item.content.audioFilePath ? (
-                              <Button
-                                onClick={() => handlePlayAIAudio(item.content.audioFilePath)}
-                                className="bg-green-600 hover:bg-green-700 text-white text-sm korean-text"
-                              >
-                                <i className="fas fa-play mr-2"></i>
-                                AI 오디오 재생
-                              </Button>
-                            ) : (
-                              <Button
-                                onClick={() => handlePlayTextToSpeech(item.content.script)}
-                                className="bg-blue-600 hover:bg-blue-700 text-white text-sm korean-text"
-                              >
-                                <i className="fas fa-volume-up mr-2"></i>
-                                브라우저 TTS 재생
-                              </Button>
+                      <div className="mb-4">
+                        <p className="font-medium korean-text mb-2">오디오:</p>
+                        {item.content.audioFilePath ? (
+                          <div>
+                            <audio controls className="w-full">
+                              <source src={item.content.audioFilePath} type="audio/mpeg" />
+                              브라우저가 오디오를 지원하지 않습니다.
+                            </audio>
+                            {item.content.duration && (
+                              <p className="text-sm text-gray-500 mt-1">
+                                재생 시간: 약 {Math.floor(item.content.duration / 60)}분 {item.content.duration % 60}초
+                              </p>
                             )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-3">
+                            <Button
+                              onClick={() => handlePlayTextToSpeech(item.content.script)}
+                              disabled={!item.content.script}
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-sm korean-text disabled:opacity-50"
+                            >
+                              <i className="fas fa-volume-up mr-2"></i>
+                              브라우저 TTS 재생
+                            </Button>
                             <Button
                               onClick={() => currentSpeech ? handleStopSpeech() : handlePlayTextToSpeech(item.content.script)}
-                              className="bg-green-600 hover:bg-green-700 text-white text-sm korean-text"
+                              disabled={!item.content.script}
+                              className="bg-green-600 hover:bg-green-700 text-white text-sm korean-text disabled:opacity-50"
                             >
                               {currentSpeech ? (
                                 <i className="fas fa-stop mr-2"></i>
@@ -553,11 +545,14 @@ export default function GeneratedContent({
                               {currentSpeech ? '재생 중지' : '바로 재생'}
                             </Button>
                           </div>
-                          <p className="text-sm text-gray-500 korean-text mt-2">
-                            음성 생성 버튼을 눌러 오디오 파일을 만들거나 바로 재생할 수 있습니다.
-                          </p>
-                        </div>
-                      )}
+                        )}
+                        <p className="text-sm text-gray-500 korean-text mt-2">
+                          {item.content.audioFilePath ? 
+                            'AI가 생성한 음성 파일을 재생할 수 있습니다.' : 
+                            '브라우저의 음성 합성 기능을 사용하여 바로 재생할 수 있습니다.'
+                          }
+                        </p>
+                      </div>
 
                       {item.content.script && (
                         <div>

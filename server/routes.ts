@@ -934,31 +934,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/classroom/upload', isAuthenticated, async (req: any, res) => {
     try {
+      console.log('=== Classroom Upload Request ===');
+      console.log('User ID:', req.user.id);
+      console.log('Request body:', req.body);
+      
       const { courseId, contentId, title, description } = req.body;
 
       if (!courseId || !contentId) {
+        console.log('Missing required data:', { courseId, contentId });
         return res.status(400).json({ message: '필수 정보가 누락되었습니다.' });
       }
 
       // Get the content to upload
+      console.log('Fetching content for user:', req.user.id);
       const content = await storage.getGeneratedContentByTeacher(req.user.id);
+      console.log('Found content count:', content.length);
+      
       const targetContent = content.find(c => c.id === contentId);
+      console.log('Target content found:', !!targetContent);
 
       if (!targetContent) {
+        console.log('Content not found. Available IDs:', content.map(c => c.id));
         return res.status(404).json({ message: '콘텐츠를 찾을 수 없습니다.' });
       }
 
+      console.log('Target content:', {
+        id: targetContent.id,
+        title: targetContent.title,
+        type: targetContent.contentType
+      });
+
+      console.log('Creating classroom service...');
       const classroomService = await createClassroomService(req.user);
+      
+      console.log('Calling createAssignment...');
       const result = await classroomService.createAssignment(
         courseId,
         title || targetContent.title,
         description || `EduAI Assistant에서 생성된 ${targetContent.contentType} 콘텐츠`,
-        {
-          type: targetContent.contentType,
-          data: targetContent.content
-        }
+        targetContent
       );
 
+      console.log('Assignment creation result:', result);
       res.json(result);
     } catch (error) {
       console.error('Error uploading to classroom:', error);
