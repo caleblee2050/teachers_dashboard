@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -29,6 +30,8 @@ export default function GeneratedContent({
   const [activeTab, setActiveTab] = useState("integrated");
   const [isGeneratingAudio, setIsGeneratingAudio] = useState<string | null>(null);
   const [currentSpeech, setCurrentSpeech] = useState<SpeechSynthesisUtterance | null>(null);
+  const [showFullTextDialog, setShowFullTextDialog] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
 
   // Check if Google Classroom API is available
   const { data: classroomStatus } = useQuery<{ hasPermissions: boolean }>({
@@ -203,6 +206,80 @@ export default function GeneratedContent({
     }
   };
 
+  // Google Docs 생성
+  const handleCreateGoogleDoc = async (contentId: string) => {
+    try {
+      const response = await apiRequest('POST', `/api/content/${contentId}/google-docs`);
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Google Docs 생성 완료",
+          description: `문서가 성공적으로 생성되었습니다.`,
+        });
+        
+        // Open the Google Doc in a new tab
+        window.open(result.docUrl, '_blank');
+      } else {
+        throw new Error(result.message || 'Google Docs 생성에 실패했습니다.');
+      }
+    } catch (error: any) {
+      console.error('Error creating Google Doc:', error);
+      toast({
+        title: "Google Docs 생성 실패",
+        description: error.message || 'Google Docs 생성 중 오류가 발생했습니다.',
+        variant: "destructive"
+      });
+    }
+  };
+
+  // 전체 내용 보기
+  const handleShowFullText = (item: any) => {
+    setSelectedItem(item);
+    setShowFullTextDialog(true);
+  };
+
+  // 전체 내용을 텍스트로 변환
+  const getFullTextContent = (item: any) => {
+    if (!item || !item.content) return '';
+    
+    let fullText = `${item.title}\n\n`;
+    
+    if (item.contentType === 'summary') {
+      fullText += `주요 개념:\n${item.content.keyConcepts?.join('\n• ') || ''}\n\n`;
+      fullText += `내용:\n${item.content.mainContent || ''}\n\n`;
+      if (item.content.formulas && item.content.formulas.length > 0) {
+        fullText += `주요 공식:\n${item.content.formulas.join('\n\n')}\n\n`;
+      }
+    } else if (item.contentType === 'quiz') {
+      if (item.content.questions) {
+        item.content.questions.forEach((q: any, index: number) => {
+          fullText += `문제 ${index + 1}: ${q.question}\n\n`;
+          if (q.options) {
+            q.options.forEach((option: string, optIndex: number) => {
+              fullText += `${optIndex + 1}. ${option}\n`;
+            });
+          }
+          fullText += `\n정답: ${q.correctAnswer}\n설명: ${q.explanation}\n\n`;
+        });
+      }
+    } else if (item.contentType === 'study_guide') {
+      fullText += `학습 목표:\n${item.content.learningObjectives?.join('\n• ') || ''}\n\n`;
+      fullText += `주요 개념:\n`;
+      if (item.content.keyConcepts) {
+        item.content.keyConcepts.forEach((concept: any) => {
+          fullText += `• ${concept.term}: ${concept.definition}\n`;
+        });
+      }
+      fullText += `\n학습 질문:\n${item.content.studyQuestions?.join('\n\n') || ''}\n\n`;
+    } else if (item.contentType === 'podcast') {
+      fullText += `설명:\n${item.content.description}\n\n`;
+      fullText += `스크립트:\n${item.content.script || ''}\n\n`;
+    }
+    
+    return fullText;
+  };
+
   const getContentTypeIcon = (type: string) => {
     switch (type) {
       case 'summary':
@@ -265,7 +342,8 @@ export default function GeneratedContent({
   }
 
   return (
-    <Card>
+    <div>
+      <Card>
       <div className="p-6 border-b border-gray-200">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center space-x-3">
@@ -518,7 +596,7 @@ export default function GeneratedContent({
                         {item.content.audioFilePath ? (
                           <div>
                             <audio controls className="w-full">
-                              <source src={item.content.audioFilePath} type="audio/mpeg" />
+                              <source src={`/uploads/${item.content.audioFilePath.split('/').pop()}`} type="audio/mpeg" />
                               브라우저가 오디오를 지원하지 않습니다.
                             </audio>
                             {item.content.duration && (
@@ -584,6 +662,40 @@ export default function GeneratedContent({
                   <span className="text-sm text-gray-600">
                     생성일: {new Date(item.createdAt).toLocaleDateString('ko-KR')} {new Date(item.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                   </span>
+                  
+                  <div className="flex space-x-2">
+                    <Button
+                      onClick={() => handleCreateGoogleDoc(item.id)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                      size="sm"
+                    >
+                      <i className="fas fa-file-text mr-1"></i>
+                      Google Docs 생성
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleShowFullText(item)}
+                      className="bg-green-600 hover:bg-green-700 text-white text-xs"
+                      size="sm"
+                    >
+                      <i className="fas fa-eye mr-1"></i>
+                      전체 내용 보기
+                    </Button>
+                    
+                    <ClassroomUploadDialog
+                      contentId={item.id}
+                      contentTitle={item.title}
+                      contentType={item.contentType}
+                    >
+                      <Button 
+                        className="bg-red-600 hover:bg-red-700 text-white text-xs"
+                        size="sm"
+                      >
+                        <i className="fas fa-upload mr-1"></i>
+                        클래스룸 업로드
+                      </Button>
+                    </ClassroomUploadDialog>
+                  </div>
                 </div>
               </div>
             ))}
@@ -602,6 +714,55 @@ export default function GeneratedContent({
           </div>
         )}
       </CardContent>
-    </Card>
+      </Card>
+
+      {/* 전체 내용 보기 Dialog */}
+      <Dialog open={showFullTextDialog} onOpenChange={setShowFullTextDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="korean-text">
+              {selectedItem?.title} - 전체 내용
+            </DialogTitle>
+            <DialogDescription>
+              생성된 콘텐츠의 전체 내용을 텍스트 형태로 확인할 수 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
+                {selectedItem ? getFullTextContent(selectedItem) : ''}
+              </pre>
+            </div>
+            
+            <div className="flex justify-end space-x-2 mt-4">
+              <Button
+                onClick={() => {
+                  if (selectedItem) {
+                    const textContent = getFullTextContent(selectedItem);
+                    navigator.clipboard.writeText(textContent);
+                    toast({
+                      title: "복사 완료",
+                      description: "내용이 클립보드에 복사되었습니다.",
+                    });
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <i className="fas fa-copy mr-2"></i>
+                클립보드 복사
+              </Button>
+              
+              <Button
+                onClick={() => setShowFullTextDialog(false)}
+                variant="outline"
+              >
+                닫기
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

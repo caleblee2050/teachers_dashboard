@@ -100,6 +100,55 @@ export class GoogleDriveService {
       throw new Error('Failed to get file metadata from Google Drive');
     }
   }
+
+  async createGoogleDoc(title: string, content: string): Promise<{ docId: string; docUrl: string }> {
+    try {
+      // Create a new Google Doc
+      const response = await this.drive.files.create({
+        requestBody: {
+          name: title,
+          mimeType: 'application/vnd.google-apps.document',
+        },
+        fields: 'id,webViewLink',
+      });
+
+      const docId = response.data.id!;
+      const docUrl = response.data.webViewLink!;
+
+      // Use Google Docs API to insert content
+      const docs = google.docs({ version: 'v1', auth: this.oauth2Client });
+      
+      // Convert content to structured format for Google Docs
+      const contentParts = content.split('\n\n');
+      const requests = [];
+      
+      for (let i = 0; i < contentParts.length; i++) {
+        const part = contentParts[i];
+        if (part.trim()) {
+          requests.push({
+            insertText: {
+              location: { index: 1 },
+              text: part + '\n\n',
+            },
+          });
+        }
+      }
+
+      if (requests.length > 0) {
+        await docs.documents.batchUpdate({
+          documentId: docId,
+          requestBody: {
+            requests,
+          },
+        });
+      }
+
+      return { docId, docUrl };
+    } catch (error) {
+      console.error('Error creating Google Doc:', error);
+      throw new Error('Failed to create Google Doc');
+    }
+  }
 }
 
 export async function createDriveService(user: any): Promise<GoogleDriveService> {

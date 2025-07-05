@@ -18,6 +18,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Serve uploads directory for audio files
+app.use('/uploads', express.static('uploads'));
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, RefreshCw, Trash2, ExternalLink } from "lucide-react";
+import { Loader2, RefreshCw, Trash2, ExternalLink, HelpCircle } from "lucide-react";
+import ClassroomPermissionGuide from "../components/ClassroomPermissionGuide";
 
 interface ClassroomAssignment {
   id: string;
@@ -226,6 +228,18 @@ export default function ClassroomSync() {
           </Button>
         </div>
 
+        <Tabs defaultValue="assignments" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="assignments" className="korean-text">과제 관리</TabsTrigger>
+            <TabsTrigger value="guide" className="korean-text flex items-center space-x-2">
+              <HelpCircle className="w-4 h-4" />
+              <span>권한 가이드</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="assignments" className="mt-6">
+            <div className="space-y-6">
+
         {/* Course Summary */}
         {courses.length > 0 && (
           <Card className="mb-6">
@@ -354,7 +368,14 @@ export default function ClassroomSync() {
               </div>
             )}
           </CardContent>
-        </Card>
+            </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="guide" className="mt-6">
+            <ClassroomPermissionGuide />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
