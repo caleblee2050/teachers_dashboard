@@ -7,7 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2, RefreshCw, Trash2, ExternalLink, HelpCircle } from "lucide-react";
-import ClassroomPermissionGuide from "../components/ClassroomPermissionGuide";
 
 interface ClassroomAssignment {
   id: string;
@@ -239,36 +238,35 @@ export default function ClassroomSync() {
 
           <TabsContent value="assignments" className="mt-6">
             <div className="space-y-6">
+              {/* Course Summary */}
+              {courses.length > 0 && (
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="korean-text">연결된 클래스룸</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {courses.map((course) => (
+                        <div key={course.id} className="border rounded-lg p-4">
+                          <h3 className="font-semibold text-sm korean-text">{course.name}</h3>
+                          {course.section && (
+                            <p className="text-xs text-gray-500">{course.section}</p>
+                          )}
+                          <Badge 
+                            variant={getStateBadgeVariant(course.state)} 
+                            className="mt-2 text-xs"
+                          >
+                            {getStateLabel(course.state)}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
-        {/* Course Summary */}
-        {courses.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="korean-text">연결된 클래스룸</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {courses.map((course) => (
-                  <div key={course.id} className="border rounded-lg p-4">
-                    <h3 className="font-semibold text-sm korean-text">{course.name}</h3>
-                    {course.section && (
-                      <p className="text-xs text-gray-500">{course.section}</p>
-                    )}
-                    <Badge 
-                      variant={getStateBadgeVariant(course.state)} 
-                      className="mt-2 text-xs"
-                    >
-                      {getStateLabel(course.state)}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Assignment Management */}
-        <Card>
+              {/* Assignment Management */}
+              <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="korean-text">과제 관리</CardTitle>
@@ -373,7 +371,40 @@ export default function ClassroomSync() {
           </TabsContent>
 
           <TabsContent value="guide" className="mt-6">
-            <ClassroomPermissionGuide />
+            <Card>
+              <CardHeader>
+                <CardTitle className="korean-text">Google Classroom 권한 가이드</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 className="font-medium text-blue-800 mb-2">Google Classroom 연동을 위한 필수 단계</h3>
+                    <ol className="list-decimal list-inside space-y-2 text-sm text-blue-700">
+                      <li>Google 계정으로 로그인</li>
+                      <li>Google Classroom 접근 권한 확인</li>
+                      <li>API 권한 승인</li>
+                      <li>콘텐츠 업로드 규칙 준수</li>
+                    </ol>
+                  </div>
+                  
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h4 className="font-medium text-yellow-800 mb-2">자주 발생하는 문제</h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-yellow-700">
+                      <li>권한 오류: Google 계정 설정에서 앱 권한 재설정</li>
+                      <li>업로드 실패: 네트워크 연결 및 파일 형식 확인</li>
+                      <li>수업 목록이 보이지 않음: Classroom에서 수업 생성 후 새로고침</li>
+                    </ul>
+                  </div>
+
+                  <Button
+                    onClick={() => window.location.href = '/api/auth/google'}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Google 계정으로 연결하기
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
