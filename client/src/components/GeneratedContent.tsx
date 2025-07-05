@@ -506,6 +506,11 @@ export default function GeneratedContent({
                       <div className="mb-4">
                         <p className="font-medium korean-text mb-2">팟캐스트 설명:</p>
                         <p className="text-sm text-gray-700">{item.content.description}</p>
+                        {/* Debug info */}
+                        <div className="text-xs text-gray-500 mt-2">
+                          디버그: script 존재 - {item.content?.script ? 'Yes' : 'No'}, 
+                          audioPath 존재 - {item.content?.audioFilePath ? 'Yes' : 'No'}
+                        </div>
                       </div>
 
                       <div className="mb-4">
@@ -527,7 +532,7 @@ export default function GeneratedContent({
                             <div className="flex items-center space-x-3">
                               <Button
                                 onClick={() => handlePlayTextToSpeech(item.content.script)}
-                                disabled={!item.content.script}
+                                disabled={!item.content?.script}
                                 className="bg-blue-600 hover:bg-blue-700 text-white text-sm korean-text disabled:opacity-50"
                               >
                                 <i className="fas fa-volume-up mr-2"></i>
@@ -535,7 +540,7 @@ export default function GeneratedContent({
                               </Button>
                               <Button
                                 onClick={() => currentSpeech ? handleStopSpeech() : handlePlayTextToSpeech(item.content.script)}
-                                disabled={!item.content.script}
+                                disabled={!item.content?.script}
                                 className="bg-green-600 hover:bg-green-700 text-white text-sm korean-text disabled:opacity-50"
                               >
                                 {currentSpeech ? (
@@ -558,7 +563,7 @@ export default function GeneratedContent({
                         </p>
                       </div>
 
-                      {item.content.script && (
+                      {item.content?.script && (
                         <div>
                           <p className="font-medium korean-text mb-2">스크립트 미리보기:</p>
                           <div className="bg-gray-50 p-3 rounded text-sm max-h-32 overflow-y-auto">

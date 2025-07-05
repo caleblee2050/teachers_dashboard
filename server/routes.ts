@@ -1130,8 +1130,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Generating podcast for content: ${content.title}`);
 
-      // Generate podcast script
-      const podcastData = await generatePodcastScript(content, language);
+      // Generate podcast script - convert content to string
+      let contentText = '';
+      if (typeof content.content === 'string') {
+        contentText = content.content;
+      } else if (typeof content.content === 'object' && content.content !== null) {
+        contentText = JSON.stringify(content.content);
+      } else {
+        contentText = String(content.content);
+      }
+      
+      const podcastData = await generatePodcastScript(contentText, language);
       
       // Generate unique filename for audio
       const timestamp = Date.now();

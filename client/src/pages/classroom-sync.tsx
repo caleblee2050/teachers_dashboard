@@ -41,6 +41,10 @@ export default function ClassroomSync() {
     refetchOnWindowFocus: false,
   });
 
+  // Safe data access
+  const assignments = syncData?.assignments || [];
+  const courses = syncData?.courses || [];
+
   // Refresh sync data
   const refreshMutation = useMutation({
     mutationFn: async () => {
@@ -86,8 +90,8 @@ export default function ClassroomSync() {
   // Delete multiple assignments
   const deleteMultipleMutation = useMutation({
     mutationFn: async (assignmentIds: string[]) => {
-      const assignments = syncData?.assignments.filter(a => assignmentIds.includes(a.id)) || [];
-      const deletePromises = assignments.map(assignment => 
+      const assignmentsToDelete = assignments.filter(a => assignmentIds.includes(a.id));
+      const deletePromises = assignmentsToDelete.map(assignment => 
         apiRequest('DELETE', `/api/classroom/assignment/${assignment.courseId}/${assignment.id}`)
       );
       return Promise.all(deletePromises);
@@ -119,7 +123,7 @@ export default function ClassroomSync() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedAssignments(syncData?.assignments.map(a => a.id) || []);
+      setSelectedAssignments(assignments.map(a => a.id));
     } else {
       setSelectedAssignments([]);
     }
@@ -269,13 +273,13 @@ export default function ClassroomSync() {
                 </div>
               </CardHeader>
               <CardContent>
-                {syncData?.assignments && syncData.assignments.length > 0 ? (
+                {assignments.length > 0 ? (
                   <div className="space-y-4">
                     {/* Select All */}
                     <div className="flex items-center space-x-2 pb-4 border-b">
                       <input
                         type="checkbox"
-                        checked={selectedAssignments.length === syncData.assignments.length}
+                        checked={selectedAssignments.length === assignments.length}
                         onChange={(e) => handleSelectAll(e.target.checked)}
                         className="rounded"
                       />
@@ -284,7 +288,7 @@ export default function ClassroomSync() {
 
                     {/* Assignment List */}
                     <div className="space-y-3">
-                      {syncData.assignments.map((assignment) => (
+                      {assignments.map((assignment) => (
                         <div
                           key={assignment.id}
                           className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-gray-50"
