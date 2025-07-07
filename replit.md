@@ -107,6 +107,13 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- July 07, 2025. Batch classroom upload feature and language-specific uploads
+  - Created BatchClassroomUploadDialog component for bulk Google Classroom uploads
+  - Added "선택된 항목 일괄 업로드" button for multiple content items at once
+  - Implemented language-specific classroom upload labels in 7 languages (Korean, English, Japanese, Chinese, Thai, Vietnamese, Filipino)
+  - Added language prefix to uploaded file names for non-Korean content ([EN], [JA], etc.)
+  - Enhanced GoogleClassroomService with getLanguageLabels function for multilingual support
+  - Enabled batch processing with individual item progress tracking and success/failure reporting
 - July 07, 2025. Gemini Files API integration for direct podcast sharing
   - Integrated Gemini Files API to upload generated audio files directly to Gemini's file system
   - Added "제미나이에서 다운로드/공유" purple button to access Gemini-hosted audio files

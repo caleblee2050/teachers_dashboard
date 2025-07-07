@@ -10,6 +10,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import ClassroomUploadDialog from "./ClassroomUploadDialog";
+import BatchClassroomUploadDialog from "./BatchClassroomUploadDialog";
 
 interface GeneratedContentProps {
   content: any[];
@@ -535,6 +536,22 @@ export default function GeneratedContent({
             )}
           </div>
           <div className="flex items-center space-x-2">
+            {selectedContent && selectedContent.length > 0 && (
+              <BatchClassroomUploadDialog
+                selectedContent={filteredContent.filter(item => selectedContent.includes(item.id))}
+                onSuccess={() => {
+                  // 성공 후 선택 해제 등의 작업을 부모 컴포넌트에서 처리할 수 있도록
+                }}
+              >
+                <Button
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white korean-text"
+                >
+                  <i className="fas fa-google mr-1"></i>
+                  선택된 항목 일괄 업로드 ({selectedContent.length})
+                </Button>
+              </BatchClassroomUploadDialog>
+            )}
             {selectedContent && selectedContent.length > 0 && onDeleteSelected && (
               <Button
                 variant="destructive"
