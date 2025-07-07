@@ -841,15 +841,29 @@ export default function GeneratedContent({
                   </span>
                   
                   <div className="flex space-x-2">
-                    {item.contentType === 'podcast' && item.content?.audioFilePath && (
-                      <Button
-                        onClick={() => downloadPodcastAudio(item.content.audioFilePath, item.title)}
-                        className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
-                        size="sm"
-                      >
-                        <i className="fas fa-download mr-1"></i>
-                        오디오 다운로드
-                      </Button>
+                    {item.contentType === 'podcast' && (
+                      <div className="flex space-x-2">
+                        {item.content?.audioFilePath && (
+                          <Button
+                            onClick={() => downloadPodcastAudio(item.content.audioFilePath, item.title)}
+                            className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                            size="sm"
+                          >
+                            <i className="fas fa-download mr-1"></i>
+                            로컬 다운로드
+                          </Button>
+                        )}
+                        {item.content?.googleDriveLink && (
+                          <Button
+                            onClick={() => window.open(item.content.googleDriveLink, '_blank')}
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                            size="sm"
+                          >
+                            <i className="fab fa-google-drive mr-1"></i>
+                            구글 드라이브
+                          </Button>
+                        )}
+                      </div>
                     )}
                     
                     <Button

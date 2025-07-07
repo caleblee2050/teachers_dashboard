@@ -281,6 +281,7 @@ export interface PodcastContent {
   script: string;
   audioFilePath?: string;
   duration?: number;
+  googleDriveLink?: string;
 }
 
 export async function generatePodcastScript(originalText: string, language: 'ko' | 'en' | 'ja' | 'zh' | 'th' | 'vi' | 'fil'): Promise<PodcastContent> {

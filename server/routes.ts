@@ -600,18 +600,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         podcastData.duration = Math.round(stats.size / 16000); // 기본 추정
         
         console.log(`Podcast audio generated successfully with PDF: ${audioFilePath}`);
+        
+        // 구글 드라이브에 오디오 파일 업로드 시도
+        if (req.user.googleAccessToken) {
+          try {
+            const driveService = await createDriveService(req.user);
+            const fs = require('fs');
+            
+            const audioFileName = `podcast_${timestamp}_${podcastData.title.replace(/[^\w\s가-힣-]/g, '')}.wav`;
+            
+            // 구글 드라이브에 오디오 파일 업로드
+            const audioBuffer = fs.readFileSync(audioFilePath);
+            const uploadResult = await driveService.uploadFile(audioFileName, audioBuffer, 'audio/wav');
+            
+            console.log(`Podcast audio uploaded to Google Drive: ${uploadResult.webViewLink}`);
+            podcastData.googleDriveLink = uploadResult.webViewLink;
+          } catch (driveError) {
+            console.warn('Failed to upload audio to Google Drive:', driveError);
+          }
+        }
       } catch (audioError) {
         console.warn('Audio generation failed, proceeding with script only:', audioError);
         // 오디오 생성 실패 시 스크립트만 저장
       }
 
-      // 팟캐스트 콘텐츠 저장
+      // 팟캐스트 콘텐츠 저장 (오디오 파일은 로컬에만 저장, DB에는 경로만 저장)
+      const podcastContentForDB = {
+        ...podcastData,
+        // 오디오 데이터를 제거하고 파일 경로만 저장
+        audioFilePath: podcastData.audioFilePath,
+        audioData: undefined // 큰 바이너리 데이터는 DB에 저장하지 않음
+      };
+      
       const newContent = await storage.createGeneratedContent({
         fileId: existingContent.fileId,
         teacherId: userId,
         contentType: 'podcast',
         title: podcastData.title,
-        content: podcastData,
+        content: podcastContentForDB,
         language,
         shareToken: nanoid(16),
       });

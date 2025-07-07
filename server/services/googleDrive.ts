@@ -148,6 +148,44 @@ export class GoogleDriveService {
       throw new Error(`Failed to create Google Doc: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  async uploadFile(fileName: string, fileBuffer: Buffer, mimeType: string): Promise<{ fileId: string; webViewLink: string }> {
+    try {
+      const { Readable } = require('stream');
+      const fileStream = new Readable();
+      fileStream.push(fileBuffer);
+      fileStream.push(null);
+
+      const response = await this.drive.files.create({
+        requestBody: {
+          name: fileName,
+          parents: ['root']
+        },
+        media: {
+          mimeType: mimeType,
+          body: fileStream
+        },
+        fields: 'id, webViewLink'
+      });
+
+      // 파일을 공개로 설정
+      await this.drive.permissions.create({
+        fileId: response.data.id!,
+        requestBody: {
+          role: 'reader',
+          type: 'anyone'
+        }
+      });
+
+      return {
+        fileId: response.data.id!,
+        webViewLink: response.data.webViewLink!
+      };
+    } catch (error: any) {
+      console.error('Error uploading file to Google Drive:', error);
+      throw new Error(`Failed to upload file: ${error.message}`);
+    }
+  }
 }
 
 export async function createDriveService(user: any): Promise<GoogleDriveService> {

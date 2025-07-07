@@ -611,6 +611,73 @@ export class GoogleClassroomService {
       if (itemContent.script) {
         contentText += `📝 스크립트:\n${itemContent.script}\n\n`;
       }
+    } else if (content.contentType === 'integrated') {
+      // 통합 콘텐츠의 경우 모든 섹션 포함
+      if (itemContent.studyGuide) {
+        contentText += `📚 === 학습 가이드 ===\n\n`;
+        if (itemContent.studyGuide.learningObjectives?.length) {
+          contentText += `🎯 학습 목표:\n`;
+          itemContent.studyGuide.learningObjectives.forEach((obj: string, i: number) => {
+            contentText += `${i + 1}. ${obj}\n`;
+          });
+          contentText += '\n';
+        }
+        
+        if (itemContent.studyGuide.keyConcepts?.length) {
+          contentText += `🔍 핵심 개념:\n`;
+          itemContent.studyGuide.keyConcepts.forEach((concept: any) => {
+            contentText += `📌 ${concept.term}: ${concept.definition}\n`;
+          });
+          contentText += '\n';
+        }
+        
+        if (itemContent.studyGuide.studyQuestions?.length) {
+          contentText += `❓ 학습 질문:\n`;
+          itemContent.studyGuide.studyQuestions.forEach((q: string, i: number) => {
+            contentText += `${i + 1}. ${q}\n`;
+          });
+          contentText += '\n';
+        }
+      }
+      
+      if (itemContent.summary) {
+        contentText += `📝 === 요약 ===\n\n`;
+        if (itemContent.summary.keyConcepts?.length) {
+          contentText += `🔍 주요 개념:\n`;
+          itemContent.summary.keyConcepts.forEach((concept: string) => {
+            contentText += `• ${concept}\n`;
+          });
+          contentText += '\n';
+        }
+        
+        if (itemContent.summary.mainContent) {
+          contentText += `📖 주요 내용:\n${itemContent.summary.mainContent}\n\n`;
+        }
+        
+        if (itemContent.summary.formulas?.length) {
+          contentText += `🔢 주요 공식:\n`;
+          itemContent.summary.formulas.forEach((formula: string) => {
+            contentText += `• ${formula}\n`;
+          });
+          contentText += '\n';
+        }
+      }
+      
+      if (itemContent.quiz) {
+        contentText += `📝 === 퀴즈 ===\n\n`;
+        if (itemContent.quiz.questions?.length) {
+          itemContent.quiz.questions.forEach((q: any, i: number) => {
+            contentText += `문제 ${i + 1}: ${q.question}\n`;
+            if (q.options?.length) {
+              q.options.forEach((option: string, j: number) => {
+                contentText += `${String.fromCharCode(65 + j)}. ${option}\n`;
+              });
+            }
+            contentText += `\n✅ 정답: ${q.correctAnswer}\n`;
+            contentText += `💡 설명: ${q.explanation}\n\n`;
+          });
+        }
+      }
     }
     
     return contentText;
