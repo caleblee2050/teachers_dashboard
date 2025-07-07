@@ -865,6 +865,22 @@ export default function GeneratedContent({
                               <i className="fas fa-play mr-1"></i>
                               직접 재생
                             </Button>
+                            <Button
+                              onClick={() => {
+                                const shareUrl = `${window.location.origin}/podcast/${item.shareToken}`;
+                                navigator.clipboard.writeText(shareUrl).then(() => {
+                                  toast({
+                                    title: "공유 링크 복사됨",
+                                    description: "팟캐스트 공유 링크가 클립보드에 복사되었습니다.",
+                                  });
+                                });
+                              }}
+                              className="bg-orange-600 hover:bg-orange-700 text-white text-xs"
+                              size="sm"
+                            >
+                              <i className="fas fa-share mr-1"></i>
+                              공유하기
+                            </Button>
                           </div>
                         )}
                         {item.content?.googleDriveLink && (
@@ -957,6 +973,22 @@ export default function GeneratedContent({
                   >
                     <i className="fas fa-external-link-alt mr-1"></i>
                     새 탭에서 재생
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const shareUrl = `${window.location.origin}/podcast/${selectedItem.shareToken}`;
+                      navigator.clipboard.writeText(shareUrl).then(() => {
+                        toast({
+                          title: "공유 링크 복사됨",
+                          description: "팟캐스트 공유 링크가 클립보드에 복사되었습니다.",
+                        });
+                      });
+                    }}
+                    className="bg-orange-600 hover:bg-orange-700 text-white text-sm"
+                    size="sm"
+                  >
+                    <i className="fas fa-share mr-1"></i>
+                    공유하기
                   </Button>
                 </div>
               </div>
