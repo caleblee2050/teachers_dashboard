@@ -41,22 +41,18 @@ export default function BatchClassroomUploadDialog({
         setUploadingItems(prev => new Set(prev).add(item.id));
         
         try {
-          const result = await apiRequest(`/api/classroom/upload`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              courseId,
-              contentId: item.id,
-              title: item.title,
-              description: `AI 생성 ${item.contentType === 'integrated' ? '통합교육자료' : 
-                         item.contentType === 'summary' ? '요약' :
-                         item.contentType === 'quiz' ? '퀴즈' :
-                         item.contentType === 'study_guide' ? '학습가이드' :
-                         item.contentType === 'podcast' ? '팟캐스트' : '콘텐츠'} - ${item.title}`
-            })
+          const response = await apiRequest('POST', `/api/classroom/upload`, {
+            courseId,
+            contentId: item.id,
+            title: item.title,
+            description: `AI 생성 ${item.contentType === 'integrated' ? '통합교육자료' : 
+                       item.contentType === 'summary' ? '요약' :
+                       item.contentType === 'quiz' ? '퀴즈' :
+                       item.contentType === 'study_guide' ? '학습가이드' :
+                       item.contentType === 'podcast' ? '팟캐스트' : '콘텐츠'} - ${item.title}`
           });
+          
+          const result = await response.json();
           
           results.push({ 
             success: true, 
