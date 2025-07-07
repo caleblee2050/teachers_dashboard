@@ -1337,9 +1337,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const audioResult = await generatePodcastAudio(podcastData.script, audioFilePath, undefined, req.user);
         podcastData.audioFilePath = `/uploads/${audioFileName}`;
         
-        // Add Google Drive link if available
-        if (audioResult.driveLink) {
-          podcastData.googleDriveLink = audioResult.driveLink;
+        // Add Gemini file link if available
+        if (audioResult.geminiFileLink) {
+          podcastData.geminiFileLink = audioResult.geminiFileLink;
         }
         
         // Get audio file stats for duration (basic approximation)

@@ -281,7 +281,7 @@ export interface PodcastContent {
   script: string;
   audioFilePath?: string;
   duration?: number;
-  googleDriveLink?: string;
+  geminiFileLink?: string;
 }
 
 export async function generatePodcastScript(originalText: string, language: 'ko' | 'en' | 'ja' | 'zh' | 'th' | 'vi' | 'fil'): Promise<PodcastContent> {
@@ -348,7 +348,7 @@ Please format your response as JSON:
   }
 }
 
-export async function generatePodcastAudio(script: string, outputPath: string, pdfPath?: string, user?: any): Promise<{ audioPath: string; driveLink?: string }> {
+export async function generatePodcastAudio(script: string, outputPath: string, pdfPath?: string, user?: any): Promise<{ audioPath: string; geminiFileLink?: string }> {
   if (!apiKey || !ai) {
     throw new Error("Gemini API key not configured. Please add GEMINI_API_KEY environment variable.");
   }
@@ -426,7 +426,7 @@ AI 오디오 오버뷰 요구사항:
       throw new Error("No audio content in AI Audio Overview response");
     }
 
-    // 오디오 데이터 찾기 및 저장
+    // 오디오 데이터 및 파일 링크 찾기
     for (const part of content.parts) {
       if (part.inlineData && part.inlineData.mimeType?.startsWith('audio/') && part.inlineData.data) {
         const audioData = Buffer.from(part.inlineData.data as string, 'base64');
@@ -453,27 +453,48 @@ AI 오디오 오버뷰 요구사항:
         const savedStats = fs.statSync(outputPath);
         console.log(`Saved file size: ${savedStats.size} bytes`);
         
-        // Google Drive에 업로드 (사용자 토큰이 있는 경우)
-        let driveLink;
-        if (user && user.googleAccessToken) {
-          try {
-            console.log('Uploading podcast to Google Drive...');
-            const { createDriveService } = await import('./googleDrive.js');
-            const driveService = await createDriveService(user);
+        // 제미나이 Files API를 사용하여 파일 업로드 및 공유 링크 생성
+        let geminiFileLink;
+        
+        try {
+          console.log('Uploading audio to Gemini Files API...');
+          
+          const fileName = path.basename(outputPath);
+          const audioBuffer = fs.readFileSync(outputPath);
+          
+          // Gemini Files API를 사용하여 파일 업로드
+          const fileUploadResponse = await ai.files.upload({
+            file: {
+              name: fileName,
+              data: audioBuffer,
+              mimeType: part.inlineData.mimeType
+            }
+          });
+          
+          if (fileUploadResponse && fileUploadResponse.file) {
+            // 업로드된 파일의 URI를 공유 링크로 사용
+            geminiFileLink = fileUploadResponse.file.uri;
+            console.log(`Gemini file uploaded successfully: ${geminiFileLink}`);
             
-            const fileName = path.basename(outputPath);
-            const audioBuffer = fs.readFileSync(outputPath);
-            const uploadResult = await driveService.uploadFile(fileName, audioBuffer, part.inlineData.mimeType);
-            
-            driveLink = uploadResult.webViewLink;
-            console.log(`Podcast uploaded to Google Drive: ${driveLink}`);
-          } catch (driveError) {
-            console.warn('Failed to upload to Google Drive:', driveError);
-            // Google Drive 업로드 실패해도 계속 진행
+            // 또는 공개 공유 링크가 있다면 사용
+            if ((fileUploadResponse.file as any).publicUrl) {
+              geminiFileLink = (fileUploadResponse.file as any).publicUrl;
+              console.log(`Gemini public URL: ${geminiFileLink}`);
+            }
           }
+        } catch (uploadError) {
+          console.warn('Failed to upload to Gemini Files API:', uploadError);
+          
+          // 대안: 로컬 서버의 스트리밍 URL을 제미나이 링크로 표시
+          const fileName = path.basename(outputPath);
+          geminiFileLink = `/api/podcast/stream/${fileName}`;
+          console.log('Using local streaming URL as fallback:', geminiFileLink);
         }
         
-        return { audioPath: outputPath, driveLink };
+        return { 
+          audioPath: outputPath, 
+          geminiFileLink: geminiFileLink || null 
+        };
       }
     }
 

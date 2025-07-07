@@ -843,14 +843,14 @@ export default function GeneratedContent({
                             </Button>
                           </div>
                         )}
-                        {item.content?.googleDriveLink && (
+                        {item.content?.geminiFileLink && (
                           <Button
-                            onClick={() => window.open(item.content.googleDriveLink, '_blank')}
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                            onClick={() => window.open(item.content.geminiFileLink, '_blank')}
+                            className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
                             size="sm"
                           >
-                            <i className="fab fa-google-drive mr-1"></i>
-                            Google Drive에서 다운로드/공유
+                            <i className="fas fa-share mr-1"></i>
+                            제미나이에서 다운로드/공유
                           </Button>
                         )}
                       </div>
@@ -927,14 +927,14 @@ export default function GeneratedContent({
                     <i className="fas fa-external-link-alt mr-1"></i>
                     새 탭에서 재생
                   </Button>
-                  {selectedItem.content?.googleDriveLink && (
+                  {selectedItem.content?.geminiFileLink && (
                     <Button
-                      onClick={() => window.open(selectedItem.content.googleDriveLink, '_blank')}
-                      className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                      onClick={() => window.open(selectedItem.content.geminiFileLink, '_blank')}
+                      className="bg-purple-600 hover:bg-purple-700 text-white text-sm"
                       size="sm"
                     >
-                      <i className="fab fa-google-drive mr-1"></i>
-                      Google Drive에서 다운로드/공유
+                      <i className="fas fa-share mr-1"></i>
+                      제미나이에서 다운로드/공유
                     </Button>
                   )}
                 </div>
