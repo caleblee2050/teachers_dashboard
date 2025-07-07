@@ -984,8 +984,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Creating classroom service...');
       const classroomService = await createClassroomService(req.user);
       
-      console.log('Calling createAssignment...');
-      const result = await classroomService.createAssignment(
+      console.log('Calling createSimpleAssignment...');
+      const result = await classroomService.createSimpleAssignment(
         courseId,
         title || targetContent.title,
         description || `EduAI Assistant에서 생성된 ${targetContent.contentType} 콘텐츠`,

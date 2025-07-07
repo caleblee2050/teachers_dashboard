@@ -615,6 +615,56 @@ export class GoogleClassroomService {
     
     return contentText;
   }
+
+  async createSimpleAssignment(
+    courseId: string,
+    title: string,
+    description: string,
+    content: any
+  ): Promise<ClassroomUploadResult> {
+    try {
+      console.log('Creating simple Google Classroom assignment...');
+      console.log('Course ID:', courseId);
+      console.log('Title:', title);
+
+      // 콘텐츠를 직접 설명에 포함 (파일 업로드 없이)
+      const assignmentDescription = this.generateContentText(content);
+      
+      console.log('Assignment description length:', assignmentDescription.length);
+
+      const assignmentData = {
+        title: title,
+        description: assignmentDescription,
+        workType: 'ASSIGNMENT',
+        state: 'PUBLISHED'
+      };
+
+      console.log('Creating assignment in Google Classroom...');
+
+      const response = await this.classroom.courses.courseWork.create({
+        courseId: courseId,
+        requestBody: assignmentData,
+      });
+
+      console.log('Assignment created successfully');
+      console.log('Assignment ID:', response.data.id);
+      console.log('Assignment URL:', response.data.alternateLink);
+
+      return {
+        success: true,
+        assignmentId: response.data.id || undefined,
+        courseId,
+        assignmentUrl: response.data.alternateLink ?? undefined,
+        assignmentState: response.data.state ?? undefined,
+      };
+    } catch (error) {
+      console.error('Error creating simple assignment:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
 }
 
 export async function createClassroomService(user: any): Promise<GoogleClassroomService> {

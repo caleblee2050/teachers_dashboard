@@ -353,7 +353,13 @@ export async function generatePodcastAudio(script: string, outputPath: string, p
   }
 
   try {
-    console.log('Starting AI Audio Overview generation with Gemini 2.5 Flash Preview TTS...');
+    console.log('Starting AI Audio Overview generation with Gemini...');
+    
+    // 스크립트 길이 제한 (토큰 제한 고려)
+    const maxScriptLength = 3000;
+    const limitedScript = script.length > maxScriptLength 
+      ? script.substring(0, maxScriptLength) + "..."
+      : script;
     
     // AI 오디오 오버뷰를 위한 프롬프트 - NotebookLM 스타일
     const overviewPrompt = `다음 교육 자료를 바탕으로 NotebookLM 스타일의 AI 오디오 오버뷰를 생성해주세요.
@@ -371,7 +377,7 @@ AI 오디오 오버뷰 요구사항:
 
     // 텍스트만으로 오디오 생성 (PDF 사용 안 함 - 모달리티 제한으로 인해)
     const contents = [{
-      text: overviewPrompt + `\n\n교육 자료:\n${script}`
+      text: overviewPrompt + `\n\n교육 자료:\n${limitedScript}`
     }];
 
     // AI Audio Overview 생성 시도 - 순서대로 모델 테스트

@@ -33,6 +33,147 @@ export default function GeneratedContent({
   const [showFullTextDialog, setShowFullTextDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
+  const showFullContent = (item: any) => {
+    setSelectedItem(item);
+    setShowFullTextDialog(true);
+  };
+
+  const renderFullContent = (item: any) => {
+    if (!item || !item.content) return '';
+    
+    const content = item.content;
+    
+    if (item.contentType === 'summary') {
+      return (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold mb-4">{content.title}</h2>
+          
+          {content.keyConcepts && content.keyConcepts.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">🔍 주요 개념</h3>
+              <ul className="list-disc pl-6 space-y-1">
+                {content.keyConcepts.map((concept: string, index: number) => (
+                  <li key={index}>{concept}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {content.mainContent && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">📖 주요 내용</h3>
+              <p className="whitespace-pre-wrap">{content.mainContent}</p>
+            </div>
+          )}
+          
+          {content.formulas && content.formulas.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">🔢 주요 공식</h3>
+              <div className="space-y-2">
+                {content.formulas.map((formula: string, index: number) => (
+                  <div key={index} className="bg-gray-100 p-2 rounded font-mono">{formula}</div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    } else if (item.contentType === 'quiz') {
+      return (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold mb-4">{content.title}</h2>
+          
+          {content.questions && content.questions.map((q: any, index: number) => (
+            <div key={index} className="border-l-4 border-blue-500 pl-4 mb-6">
+              <h3 className="font-semibold mb-2">{index + 1}. {q.question}</h3>
+              
+              {q.options && q.options.length > 0 && (
+                <div className="mb-3">
+                  {q.options.map((option: string, optIndex: number) => (
+                    <div key={optIndex} className="ml-4 mb-1">
+                      {String.fromCharCode(65 + optIndex)}. {option}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <div className="bg-green-50 p-2 rounded mb-2">
+                <strong>✅ 정답:</strong> {q.correctAnswer}
+              </div>
+              
+              <div className="bg-blue-50 p-2 rounded">
+                <strong>💡 설명:</strong> {q.explanation}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    } else if (item.contentType === 'study_guide') {
+      return (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold mb-4">{content.title}</h2>
+          
+          {content.learningObjectives && content.learningObjectives.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">🎯 학습 목표</h3>
+              <ul className="list-disc pl-6 space-y-1">
+                {content.learningObjectives.map((objective: string, index: number) => (
+                  <li key={index}>{objective}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+          {content.keyConcepts && content.keyConcepts.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">🔍 주요 개념</h3>
+              <div className="space-y-3">
+                {content.keyConcepts.map((concept: any, index: number) => (
+                  <div key={index} className="bg-gray-50 p-3 rounded">
+                    <strong>{concept.term}:</strong> {concept.definition}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {content.studyQuestions && content.studyQuestions.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">❓ 학습 질문</h3>
+              <ol className="list-decimal pl-6 space-y-1">
+                {content.studyQuestions.map((question: string, index: number) => (
+                  <li key={index}>{question}</li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      );
+    } else if (item.contentType === 'podcast') {
+      return (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold mb-4">{content.title}</h2>
+          
+          {content.description && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">📄 설명</h3>
+              <p className="whitespace-pre-wrap">{content.description}</p>
+            </div>
+          )}
+          
+          {content.script && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">📝 스크립트</h3>
+              <div className="bg-gray-50 p-4 rounded whitespace-pre-wrap">{content.script}</div>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    return '';
+  };
+
   // Check if Google Classroom API is available
   const { data: classroomStatus } = useQuery<{ hasPermissions: boolean }>({
     queryKey: ['/api/classroom/check-permissions'],
@@ -644,7 +785,7 @@ export default function GeneratedContent({
                     )}
                     
                     <Button
-                      onClick={() => handleShowFullText(item)}
+                      onClick={() => showFullContent(item)}
                       className="bg-green-600 hover:bg-green-700 text-white text-xs"
                       size="sm"
                     >
@@ -686,17 +827,17 @@ export default function GeneratedContent({
           </DialogHeader>
           
           <div className="mt-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
-                {selectedItem ? getFullTextContent(selectedItem) : ''}
-              </pre>
+            <div className="bg-white p-6 rounded-lg border max-h-96 overflow-y-auto">
+              {selectedItem ? renderFullContent(selectedItem) : ''}
             </div>
             
             <div className="flex justify-end space-x-2 mt-4">
               <Button
                 onClick={() => {
                   if (selectedItem) {
-                    const textContent = getFullTextContent(selectedItem);
+                    const element = document.createElement('div');
+                    element.innerHTML = renderFullContent(selectedItem) as string;
+                    const textContent = element.textContent || element.innerText || '';
                     navigator.clipboard.writeText(textContent);
                     toast({
                       title: "복사 완료",
