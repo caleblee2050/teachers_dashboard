@@ -1106,6 +1106,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error) {
       console.error('Error creating Google Docs:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : null,
+        user: req.user?.id,
+        hasGoogleToken: !!req.user?.googleAccessToken
+      });
       res.status(500).json({ 
         message: 'Google Docs 생성에 실패했습니다.',
         error: error instanceof Error ? error.message : 'Unknown error'

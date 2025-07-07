@@ -118,27 +118,19 @@ export class GoogleDriveService {
       // Use Google Docs API to insert content
       const docs = google.docs({ version: 'v1', auth: this.oauth2Client });
       
-      // Convert content to structured format for Google Docs
-      const contentParts = content.split('\n\n');
-      const requests = [];
-      
-      for (let i = 0; i < contentParts.length; i++) {
-        const part = contentParts[i];
-        if (part.trim()) {
-          requests.push({
-            insertText: {
-              location: { index: 1 },
-              text: part + '\n\n',
-            },
-          });
-        }
-      }
-
-      if (requests.length > 0) {
+      // Insert content into the Google Doc
+      if (content.trim()) {
         await docs.documents.batchUpdate({
           documentId: docId,
           requestBody: {
-            requests,
+            requests: [
+              {
+                insertText: {
+                  location: { index: 1 },
+                  text: content,
+                },
+              },
+            ],
           },
         });
       }
@@ -146,7 +138,14 @@ export class GoogleDriveService {
       return { docId, docUrl };
     } catch (error) {
       console.error('Error creating Google Doc:', error);
-      throw new Error('Failed to create Google Doc');
+      console.error('Google Doc creation error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : null,
+        title,
+        contentLength: content.length,
+        hasAuth: !!this.oauth2Client
+      });
+      throw new Error(`Failed to create Google Doc: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }
