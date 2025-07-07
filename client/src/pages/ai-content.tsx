@@ -75,54 +75,7 @@ export default function AIContent() {
     },
   });
 
-  // Batch PDF download mutation
-  const batchPdfMutation = useMutation({
-    mutationFn: async ({ contentIds, folderName }: { contentIds: string[], folderName: string }) => {
-      const response = await fetch('/api/content/batch-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ contentIds, folderName }),
-      });
 
-      if (!response.ok) {
-        throw new Error('PDF 생성에 실패했습니다.');
-      }
-
-      // Get filename from response headers
-      const contentDisposition = response.headers.get('content-disposition');
-      const filename = contentDisposition 
-        ? contentDisposition.split('filename=')[1]?.replace(/['"]/g, '') 
-        : `${folderName}.zip`;
-
-      // Download the file
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      return filename;
-    },
-    onSuccess: (filename: string) => {
-      toast({
-        title: "PDF 다운로드 완료",
-        description: `${filename} 파일이 다운로드되었습니다.`,
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "다운로드 실패",
-        description: error.message || "PDF 생성에 실패했습니다.",
-        variant: "destructive",
-      });
-    },
-  });
 
   const handleLanguageFolderSelect = (language: string, checked: boolean) => {
     if (checked) {
@@ -153,26 +106,7 @@ export default function AIContent() {
     });
   };
 
-  const handleDownloadSelectedFolders = () => {
-    selectedLanguageFolders.forEach(language => {
-      const contents = groupedContentByLanguage[language] || [];
-      const folderName = getLanguageFolderName(language);
-      batchPdfMutation.mutate({ contentIds: contents.map((c: any) => c.id), folderName });
-    });
-  };
 
-  const handleDownloadAllFolders = () => {
-    const allDownloads = Object.keys(groupedContentByLanguage).map(language => {
-      const contents = groupedContentByLanguage[language] || [];
-      const folderName = getLanguageFolderName(language);
-      return { contentIds: contents.map((c: any) => c.id), folderName };
-    });
-    
-    // Download all folders sequentially
-    allDownloads.forEach(download => {
-      batchPdfMutation.mutate(download);
-    });
-  };
 
   const copyShareLink = (shareToken: string) => {
     const shareUrl = `${window.location.origin}/api/share/${shareToken}`;
@@ -311,40 +245,7 @@ export default function AIContent() {
             </CardContent>
           </Card>
 
-          {/* PDF Download Controls */}
-          <Card className="bg-red-50 border-red-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 korean-text">PDF 다운로드</h3>
-                <div className="flex space-x-3">
-                  <Button
-                    onClick={handleDownloadSelectedFolders}
-                    disabled={selectedLanguageFolders.length === 0 || batchPdfMutation.isPending}
-                    className="bg-red-600 hover:bg-red-700 text-white korean-text"
-                  >
-                    {batchPdfMutation.isPending ? (
-                      <i className="fas fa-spinner fa-spin mr-2"></i>
-                    ) : (
-                      <i className="fas fa-file-pdf mr-2"></i>
-                    )}
-                    선택된 폴더 다운로드
-                  </Button>
-                  <Button
-                    onClick={handleDownloadAllFolders}
-                    disabled={Object.keys(groupedContentByLanguage).length === 0 || batchPdfMutation.isPending}
-                    className="bg-orange-600 hover:bg-orange-700 text-white korean-text"
-                  >
-                    <i className="fas fa-download mr-2"></i>
-                    전체 폴더 다운로드
-                  </Button>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600 korean-text">
-                언어별로 자동 분류된 폴더를 PDF 파일로 다운로드합니다. 
-                각 언어별로 ZIP 파일에 모든 콘텐츠가 PDF 형태로 포함됩니다.
-              </p>
-            </CardContent>
-          </Card>
+
 
           {/* Language Folders */}
           <div className="space-y-6">
