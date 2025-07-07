@@ -462,25 +462,14 @@ AI 오디오 오버뷰 요구사항:
           const fileName = path.basename(outputPath);
           const audioBuffer = fs.readFileSync(outputPath);
           
-          // Gemini Files API를 사용하여 파일 업로드
-          const fileUploadResponse = await ai.files.upload({
-            file: {
-              name: fileName,
-              data: audioBuffer,
-              mimeType: part.inlineData.mimeType
-            }
-          });
+          // Gemini Files API를 사용하여 파일 업로드  
+          const blob = new Blob([audioBuffer], { type: 'audio/wav' });
+          const fileUploadResponse = await ai.files.upload({ file: blob });
           
-          if (fileUploadResponse && fileUploadResponse.file) {
+          if (fileUploadResponse && fileUploadResponse.uri) {
             // 업로드된 파일의 URI를 공유 링크로 사용
-            geminiFileLink = fileUploadResponse.file.uri;
+            geminiFileLink = fileUploadResponse.uri;
             console.log(`Gemini file uploaded successfully: ${geminiFileLink}`);
-            
-            // 또는 공개 공유 링크가 있다면 사용
-            if ((fileUploadResponse.file as any).publicUrl) {
-              geminiFileLink = (fileUploadResponse.file as any).publicUrl;
-              console.log(`Gemini public URL: ${geminiFileLink}`);
-            }
           }
         } catch (uploadError) {
           console.warn('Failed to upload to Gemini Files API:', uploadError);
@@ -493,7 +482,7 @@ AI 오디오 오버뷰 요구사항:
         
         return { 
           audioPath: outputPath, 
-          geminiFileLink: geminiFileLink || null 
+          geminiFileLink: geminiFileLink || undefined 
         };
       }
     }

@@ -651,7 +651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const uploadResult = await driveService.uploadFile(audioFileName, audioBuffer, 'audio/wav');
             
             console.log(`Podcast audio uploaded to Google Drive: ${uploadResult.webViewLink}`);
-            podcastData.googleDriveLink = uploadResult.webViewLink;
+            podcastData.geminiFileLink = uploadResult.webViewLink;
           } catch (driveError) {
             console.warn('Failed to upload audio to Google Drive:', driveError);
           }

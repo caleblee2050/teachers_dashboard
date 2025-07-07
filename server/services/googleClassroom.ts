@@ -88,20 +88,24 @@ export class GoogleClassroomService {
       console.log('Content type:', content.contentType);
       console.log('Content ID:', content.id);
       
-      // Format content based on type
+      // Format content based on type and language
       let formattedDescription = description;
       
       const contentData = content.content as any;
+      const language = content.language || 'ko'; // Default to Korean if not specified
+      
+      // Get language-specific labels
+      const labels = this.getLanguageLabels(language);
       
       if (content.contentType === 'summary') {
-        formattedDescription += `\n\n=== 요약 ===\n${contentData.mainContent}`;
-        formattedDescription += `\n\n=== 주요 개념 ===\n${contentData.keyConcepts.map((concept: string, i: number) => `${i + 1}. ${concept}`).join('\n')}`;
+        formattedDescription += `\n\n=== ${labels.summary} ===\n${contentData.mainContent}`;
+        formattedDescription += `\n\n=== ${labels.keyConcepts} ===\n${contentData.keyConcepts.map((concept: string, i: number) => `${i + 1}. ${concept}`).join('\n')}`;
         
         if (contentData.formulas && contentData.formulas.length > 0) {
-          formattedDescription += `\n\n=== 공식 ===\n${contentData.formulas.join('\n')}`;
+          formattedDescription += `\n\n=== ${labels.formulas} ===\n${contentData.formulas.join('\n')}`;
         }
       } else if (content.contentType === 'quiz') {
-        formattedDescription += `\n\n=== 퀴즈 ===\n`;
+        formattedDescription += `\n\n=== ${labels.quiz} ===\n`;
         contentData.questions.forEach((q: any, i: number) => {
           formattedDescription += `\n${i + 1}. ${q.question}\n`;
           if (q.options) {
@@ -109,41 +113,41 @@ export class GoogleClassroomService {
               formattedDescription += `   ${String.fromCharCode(97 + j)}. ${option}\n`;
             });
           }
-          formattedDescription += `   정답: ${q.correctAnswer}\n   설명: ${q.explanation}\n`;
+          formattedDescription += `   ${labels.correctAnswer}: ${q.correctAnswer}\n   ${labels.explanation}: ${q.explanation}\n`;
         });
       } else if (content.contentType === 'study_guide') {
-        formattedDescription += `\n\n=== 학습 목표 ===\n${contentData.learningObjectives.map((obj: string, i: number) => `${i + 1}. ${obj}`).join('\n')}`;
-        formattedDescription += `\n\n=== 주요 개념 ===\n`;
+        formattedDescription += `\n\n=== ${labels.learningObjectives} ===\n${contentData.learningObjectives.map((obj: string, i: number) => `${i + 1}. ${obj}`).join('\n')}`;
+        formattedDescription += `\n\n=== ${labels.keyConcepts} ===\n`;
         contentData.keyConcepts.forEach((concept: any) => {
           formattedDescription += `• ${concept.term}: ${concept.definition}\n`;
         });
-        formattedDescription += `\n\n=== 학습 질문 ===\n${contentData.studyQuestions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`;
+        formattedDescription += `\n\n=== ${labels.studyQuestions} ===\n${contentData.studyQuestions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n')}`;
       } else if (content.contentType === 'podcast') {
-        formattedDescription += `\n\n=== 팟캐스트 설명 ===\n${contentData.description}`;
-        formattedDescription += `\n\n=== 스크립트 미리보기 ===\n${contentData.script.substring(0, 500)}...`;
+        formattedDescription += `\n\n=== ${labels.podcastDescription} ===\n${contentData.description}`;
+        formattedDescription += `\n\n=== ${labels.scriptPreview} ===\n${contentData.script.substring(0, 500)}...`;
         if (contentData.audioFilePath) {
-          formattedDescription += `\n\n오디오 파일과 PDF 파일이 포함되어 있습니다.`;
+          formattedDescription += `\n\n${labels.audioAndPdfIncluded}`;
         }
       } else if (content.contentType === 'integrated') {
-        formattedDescription += `\n\n=== 통합 교육 자료 ===\n`;
+        formattedDescription += `\n\n=== ${labels.integratedMaterials} ===\n`;
         
         if (contentData.studyGuide) {
-          formattedDescription += `\n--- 학습 가이드 ---\n`;
-          formattedDescription += `학습 목표:\n${contentData.studyGuide.learningObjectives.map((obj: string, i: number) => `${i + 1}. ${obj}`).join('\n')}\n`;
-          formattedDescription += `주요 개념:\n${contentData.studyGuide.keyConcepts.map((concept: any) => `• ${concept.term}: ${concept.definition}`).join('\n')}\n`;
+          formattedDescription += `\n--- ${labels.studyGuide} ---\n`;
+          formattedDescription += `${labels.learningObjectives}:\n${contentData.studyGuide.learningObjectives.map((obj: string, i: number) => `${i + 1}. ${obj}`).join('\n')}\n`;
+          formattedDescription += `${labels.keyConcepts}:\n${contentData.studyGuide.keyConcepts.map((concept: any) => `• ${concept.term}: ${concept.definition}`).join('\n')}\n`;
         }
         
         if (contentData.summary) {
-          formattedDescription += `\n--- 요약 ---\n${contentData.summary.mainContent}\n`;
-          formattedDescription += `주요 개념: ${contentData.summary.keyConcepts.join(', ')}\n`;
+          formattedDescription += `\n--- ${labels.summary} ---\n${contentData.summary.mainContent}\n`;
+          formattedDescription += `${labels.keyConcepts}: ${contentData.summary.keyConcepts.join(', ')}\n`;
         }
         
         if (contentData.quiz) {
-          formattedDescription += `\n--- 퀴즈 ---\n`;
+          formattedDescription += `\n--- ${labels.quiz} ---\n`;
           contentData.quiz.questions.slice(0, 3).forEach((q: any, i: number) => {
             formattedDescription += `${i + 1}. ${q.question}\n`;
             if (q.options) {
-              formattedDescription += `   정답: ${q.correctAnswer}\n`;
+              formattedDescription += `   ${labels.correctAnswer}: ${q.correctAnswer}\n`;
             }
           });
         }
@@ -155,8 +159,9 @@ export class GoogleClassroomService {
       const drive = google.drive({ version: 'v3', auth: this.oauth2Client });
       const uploadedFiles: any[] = [];
 
-      // 1. 텍스트 파일 업로드 (기본)
-      const textFileName = `${title.replace(/[^\w\s가-힣-]/g, '')}.txt`;
+      // 1. 텍스트 파일 업로드 (기본) - 언어별 파일명 생성
+      const languagePrefix = language !== 'ko' ? `[${language.toUpperCase()}] ` : '';
+      const textFileName = `${languagePrefix}${title.replace(/[^\w\s가-힣-]/g, '')}.txt`;
       const textFileMetadata = {
         name: textFileName,
         parents: ['root']
@@ -544,6 +549,118 @@ export class GoogleClassroomService {
       console.error('Error syncing assignments:', error);
       throw new Error('Failed to sync assignments');
     }
+  }
+
+  private getLanguageLabels(language: string) {
+    const labels = {
+      ko: {
+        summary: '요약',
+        keyConcepts: '주요 개념',
+        formulas: '공식',
+        quiz: '퀴즈',
+        correctAnswer: '정답',
+        explanation: '설명',
+        learningObjectives: '학습 목표',
+        studyQuestions: '학습 질문',
+        podcastDescription: '팟캐스트 설명',
+        scriptPreview: '스크립트 미리보기',
+        audioAndPdfIncluded: '오디오 파일과 PDF 파일이 포함되어 있습니다.',
+        integratedMaterials: '통합 교육 자료',
+        studyGuide: '학습 가이드'
+      },
+      en: {
+        summary: 'Summary',
+        keyConcepts: 'Key Concepts',
+        formulas: 'Formulas',
+        quiz: 'Quiz',
+        correctAnswer: 'Correct Answer',
+        explanation: 'Explanation',
+        learningObjectives: 'Learning Objectives',
+        studyQuestions: 'Study Questions',
+        podcastDescription: 'Podcast Description',
+        scriptPreview: 'Script Preview',
+        audioAndPdfIncluded: 'Audio files and PDF files are included.',
+        integratedMaterials: 'Integrated Educational Materials',
+        studyGuide: 'Study Guide'
+      },
+      ja: {
+        summary: '概要',
+        keyConcepts: '主要概念',
+        formulas: '公式',
+        quiz: 'クイズ',
+        correctAnswer: '正解',
+        explanation: '説明',
+        learningObjectives: '学習目標',
+        studyQuestions: '学習質問',
+        podcastDescription: 'ポッドキャスト説明',
+        scriptPreview: 'スクリプトプレビュー',
+        audioAndPdfIncluded: 'オーディオファイルとPDFファイルが含まれています。',
+        integratedMaterials: '統合教育資料',
+        studyGuide: '学習ガイド'
+      },
+      zh: {
+        summary: '摘要',
+        keyConcepts: '关键概念',
+        formulas: '公式',
+        quiz: '测验',
+        correctAnswer: '正确答案',
+        explanation: '解释',
+        learningObjectives: '学习目标',
+        studyQuestions: '学习问题',
+        podcastDescription: '播客描述',
+        scriptPreview: '脚本预览',
+        audioAndPdfIncluded: '包含音频文件和PDF文件。',
+        integratedMaterials: '综合教育材料',
+        studyGuide: '学习指南'
+      },
+      th: {
+        summary: 'สรุป',
+        keyConcepts: 'แนวคิดหลัก',
+        formulas: 'สูตร',
+        quiz: 'แบบทดสอบ',
+        correctAnswer: 'คำตอบที่ถูกต้อง',
+        explanation: 'คำอธิบาย',
+        learningObjectives: 'วัตถุประสงค์การเรียนรู้',
+        studyQuestions: 'คำถามการศึกษา',
+        podcastDescription: 'คำอธิบายพอดแคสต์',
+        scriptPreview: 'ตัวอย่างสคริปต์',
+        audioAndPdfIncluded: 'รวมไฟล์เสียงและไฟล์ PDF',
+        integratedMaterials: 'สื่อการศึกษาแบบบูรณาการ',
+        studyGuide: 'คู่มือการศึกษา'
+      },
+      vi: {
+        summary: 'Tóm tắt',
+        keyConcepts: 'Khái niệm chính',
+        formulas: 'Công thức',
+        quiz: 'Bài kiểm tra',
+        correctAnswer: 'Đáp án đúng',
+        explanation: 'Giải thích',
+        learningObjectives: 'Mục tiêu học tập',
+        studyQuestions: 'Câu hỏi học tập',
+        podcastDescription: 'Mô tả podcast',
+        scriptPreview: 'Xem trước kịch bản',
+        audioAndPdfIncluded: 'Bao gồm tệp âm thanh và tệp PDF.',
+        integratedMaterials: 'Tài liệu giáo dục tổng hợp',
+        studyGuide: 'Hướng dẫn học tập'
+      },
+      fil: {
+        summary: 'Buod',
+        keyConcepts: 'Mga Pangunahing Konsepto',
+        formulas: 'Mga Formula',
+        quiz: 'Pagsusulit',
+        correctAnswer: 'Tamang Sagot',
+        explanation: 'Paliwanag',
+        learningObjectives: 'Mga Layunin sa Pag-aaral',
+        studyQuestions: 'Mga Tanong sa Pag-aaral',
+        podcastDescription: 'Paglalarawan ng Podcast',
+        scriptPreview: 'Preview ng Script',
+        audioAndPdfIncluded: 'Kasama ang mga audio file at PDF file.',
+        integratedMaterials: 'Integrated na Materyales sa Edukasyon',
+        studyGuide: 'Gabay sa Pag-aaral'
+      }
+    };
+    
+    return labels[language as keyof typeof labels] || labels.ko;
   }
 
   private generateContentText(content: any): string {
