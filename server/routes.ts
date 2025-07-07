@@ -15,6 +15,86 @@ import { z } from "zod";
 import { nanoid } from "nanoid";
 import express from "express";
 
+// 콘텐츠를 텍스트로 변환하는 함수
+function convertContentToText(content: any): string {
+  if (!content) return '';
+  
+  let text = '';
+  
+  if (content.title) {
+    text += `제목: ${content.title}\n\n`;
+  }
+  
+  // 통합 콘텐츠의 경우 학습가이드, 요약, 퀴즈 순서로 정리
+  if (content.studyGuide) {
+    text += `=== 학습 가이드 ===\n\n`;
+    if (content.studyGuide.learningObjectives?.length) {
+      text += `학습 목표:\n`;
+      content.studyGuide.learningObjectives.forEach((obj: string, i: number) => {
+        text += `${i + 1}. ${obj}\n`;
+      });
+      text += '\n';
+    }
+    
+    if (content.studyGuide.keyConcepts?.length) {
+      text += `핵심 개념:\n`;
+      content.studyGuide.keyConcepts.forEach((concept: any) => {
+        text += `• ${concept.term}: ${concept.definition}\n`;
+      });
+      text += '\n';
+    }
+    
+    if (content.studyGuide.studyQuestions?.length) {
+      text += `학습 질문:\n`;
+      content.studyGuide.studyQuestions.forEach((q: string, i: number) => {
+        text += `${i + 1}. ${q}\n`;
+      });
+      text += '\n';
+    }
+  }
+  
+  if (content.summary) {
+    text += `=== 요약 ===\n\n`;
+    if (content.summary.keyConcepts?.length) {
+      text += `주요 개념:\n`;
+      content.summary.keyConcepts.forEach((concept: string) => {
+        text += `• ${concept}\n`;
+      });
+      text += '\n';
+    }
+    
+    if (content.summary.mainContent) {
+      text += `주요 내용:\n${content.summary.mainContent}\n\n`;
+    }
+    
+    if (content.summary.formulas?.length) {
+      text += `주요 공식:\n`;
+      content.summary.formulas.forEach((formula: string) => {
+        text += `• ${formula}\n`;
+      });
+      text += '\n';
+    }
+  }
+  
+  if (content.quiz) {
+    text += `=== 퀴즈 ===\n\n`;
+    if (content.quiz.questions?.length) {
+      content.quiz.questions.forEach((q: any, i: number) => {
+        text += `문제 ${i + 1}: ${q.question}\n`;
+        if (q.options?.length) {
+          q.options.forEach((option: string, j: number) => {
+            text += `${String.fromCharCode(65 + j)}. ${option}\n`;
+          });
+        }
+        text += `정답: ${q.correctAnswer}\n`;
+        text += `설명: ${q.explanation}\n\n`;
+      });
+    }
+  }
+  
+  return text;
+}
+
 // Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -332,6 +412,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertGeneratedContentSchema.parse(contentData);
       const createdContent = await storage.createGeneratedContent(validatedData);
 
+      // 통합 콘텐츠의 경우 txt 파일로 구글 드라이브에 저장
+      if (type === 'integrated' && req.user.googleAccessToken) {
+        try {
+          console.log('Saving integrated content to Google Drive as txt file...');
+          
+          // 현재 날짜와 시간으로 파일명 생성
+          const now = new Date();
+          const dateStr = now.toISOString().split('T')[0].replace(/-/g, '.');
+          const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '.');
+          const baseFileName = file.originalName.replace(/\.[^/.]+$/, '');
+          const txtFileName = `${dateStr}.${timeStr}.${baseFileName}.txt`;
+          
+          // 콘텐츠를 텍스트 형태로 변환
+          const textContent = convertContentToText(generatedData);
+          
+          // 구글 드라이브에 업로드
+          const driveService = await createDriveService(req.user);
+          const docResult = await driveService.createGoogleDoc(txtFileName, textContent);
+          
+          console.log(`Saved txt file to Google Drive: ${txtFileName}`, docResult);
+        } catch (error) {
+          console.error('Error saving to Google Drive:', error);
+          // 에러가 발생해도 콘텐츠 생성은 성공으로 처리
+        }
+      }
+
       res.json(createdContent);
     } catch (error) {
       console.error('Content generation error:', error);
@@ -442,16 +548,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Content not found' });
       }
 
-      // 원본 파일 텍스트 가져오기
-      const originalFile = await storage.getFile(existingContent.fileId);
-      if (!originalFile || !originalFile.extractedText) {
-        return res.status(400).json({ message: 'Original file text not found' });
+      // 통합 콘텐츠에서 텍스트 생성 (구글 드라이브의 txt 파일 대신 기존 콘텐츠 사용)
+      const textContent = convertContentToText(existingContent.content);
+      if (!textContent) {
+        return res.status(400).json({ message: 'Content text not found' });
       }
 
-      console.log('Generating podcast from original file text, length:', originalFile.extractedText.length);
+      console.log('Generating podcast from content text, length:', textContent.length);
 
-      // 팟캐스트 스크립트 생성 - 원본 파일 텍스트 사용
-      const podcastData = await generatePodcastScript(originalFile.extractedText, language);
+      // 팟캐스트 스크립트 생성 - 콘텐츠 텍스트 사용
+      const podcastData = await generatePodcastScript(textContent, language);
       
       // 1. PDF 파일 먼저 생성
       let pdfPath: string | undefined;

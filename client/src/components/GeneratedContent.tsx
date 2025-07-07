@@ -828,7 +828,7 @@ export default function GeneratedContent({
           
           <div className="mt-4">
             <div className="bg-white p-6 rounded-lg border max-h-96 overflow-y-auto">
-              {selectedItem ? renderFullContent(selectedItem) : ''}
+              {selectedItem && renderFullContent(selectedItem)}
             </div>
             
             <div className="flex justify-end space-x-2 mt-4">

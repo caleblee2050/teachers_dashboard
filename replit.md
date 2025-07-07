@@ -107,6 +107,14 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- July 07, 2025. Complete content generation workflow restructure
+  - Removed podcast generation checkbox from integrated content creation
+  - Fixed "전체 내용 보기" dialog to properly display generated content with formatted JSX
+  - Implemented automatic txt file creation and Google Drive storage for generated content  
+  - Enhanced podcast generation to use structured content text instead of raw file content
+  - Added convertContentToText function for proper content formatting in txt files
+  - Updated Google Classroom upload to use simple text insertion method instead of file uploads
+  - Removed all includePodcast references and created modular content generation approach
 - July 07, 2025. UI cleanup and podcast download feature implementation
   - Removed AI content generation page as requested by user due to dashboard content mismatch
   - Removed Google Docs creation functionality and buttons (was causing 500 errors)
