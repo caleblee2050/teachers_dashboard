@@ -107,6 +107,13 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- July 07, 2025. Podcast UI improvements and direct playback removal
+  - Removed all direct playback buttons as they were not working properly
+  - Replaced "직접 재생" buttons with "다운로드" buttons for local file download
+  - Enhanced Gemini download/share buttons to use proper file download URLs with ?alt=media parameter
+  - Fixed 413 error in Gemini file sharing by converting file URLs to download format
+  - Improved button labels and functionality for better user experience
+  - Maintained TTS (text-to-speech) functionality for script reading
 - July 07, 2025. Gemini podcast sharing fix and batch classroom upload improvements
   - Fixed podcast sharing to use Gemini Files API URI instead of Google Drive links
   - Modified generatePodcastAudio to properly return geminiFileLink from Gemini Files API

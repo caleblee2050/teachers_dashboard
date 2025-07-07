@@ -797,14 +797,14 @@ export default function GeneratedContent({
                               <Button
                                 onClick={() => currentSpeech ? handleStopSpeech() : handlePlayTextToSpeech(item.content.script)}
                                 disabled={!item.content?.script}
-                                className="bg-green-600 hover:bg-green-700 text-white text-sm korean-text disabled:opacity-50"
+                                className="bg-red-600 hover:bg-red-700 text-white text-sm korean-text disabled:opacity-50"
                               >
                                 {currentSpeech ? (
                                   <i className="fas fa-stop mr-2"></i>
                                 ) : (
                                   <i className="fas fa-play mr-2"></i>
                                 )}
-                                {currentSpeech ? '재생 중지' : '바로 재생'}
+                                {currentSpeech ? '재생 중지' : 'TTS 재생'}
                               </Button>
                             </div>
                             
@@ -850,24 +850,37 @@ export default function GeneratedContent({
                               onClick={() => {
                                 const filename = item.content.audioFilePath.split('/').pop();
                                 const streamUrl = `/api/podcast/stream/${filename}`;
-                                window.open(streamUrl, '_blank');
+                                const link = document.createElement('a');
+                                link.href = streamUrl;
+                                link.download = filename;
+                                link.click();
                               }}
-                              className="bg-green-600 hover:bg-green-700 text-white text-xs"
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
                               size="sm"
                             >
-                              <i className="fas fa-play mr-1"></i>
-                              직접 재생
+                              <i className="fas fa-download mr-1"></i>
+                              다운로드
                             </Button>
                           </div>
                         )}
                         {item.content?.geminiFileLink && (
                           <Button
-                            onClick={() => window.open(item.content.geminiFileLink, '_blank')}
+                            onClick={() => {
+                              // 제미나이 파일 링크를 직접 열기
+                              const fileUrl = item.content.geminiFileLink;
+                              if (fileUrl.startsWith('https://generativelanguage.googleapis.com/')) {
+                                // 파일 다운로드용 링크로 변환
+                                const downloadUrl = fileUrl.replace('/files/', '/files/') + '?alt=media';
+                                window.open(downloadUrl, '_blank');
+                              } else {
+                                window.open(fileUrl, '_blank');
+                              }
+                            }}
                             className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
                             size="sm"
                           >
-                            <i className="fas fa-share mr-1"></i>
-                            제미나이에서 다운로드/공유
+                            <i className="fas fa-external-link-alt mr-1"></i>
+                            제미나이에서 다운로드
                           </Button>
                         )}
                       </div>
@@ -931,27 +944,37 @@ export default function GeneratedContent({
                   </audio>
                 </div>
                 <div className="flex space-x-2">
-
                   <Button
                     onClick={() => {
                       const filename = selectedItem.content.audioFilePath.split('/').pop();
                       const streamUrl = `/api/podcast/stream/${filename}`;
-                      window.open(streamUrl, '_blank');
+                      const link = document.createElement('a');
+                      link.href = streamUrl;
+                      link.download = filename;
+                      link.click();
                     }}
-                    className="bg-green-600 hover:bg-green-700 text-white text-sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
                     size="sm"
                   >
-                    <i className="fas fa-external-link-alt mr-1"></i>
-                    새 탭에서 재생
+                    <i className="fas fa-download mr-1"></i>
+                    다운로드
                   </Button>
                   {selectedItem.content?.geminiFileLink && (
                     <Button
-                      onClick={() => window.open(selectedItem.content.geminiFileLink, '_blank')}
+                      onClick={() => {
+                        const fileUrl = selectedItem.content.geminiFileLink;
+                        if (fileUrl.startsWith('https://generativelanguage.googleapis.com/')) {
+                          const downloadUrl = fileUrl.replace('/files/', '/files/') + '?alt=media';
+                          window.open(downloadUrl, '_blank');
+                        } else {
+                          window.open(fileUrl, '_blank');
+                        }
+                      }}
                       className="bg-purple-600 hover:bg-purple-700 text-white text-sm"
                       size="sm"
                     >
-                      <i className="fas fa-share mr-1"></i>
-                      제미나이에서 다운로드/공유
+                      <i className="fas fa-external-link-alt mr-1"></i>
+                      제미나이에서 다운로드
                     </Button>
                   )}
                 </div>
