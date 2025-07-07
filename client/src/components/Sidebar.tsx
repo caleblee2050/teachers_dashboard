@@ -14,11 +14,7 @@ export default function Sidebar() {
       icon: 'fas fa-folder',
       label: '내 자료실',
     },
-    {
-      path: '/ai-content',
-      icon: 'fas fa-robot',
-      label: 'AI 콘텐츠 생성',
-    },
+
     {
       path: '/student-management',
       icon: 'fas fa-users',

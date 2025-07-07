@@ -8,7 +8,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import MyLibrary from "@/pages/my-library";
-import AIContent from "@/pages/ai-content";
+
 import StudentManagement from "@/pages/student-management";
 import ClassroomSync from "@/pages/classroom-sync";
 import SharedContent from "@/pages/shared-content";
@@ -40,7 +40,7 @@ function Router() {
                 <Switch>
                   <Route path="/" component={Dashboard} />
                   <Route path="/library" component={MyLibrary} />
-                  <Route path="/ai-content" component={AIContent} />
+
                   <Route path="/student-management" component={StudentManagement} />
                   <Route path="/classroom-sync" component={ClassroomSync} />
                   <Route path="/shared" component={SharedContent} />

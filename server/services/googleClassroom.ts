@@ -79,6 +79,13 @@ export class GoogleClassroomService {
     content: any
   ): Promise<ClassroomUploadResult> {
     try {
+      console.log('=== createAssignment Started ===');
+      console.log('Course ID:', courseId);
+      console.log('Title:', title);
+      console.log('Description:', description);
+      console.log('Content type:', content.contentType);
+      console.log('Content ID:', content.id);
+      
       // Format content based on type
       let formattedDescription = description;
       
@@ -350,15 +357,24 @@ export class GoogleClassroomService {
         }
       };
 
+      console.log('Creating assignment with data:', JSON.stringify(assignment, null, 2));
+      
       const response = await this.classroom.courses.courseWork.create({
         courseId,
         requestBody: assignment,
       });
 
+      console.log('Assignment created successfully!');
+      console.log('Response data:', JSON.stringify(response.data, null, 2));
+      console.log('Assignment ID:', response.data.id);
+      console.log('Assignment URL:', response.data.alternateLink);
+
       return {
         success: true,
         assignmentId: response.data.id || undefined,
         courseId,
+        assignmentUrl: response.data.alternateLink,
+        assignmentState: response.data.state,
       };
     } catch (error) {
       console.error('Error creating assignment:', error);
