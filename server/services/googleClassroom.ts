@@ -12,6 +12,8 @@ export interface ClassroomUploadResult {
   success: boolean;
   assignmentId?: string | null;
   courseId?: string;
+  assignmentUrl?: string;
+  assignmentState?: string;
   error?: string;
 }
 
@@ -373,8 +375,8 @@ export class GoogleClassroomService {
         success: true,
         assignmentId: response.data.id || undefined,
         courseId,
-        assignmentUrl: response.data.alternateLink,
-        assignmentState: response.data.state,
+        assignmentUrl: response.data.alternateLink ?? undefined,
+        assignmentState: response.data.state ?? undefined,
       };
     } catch (error) {
       console.error('Error creating assignment:', error);

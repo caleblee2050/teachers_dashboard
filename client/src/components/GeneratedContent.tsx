@@ -114,17 +114,18 @@ export default function GeneratedContent({
     });
   };
 
-  const downloadPDF = (contentId: string, title: string) => {
+  // 팟캐스트 오디오 다운로드
+  const downloadPodcastAudio = (audioFilePath: string, title: string) => {
     const link = document.createElement('a');
-    link.href = `/api/content/${contentId}/pdf`;
-    link.download = `${title}.pdf`;
+    link.href = `/uploads/${audioFilePath.split('/').pop()}`;
+    link.download = `${title}_podcast.mp3`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
     toast({
-      title: "PDF 다운로드 시작",
-      description: `${title} PDF 파일을 다운로드합니다.`,
+      title: "팟캐스트 다운로드 시작",
+      description: `${title} 팟캐스트 오디오 파일을 다운로드합니다.`,
     });
   };
 
@@ -206,32 +207,7 @@ export default function GeneratedContent({
     }
   };
 
-  // Google Docs 생성
-  const handleCreateGoogleDoc = async (contentId: string) => {
-    try {
-      const response = await apiRequest('POST', `/api/content/${contentId}/google-docs`);
-      const result = await response.json();
-      
-      if (result.success) {
-        toast({
-          title: "Google Docs 생성 완료",
-          description: `문서가 성공적으로 생성되었습니다.`,
-        });
-        
-        // Open the Google Doc in a new tab
-        window.open(result.docUrl, '_blank');
-      } else {
-        throw new Error(result.message || 'Google Docs 생성에 실패했습니다.');
-      }
-    } catch (error: any) {
-      console.error('Error creating Google Doc:', error);
-      toast({
-        title: "Google Docs 생성 실패",
-        description: error.message || 'Google Docs 생성 중 오류가 발생했습니다.',
-        variant: "destructive"
-      });
-    }
-  };
+
 
   // 전체 내용 보기
   const handleShowFullText = (item: any) => {
@@ -417,15 +393,7 @@ export default function GeneratedContent({
                         팟캐스트
                       </Button>
                     )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => downloadPDF(item.id, item.title)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <i className="fas fa-file-pdf mr-1"></i>
-                      PDF
-                    </Button>
+
                     <Button
                       size="sm"
                       variant="outline"
@@ -664,14 +632,16 @@ export default function GeneratedContent({
                   </span>
                   
                   <div className="flex space-x-2">
-                    <Button
-                      onClick={() => handleCreateGoogleDoc(item.id)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                      size="sm"
-                    >
-                      <i className="fas fa-file-text mr-1"></i>
-                      Google Docs 생성
-                    </Button>
+                    {item.contentType === 'podcast' && item.content?.audioFilePath && (
+                      <Button
+                        onClick={() => downloadPodcastAudio(item.content.audioFilePath, item.title)}
+                        className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                        size="sm"
+                      >
+                        <i className="fas fa-download mr-1"></i>
+                        오디오 다운로드
+                      </Button>
+                    )}
                     
                     <Button
                       onClick={() => handleShowFullText(item)}
@@ -681,20 +651,7 @@ export default function GeneratedContent({
                       <i className="fas fa-eye mr-1"></i>
                       전체 내용 보기
                     </Button>
-                    
-                    <ClassroomUploadDialog
-                      contentId={item.id}
-                      contentTitle={item.title}
-                      contentType={item.contentType}
-                    >
-                      <Button 
-                        className="bg-red-600 hover:bg-red-700 text-white text-xs"
-                        size="sm"
-                      >
-                        <i className="fas fa-upload mr-1"></i>
-                        클래스룸 업로드
-                      </Button>
-                    </ClassroomUploadDialog>
+
                   </div>
                 </div>
               </div>
