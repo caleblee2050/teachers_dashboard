@@ -816,8 +816,22 @@ export class GoogleClassroomService {
       
       console.log('Assignment description length:', assignmentDescription.length);
 
+      // 제목 형식: 오늘날짜+파일명+예습자료 
+      const today = new Date();
+      const dateStr = today.toLocaleDateString('ko-KR', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+      }).replace(/\./g, '').replace(/\s/g, '');
+      
+      // 언어별 접두사 추가
+      const languagePrefix = content.language && content.language !== 'ko' ? 
+        `[${content.language.toUpperCase()}] ` : '';
+      
+      const formattedTitle = `${languagePrefix}${dateStr} ${content.title || title} 예습자료`;
+
       const assignmentData = {
-        title: title,
+        title: formattedTitle,
         description: assignmentDescription,
         workType: 'ASSIGNMENT',
         state: 'PUBLISHED'

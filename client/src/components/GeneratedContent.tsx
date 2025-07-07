@@ -785,36 +785,15 @@ export default function GeneratedContent({
                           </div>
                         ) : (
                           <div className="space-y-3">
-                            <div className="flex items-center space-x-3">
-                              <Button
-                                onClick={() => handlePlayTextToSpeech(item.content.script)}
-                                disabled={!item.content?.script}
-                                className="bg-blue-600 hover:bg-blue-700 text-white text-sm korean-text disabled:opacity-50"
-                              >
-                                <i className="fas fa-volume-up mr-2"></i>
-                                브라우저 TTS 재생
-                              </Button>
-                              <Button
-                                onClick={() => currentSpeech ? handleStopSpeech() : handlePlayTextToSpeech(item.content.script)}
-                                disabled={!item.content?.script}
-                                className="bg-red-600 hover:bg-red-700 text-white text-sm korean-text disabled:opacity-50"
-                              >
-                                {currentSpeech ? (
-                                  <i className="fas fa-stop mr-2"></i>
-                                ) : (
-                                  <i className="fas fa-play mr-2"></i>
-                                )}
-                                {currentSpeech ? '재생 중지' : 'TTS 재생'}
-                              </Button>
-                            </div>
-                            
-
+                            <p className="text-gray-500 korean-text">
+                              AI 팟캐스트 오디오를 생성 중입니다...
+                            </p>
                           </div>
                         )}
                         <p className="text-sm text-gray-500 korean-text mt-2">
                           {item.content.audioFilePath ? 
                             'AI가 생성한 음성 파일을 재생할 수 있습니다.' : 
-                            '브라우저의 음성 합성 기능을 사용하여 바로 재생할 수 있습니다.'
+                            '팟캐스트 오디오 생성이 완료되면 이곳에서 재생할 수 있습니다.'
                           }
                         </p>
                       </div>
@@ -844,43 +823,23 @@ export default function GeneratedContent({
                   <div className="flex space-x-2">
                     {item.contentType === 'podcast' && (
                       <div className="flex space-x-2">
-                        {item.content?.audioFilePath && (
-                          <div className="flex space-x-2">
-                            <Button
-                              onClick={() => {
-                                const filename = item.content.audioFilePath.split('/').pop();
-                                const streamUrl = `/api/podcast/stream/${filename}`;
-                                const link = document.createElement('a');
-                                link.href = streamUrl;
-                                link.download = filename;
-                                link.click();
-                              }}
-                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                              size="sm"
-                            >
-                              <i className="fas fa-download mr-1"></i>
-                              다운로드
-                            </Button>
-                          </div>
-                        )}
+
                         {item.content?.geminiFileLink && (
                           <Button
                             onClick={() => {
-                              // 제미나이 파일 링크를 직접 열기
-                              const fileUrl = item.content.geminiFileLink;
-                              if (fileUrl.startsWith('https://generativelanguage.googleapis.com/')) {
-                                // 파일 다운로드용 링크로 변환
-                                const downloadUrl = fileUrl.replace('/files/', '/files/') + '?alt=media';
-                                window.open(downloadUrl, '_blank');
-                              } else {
-                                window.open(fileUrl, '_blank');
-                              }
+                              toast({
+                                title: "제미나이 파일 링크",
+                                description: "제미나이 파일이 서버에 업로드되었습니다. 현재 브라우저에서 직접 다운로드할 수 없으므로 제미나이 Studio에서 접근하세요.",
+                                variant: "default",
+                              });
+                              // 제미나이 Studio로 이동
+                              window.open('https://aistudio.google.com/app/files', '_blank');
                             }}
                             className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
                             size="sm"
                           >
                             <i className="fas fa-external-link-alt mr-1"></i>
-                            제미나이에서 다운로드
+                            제미나이 Studio에서 보기
                           </Button>
                         )}
                       </div>
@@ -944,37 +903,21 @@ export default function GeneratedContent({
                   </audio>
                 </div>
                 <div className="flex space-x-2">
-                  <Button
-                    onClick={() => {
-                      const filename = selectedItem.content.audioFilePath.split('/').pop();
-                      const streamUrl = `/api/podcast/stream/${filename}`;
-                      const link = document.createElement('a');
-                      link.href = streamUrl;
-                      link.download = filename;
-                      link.click();
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
-                    size="sm"
-                  >
-                    <i className="fas fa-download mr-1"></i>
-                    다운로드
-                  </Button>
                   {selectedItem.content?.geminiFileLink && (
                     <Button
                       onClick={() => {
-                        const fileUrl = selectedItem.content.geminiFileLink;
-                        if (fileUrl.startsWith('https://generativelanguage.googleapis.com/')) {
-                          const downloadUrl = fileUrl.replace('/files/', '/files/') + '?alt=media';
-                          window.open(downloadUrl, '_blank');
-                        } else {
-                          window.open(fileUrl, '_blank');
-                        }
+                        toast({
+                          title: "제미나이 파일 링크",
+                          description: "제미나이 파일이 서버에 업로드되었습니다. 현재 브라우저에서 직접 다운로드할 수 없으므로 제미나이 Studio에서 접근하세요.",
+                          variant: "default",
+                        });
+                        window.open('https://aistudio.google.com/app/files', '_blank');
                       }}
                       className="bg-purple-600 hover:bg-purple-700 text-white text-sm"
                       size="sm"
                     >
                       <i className="fas fa-external-link-alt mr-1"></i>
-                      제미나이에서 다운로드
+                      제미나이 Studio에서 보기
                     </Button>
                   )}
                 </div>

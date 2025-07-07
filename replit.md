@@ -107,6 +107,13 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- July 07, 2025. Educational content upload formatting and podcast UI cleanup
+  - Updated Google Classroom upload title format: 오늘날짜+파일명+예습자료 with language prefixes
+  - Removed local podcast download buttons that were not working correctly
+  - Simplified podcast UI to show only audio player when available, removed TTS buttons
+  - Changed Gemini file buttons to redirect to Gemini Studio instead of direct download (due to 403 errors)
+  - Enhanced classroom assignment titles with proper date formatting and language identification
+  - Improved user guidance for accessing Gemini-hosted podcast files through AI Studio
 - July 07, 2025. Podcast UI improvements and direct playback removal
   - Removed all direct playback buttons as they were not working properly
   - Replaced "직접 재생" buttons with "다운로드" buttons for local file download
