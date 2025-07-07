@@ -844,14 +844,28 @@ export default function GeneratedContent({
                     {item.contentType === 'podcast' && (
                       <div className="flex space-x-2">
                         {item.content?.audioFilePath && (
-                          <Button
-                            onClick={() => downloadPodcastAudio(item.content.audioFilePath, item.title)}
-                            className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
-                            size="sm"
-                          >
-                            <i className="fas fa-download mr-1"></i>
-                            로컬 다운로드
-                          </Button>
+                          <div className="flex space-x-2">
+                            <Button
+                              onClick={() => downloadPodcastAudio(item.content.audioFilePath, item.title)}
+                              className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                              size="sm"
+                            >
+                              <i className="fas fa-download mr-1"></i>
+                              다운로드
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                const filename = item.content.audioFilePath.split('/').pop();
+                                const streamUrl = `/api/podcast/stream/${filename}`;
+                                window.open(streamUrl, '_blank');
+                              }}
+                              className="bg-green-600 hover:bg-green-700 text-white text-xs"
+                              size="sm"
+                            >
+                              <i className="fas fa-play mr-1"></i>
+                              직접 재생
+                            </Button>
+                          </div>
                         )}
                         {item.content?.googleDriveLink && (
                           <Button
@@ -909,6 +923,45 @@ export default function GeneratedContent({
           </DialogHeader>
           
           <div className="mt-4">
+            {/* 팟캐스트 오디오 재생 섹션 */}
+            {selectedItem?.contentType === 'podcast' && selectedItem?.content?.audioFilePath && (
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-medium korean-text mb-3">팟캐스트 오디오 재생</h4>
+                <div className="mb-3">
+                  <audio 
+                    controls 
+                    className="w-full" 
+                    preload="metadata"
+                    src={`/api/podcast/stream/${selectedItem.content.audioFilePath.split('/').pop()}`}
+                  >
+                    브라우저가 오디오 재생을 지원하지 않습니다.
+                  </audio>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => downloadPodcastAudio(selectedItem.content.audioFilePath, selectedItem.title)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                    size="sm"
+                  >
+                    <i className="fas fa-download mr-1"></i>
+                    다운로드
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const filename = selectedItem.content.audioFilePath.split('/').pop();
+                      const streamUrl = `/api/podcast/stream/${filename}`;
+                      window.open(streamUrl, '_blank');
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white text-sm"
+                    size="sm"
+                  >
+                    <i className="fas fa-external-link-alt mr-1"></i>
+                    새 탭에서 재생
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white p-6 rounded-lg border max-h-96 overflow-y-auto">
               <pre className="whitespace-pre-wrap text-sm font-mono">
                 {selectedItem ? getFullTextContent(selectedItem) : ''}

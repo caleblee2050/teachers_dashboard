@@ -107,6 +107,14 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- July 07, 2025. Podcast streaming and classroom assignment-only upload implementation
+  - Added direct audio streaming endpoint `/api/podcast/stream/:filename` for podcast playback
+  - Implemented HTML5 audio player with streaming support for podcasts
+  - Added direct playback buttons (green "직접 재생" and "새 탭에서 재생") for podcast content
+  - Modified Google Classroom uploads to target assignments only (workType: 'ASSIGNMENT')
+  - Added podcast audio player to full content dialog modal
+  - Fixed Google Drive upload issues with proper ES module imports
+  - Enhanced podcast UI with multiple playback options: download, stream, and Google Drive
 - July 07, 2025. Complete content generation workflow restructure
   - Removed podcast generation checkbox from integrated content creation
   - Fixed "전체 내용 보기" dialog to properly display generated content with formatted JSX

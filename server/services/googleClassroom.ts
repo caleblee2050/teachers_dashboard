@@ -362,7 +362,7 @@ export class GoogleClassroomService {
         submissionModificationMode: 'MODIFIABLE_UNTIL_TURNED_IN',
         assigneeMode: 'ALL_STUDENTS',
         materials: uploadedFiles,
-        // 학생 제출 설정
+        // 학생 제출 설정 - 과제로만 업로드
         assignment: {
           studentWorkFolder: {
             // 학생 작업 폴더 자동 생성
