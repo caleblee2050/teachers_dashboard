@@ -852,7 +852,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             totalUploaded++;
             uploadResults.push({ contentId: actualContentId, success: true, assignmentId: result.assignmentId });
           } else {
-            uploadResults.push({ contentId: actualContentId, success: false, error: result.error });
+            // Check for permission errors and provide helpful message
+            if (result.error && result.error.includes('insufficient authentication scopes')) {
+              uploadResults.push({ 
+                contentId: actualContentId, 
+                success: false, 
+                error: '권한이 부족합니다. 브라우저에서 완전히 로그아웃한 후 Google 계정으로 다시 로그인해주세요.' 
+              });
+            } else {
+              uploadResults.push({ contentId: actualContentId, success: false, error: result.error });
+            }
           }
         } catch (error: any) {
           console.error(`Failed to upload content ${actualContentId}:`, error);
