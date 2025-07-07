@@ -348,7 +348,7 @@ Please format your response as JSON:
   }
 }
 
-export async function generatePodcastAudio(script: string, outputPath: string, pdfPath?: string): Promise<string> {
+export async function generatePodcastAudio(script: string, outputPath: string, pdfPath?: string, user?: any): Promise<{ audioPath: string; driveLink?: string }> {
   if (!apiKey || !ai) {
     throw new Error("Gemini API key not configured. Please add GEMINI_API_KEY environment variable.");
   }
@@ -453,7 +453,27 @@ AI 오디오 오버뷰 요구사항:
         const savedStats = fs.statSync(outputPath);
         console.log(`Saved file size: ${savedStats.size} bytes`);
         
-        return outputPath;
+        // Google Drive에 업로드 (사용자 토큰이 있는 경우)
+        let driveLink;
+        if (user && user.googleAccessToken) {
+          try {
+            console.log('Uploading podcast to Google Drive...');
+            const { createDriveService } = await import('./googleDrive.js');
+            const driveService = await createDriveService(user);
+            
+            const fileName = path.basename(outputPath);
+            const audioBuffer = fs.readFileSync(outputPath);
+            const uploadResult = await driveService.uploadFile(fileName, audioBuffer, part.inlineData.mimeType);
+            
+            driveLink = uploadResult.webViewLink;
+            console.log(`Podcast uploaded to Google Drive: ${driveLink}`);
+          } catch (driveError) {
+            console.warn('Failed to upload to Google Drive:', driveError);
+            // Google Drive 업로드 실패해도 계속 진행
+          }
+        }
+        
+        return { audioPath: outputPath, driveLink };
       }
     }
 

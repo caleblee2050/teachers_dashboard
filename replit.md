@@ -107,13 +107,13 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
-- July 07, 2025. Podcast sharing and download features implementation
-  - Added dedicated podcast sharing page `/podcast/:token` with standalone audio player
-  - Implemented podcast share link generation with orange "공유하기" button
-  - Created beautiful standalone podcast page with download and sharing functionality
-  - Added share link copy functionality in both UI and standalone pages
-  - Enhanced podcast content with multiple access methods: stream, download, and share
-  - Fixed TypeScript errors for podcast content type casting
+- July 07, 2025. Gemini native podcast download and sharing implementation
+  - Modified podcast generation to upload directly to Google Drive using Gemini's built-in features
+  - Replaced custom podcast sharing page with Google Drive direct access links
+  - Added "Google Drive에서 다운로드/공유" button for podcast content with Google Drive links
+  - Removed custom download buttons and sharing functionality in favor of Gemini's native features
+  - Enhanced podcast workflow to leverage Google Drive for file storage and sharing
+  - Simplified UI by removing redundant custom sharing features
 - July 07, 2025. Podcast streaming and classroom assignment-only upload implementation
   - Added direct audio streaming endpoint `/api/podcast/stream/:filename` for podcast playback
   - Implemented HTML5 audio player with streaming support for podcasts

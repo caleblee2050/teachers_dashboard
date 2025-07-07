@@ -255,23 +255,7 @@ export default function GeneratedContent({
     });
   };
 
-  // 팟캐스트 오디오 다운로드
-  const downloadPodcastAudio = (audioFilePath: string, title: string) => {
-    const fileName = audioFilePath.split('/').pop() || '';
-    const fileExtension = fileName.split('.').pop() || 'wav';
-    
-    const link = document.createElement('a');
-    link.href = `/uploads/${fileName}`;
-    link.download = `${title}_podcast.${fileExtension}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast({
-      title: "팟캐스트 다운로드 시작",
-      description: `${title} 팟캐스트 오디오 파일을 다운로드합니다.`,
-    });
-  };
+
 
   // 음성 합성을 사용하여 바로 재생
   const handlePlayTextToSpeech = (script: string) => {
@@ -846,14 +830,6 @@ export default function GeneratedContent({
                         {item.content?.audioFilePath && (
                           <div className="flex space-x-2">
                             <Button
-                              onClick={() => downloadPodcastAudio(item.content.audioFilePath, item.title)}
-                              className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
-                              size="sm"
-                            >
-                              <i className="fas fa-download mr-1"></i>
-                              다운로드
-                            </Button>
-                            <Button
                               onClick={() => {
                                 const filename = item.content.audioFilePath.split('/').pop();
                                 const streamUrl = `/api/podcast/stream/${filename}`;
@@ -865,22 +841,6 @@ export default function GeneratedContent({
                               <i className="fas fa-play mr-1"></i>
                               직접 재생
                             </Button>
-                            <Button
-                              onClick={() => {
-                                const shareUrl = `${window.location.origin}/podcast/${item.shareToken}`;
-                                navigator.clipboard.writeText(shareUrl).then(() => {
-                                  toast({
-                                    title: "공유 링크 복사됨",
-                                    description: "팟캐스트 공유 링크가 클립보드에 복사되었습니다.",
-                                  });
-                                });
-                              }}
-                              className="bg-orange-600 hover:bg-orange-700 text-white text-xs"
-                              size="sm"
-                            >
-                              <i className="fas fa-share mr-1"></i>
-                              공유하기
-                            </Button>
                           </div>
                         )}
                         {item.content?.googleDriveLink && (
@@ -890,7 +850,7 @@ export default function GeneratedContent({
                             size="sm"
                           >
                             <i className="fab fa-google-drive mr-1"></i>
-                            구글 드라이브
+                            Google Drive에서 다운로드/공유
                           </Button>
                         )}
                       </div>
@@ -954,14 +914,7 @@ export default function GeneratedContent({
                   </audio>
                 </div>
                 <div className="flex space-x-2">
-                  <Button
-                    onClick={() => downloadPodcastAudio(selectedItem.content.audioFilePath, selectedItem.title)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white text-sm"
-                    size="sm"
-                  >
-                    <i className="fas fa-download mr-1"></i>
-                    다운로드
-                  </Button>
+
                   <Button
                     onClick={() => {
                       const filename = selectedItem.content.audioFilePath.split('/').pop();
@@ -974,22 +927,16 @@ export default function GeneratedContent({
                     <i className="fas fa-external-link-alt mr-1"></i>
                     새 탭에서 재생
                   </Button>
-                  <Button
-                    onClick={() => {
-                      const shareUrl = `${window.location.origin}/podcast/${selectedItem.shareToken}`;
-                      navigator.clipboard.writeText(shareUrl).then(() => {
-                        toast({
-                          title: "공유 링크 복사됨",
-                          description: "팟캐스트 공유 링크가 클립보드에 복사되었습니다.",
-                        });
-                      });
-                    }}
-                    className="bg-orange-600 hover:bg-orange-700 text-white text-sm"
-                    size="sm"
-                  >
-                    <i className="fas fa-share mr-1"></i>
-                    공유하기
-                  </Button>
+                  {selectedItem.content?.googleDriveLink && (
+                    <Button
+                      onClick={() => window.open(selectedItem.content.googleDriveLink, '_blank')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                      size="sm"
+                    >
+                      <i className="fab fa-google-drive mr-1"></i>
+                      Google Drive에서 다운로드/공유
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

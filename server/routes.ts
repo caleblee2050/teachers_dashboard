@@ -1333,12 +1333,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const audioFilePath = path.join(process.cwd(), 'uploads', audioFileName);
 
       try {
-        // Generate audio file
-        const generatedAudioPath = await generatePodcastAudio(podcastData.script, audioFilePath);
+        // Generate audio file with Google Drive upload
+        const audioResult = await generatePodcastAudio(podcastData.script, audioFilePath, undefined, req.user);
         podcastData.audioFilePath = `/uploads/${audioFileName}`;
         
+        // Add Google Drive link if available
+        if (audioResult.driveLink) {
+          podcastData.googleDriveLink = audioResult.driveLink;
+        }
+        
         // Get audio file stats for duration (basic approximation)
-        const stats = fs.statSync(generatedAudioPath);
+        const stats = fs.statSync(audioResult.audioPath);
         podcastData.duration = Math.round(stats.size / 16000); // Rough estimation
       } catch (audioError) {
         console.warn('Audio generation failed, returning script only:', audioError);
@@ -1503,181 +1508,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 팟캐스트 공유 페이지 라우트
-  app.get('/podcast/:token', async (req, res) => {
-    try {
-      const { token } = req.params;
-      const content = await storage.getGeneratedContentByShare(token);
-      
-      if (!content || content.contentType !== 'podcast') {
-        return res.status(404).send(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>팟캐스트를 찾을 수 없습니다</title>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-          </head>
-          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-            <h1>팟캐스트를 찾을 수 없습니다</h1>
-            <p>요청하신 팟캐스트가 존재하지 않거나 삭제되었습니다.</p>
-          </body>
-          </html>
-        `);
-      }
-
-      const audioFilename = (content.content as any)?.audioFilePath?.split('/').pop();
-      const streamUrl = audioFilename ? `/uploads/${audioFilename}` : null;
-
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>${content.title}</title>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              max-width: 800px;
-              margin: 0 auto;
-              padding: 20px;
-              background: #f5f5f5;
-            }
-            .container {
-              background: white;
-              border-radius: 12px;
-              padding: 30px;
-              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }
-            .header {
-              text-align: center;
-              margin-bottom: 30px;
-            }
-            .title {
-              font-size: 24px;
-              font-weight: bold;
-              color: #333;
-              margin-bottom: 10px;
-            }
-            .subtitle {
-              color: #666;
-              font-size: 16px;
-            }
-            .audio-section {
-              margin: 30px 0;
-              text-align: center;
-            }
-            .audio-player {
-              width: 100%;
-              max-width: 500px;
-              margin: 20px auto;
-            }
-            .script-section {
-              margin-top: 30px;
-            }
-            .script-title {
-              font-size: 18px;
-              font-weight: bold;
-              margin-bottom: 15px;
-              color: #333;
-            }
-            .script-content {
-              background: #f8f9fa;
-              padding: 20px;
-              border-radius: 8px;
-              line-height: 1.6;
-              white-space: pre-wrap;
-              max-height: 400px;
-              overflow-y: auto;
-            }
-            .buttons {
-              display: flex;
-              gap: 10px;
-              justify-content: center;
-              margin: 20px 0;
-              flex-wrap: wrap;
-            }
-            .btn {
-              padding: 10px 20px;
-              border: none;
-              border-radius: 6px;
-              cursor: pointer;
-              text-decoration: none;
-              font-size: 14px;
-              font-weight: 500;
-              display: inline-flex;
-              align-items: center;
-              gap: 8px;
-            }
-            .btn-download {
-              background: #8b5cf6;
-              color: white;
-            }
-            .btn-download:hover {
-              background: #7c3aed;
-            }
-            .btn-share {
-              background: #f97316;
-              color: white;
-            }
-            .btn-share:hover {
-              background: #ea580c;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <div class="title">${content.title}</div>
-              <div class="subtitle">AI로 생성된 팟캐스트</div>
-            </div>
-            
-            ${streamUrl ? `
-              <div class="audio-section">
-                <audio controls class="audio-player" preload="metadata">
-                  <source src="${streamUrl}" type="audio/wav">
-                  브라우저가 오디오 재생을 지원하지 않습니다.
-                </audio>
-                
-                <div class="buttons">
-                  <a href="${streamUrl}" download="${content.title}.wav" class="btn btn-download">
-                    📥 다운로드
-                  </a>
-                  <button onclick="copyShareLink()" class="btn btn-share">
-                    🔗 공유 링크 복사
-                  </button>
-                </div>
-              </div>
-            ` : ''}
-            
-            ${(content.content as any)?.script ? `
-              <div class="script-section">
-                <div class="script-title">팟캐스트 스크립트</div>
-                <div class="script-content">${(content.content as any).script}</div>
-              </div>
-            ` : ''}
-          </div>
-
-          <script>
-            function copyShareLink() {
-              const url = window.location.href;
-              navigator.clipboard.writeText(url).then(function() {
-                alert('공유 링크가 클립보드에 복사되었습니다!');
-              }, function(err) {
-                console.error('링크 복사 실패:', err);
-                alert('링크 복사에 실패했습니다.');
-              });
-            }
-          </script>
-        </body>
-        </html>
-      `);
-    } catch (error) {
-      console.error('Error serving podcast page:', error);
-      res.status(500).send('서버 오류가 발생했습니다.');
-    }
-  });
 
   // Serve uploaded files (including audio files)
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
