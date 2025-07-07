@@ -231,7 +231,10 @@ export async function setupAuth(app: Express) {
         'profile', 
         'email',
         'https://www.googleapis.com/auth/classroom.courses.readonly',
-        'https://www.googleapis.com/auth/classroom.coursework.students'
+        'https://www.googleapis.com/auth/classroom.rosters.readonly',
+        'https://www.googleapis.com/auth/classroom.coursework.students',
+        'https://www.googleapis.com/auth/drive',
+        'https://www.googleapis.com/auth/documents'
       ],
       prompt: 'select_account consent'
     })(req, res, next);
@@ -247,7 +250,10 @@ export async function setupAuth(app: Express) {
         'profile', 
         'email',
         'https://www.googleapis.com/auth/classroom.courses.readonly',
-        'https://www.googleapis.com/auth/classroom.coursework.students'
+        'https://www.googleapis.com/auth/classroom.rosters.readonly',
+        'https://www.googleapis.com/auth/classroom.coursework.students',
+        'https://www.googleapis.com/auth/drive',
+        'https://www.googleapis.com/auth/documents'
       ],
       prompt: 'select_account consent',
       accessType: 'offline',
@@ -322,7 +328,10 @@ export async function setupAuth(app: Express) {
         'profile', 
         'email',
         'https://www.googleapis.com/auth/classroom.courses.readonly',
-        'https://www.googleapis.com/auth/classroom.coursework.students'
+        'https://www.googleapis.com/auth/classroom.rosters.readonly',
+        'https://www.googleapis.com/auth/classroom.coursework.students',
+        'https://www.googleapis.com/auth/drive',
+        'https://www.googleapis.com/auth/documents'
       ],
       prompt: 'select_account consent',
       accessType: 'offline',
