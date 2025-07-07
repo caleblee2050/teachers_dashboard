@@ -278,13 +278,18 @@ export class GoogleClassroomService {
         console.error('Error generating/uploading PDF:', pdfError);
       }
 
-      // 3. 팟캐스트의 경우 오디오 파일 업로드
+      // 3. 팟캐스트의 경우 오디오 파일을 구글 드라이브에 업로드
       if (content.contentType === 'podcast' && contentData.audioFilePath) {
         try {
-          // 오디오 파일 업로드
+          console.log('Uploading podcast audio to Google Drive...');
           const audioFilePath = path.join(process.cwd(), contentData.audioFilePath);
+          console.log('Audio file path:', audioFilePath);
+          
           if (fs.existsSync(audioFilePath)) {
-            const audioFileName = `${title.replace(/[^\w\s가-힣-]/g, '')}_audio.mp3`;
+            const stats = fs.statSync(audioFilePath);
+            console.log(`Audio file size: ${stats.size} bytes`);
+            
+            const audioFileName = `${title.replace(/[^\w\s가-힣-]/g, '')}_podcast.mp3`;
             const audioFileMetadata = {
               name: audioFileName,
               parents: ['root']
@@ -298,9 +303,12 @@ export class GoogleClassroomService {
             const audioDriveFile = await drive.files.create({
               requestBody: audioFileMetadata,
               media: audioMedia,
-              fields: 'id'
+              fields: 'id,name,webViewLink'
             });
 
+            console.log('Audio file uploaded to Drive:', audioDriveFile.data.id);
+
+            // 파일 권한 설정 (공개 읽기)
             await drive.permissions.create({
               fileId: audioDriveFile.data.id!,
               requestBody: {
@@ -315,20 +323,23 @@ export class GoogleClassroomService {
                 title: audioFileName
               }
             });
+
+            console.log('Podcast audio successfully uploaded to Google Drive');
+          } else {
+            console.log('Audio file not found:', audioFilePath);
           }
 
-
         } catch (fileError) {
-          console.warn('Error uploading additional files:', fileError);
-          // Continue with text file only
+          console.error('Error uploading podcast audio file:', fileError);
+          // Continue with text content only
         }
       }
 
-      // 과제 생성 (학생들이 제출할 수 있는 과제)
-      let assignmentDescription = `${content.title}\n\n콘텐츠 타입: ${content.contentType}\n\n`;
+      // 과제 생성 - 콘텐츠를 직접 설명에 포함
+      let assignmentDescription = this.generateContentText(content);
       
-      if (content.contentType === 'podcast' && uploadedFiles.length > 1) {
-        assignmentDescription += `이 과제에는 다음 파일들이 포함되어 있습니다:\n`;
+      if (content.contentType === 'podcast' && uploadedFiles.length > 0) {
+        assignmentDescription += `\n\n📎 첨부된 파일들:\n`;
         uploadedFiles.forEach((file, index) => {
           if (file.driveFile.title.endsWith('.txt')) {
             assignmentDescription += `• 텍스트 자료: ${file.driveFile.title}\n`;
@@ -533,6 +544,76 @@ export class GoogleClassroomService {
       console.error('Error syncing assignments:', error);
       throw new Error('Failed to sync assignments');
     }
+  }
+
+  private generateContentText(content: any): string {
+    const itemContent = content.content as any;
+    let contentText = `${content.title}\n\n`;
+    
+    if (content.contentType === 'summary') {
+      contentText += `📝 요약\n\n`;
+      if (itemContent.keyConcepts && itemContent.keyConcepts.length > 0) {
+        contentText += `🔍 주요 개념:\n`;
+        itemContent.keyConcepts.forEach((concept: string) => {
+          contentText += `• ${concept}\n`;
+        });
+        contentText += `\n`;
+      }
+      if (itemContent.mainContent) {
+        contentText += `📖 주요 내용:\n${itemContent.mainContent}\n\n`;
+      }
+      if (itemContent.formulas && itemContent.formulas.length > 0) {
+        contentText += `🔢 주요 공식:\n`;
+        itemContent.formulas.forEach((formula: string) => {
+          contentText += `${formula}\n\n`;
+        });
+      }
+    } else if (content.contentType === 'quiz') {
+      contentText += `📝 퀴즈\n\n`;
+      if (itemContent.questions && itemContent.questions.length > 0) {
+        itemContent.questions.forEach((q: any, index: number) => {
+          contentText += `${index + 1}. ${q.question}\n\n`;
+          if (q.options && q.options.length > 0) {
+            q.options.forEach((option: string, optIndex: number) => {
+              contentText += `   ${String.fromCharCode(65 + optIndex)}. ${option}\n`;
+            });
+          }
+          contentText += `\n✅ 정답: ${q.correctAnswer}\n`;
+          contentText += `💡 설명: ${q.explanation}\n\n`;
+        });
+      }
+    } else if (content.contentType === 'study_guide') {
+      contentText += `📚 학습 가이드\n\n`;
+      if (itemContent.learningObjectives && itemContent.learningObjectives.length > 0) {
+        contentText += `🎯 학습 목표:\n`;
+        itemContent.learningObjectives.forEach((objective: string) => {
+          contentText += `• ${objective}\n`;
+        });
+        contentText += `\n`;
+      }
+      if (itemContent.keyConcepts && itemContent.keyConcepts.length > 0) {
+        contentText += `🔍 주요 개념:\n`;
+        itemContent.keyConcepts.forEach((concept: any) => {
+          contentText += `📌 ${concept.term}: ${concept.definition}\n\n`;
+        });
+      }
+      if (itemContent.studyQuestions && itemContent.studyQuestions.length > 0) {
+        contentText += `❓ 학습 질문:\n`;
+        itemContent.studyQuestions.forEach((question: string, index: number) => {
+          contentText += `${index + 1}. ${question}\n`;
+        });
+      }
+    } else if (content.contentType === 'podcast') {
+      contentText += `🎙️ 팟캐스트\n\n`;
+      if (itemContent.description) {
+        contentText += `📄 설명:\n${itemContent.description}\n\n`;
+      }
+      if (itemContent.script) {
+        contentText += `📝 스크립트:\n${itemContent.script}\n\n`;
+      }
+    }
+    
+    return contentText;
   }
 }
 

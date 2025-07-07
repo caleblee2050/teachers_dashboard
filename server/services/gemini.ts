@@ -430,8 +430,22 @@ AI 오디오 오버뷰 요구사항:
           fs.mkdirSync(uploadDir, { recursive: true });
         }
         
+        // 오디오 파일 저장 전 검증
+        console.log(`Audio data size: ${audioData.length} bytes`);
+        console.log(`MIME type: ${part.inlineData.mimeType}`);
+        
+        // 파일이 너무 작으면 오류
+        if (audioData.length < 1000) {
+          throw new Error(`Audio file too small (${audioData.length} bytes), likely corrupted`);
+        }
+        
         fs.writeFileSync(outputPath, audioData);
         console.log(`AI Audio Overview saved to: ${outputPath}`);
+        
+        // 저장된 파일 크기 재확인
+        const savedStats = fs.statSync(outputPath);
+        console.log(`Saved file size: ${savedStats.size} bytes`);
+        
         return outputPath;
       }
     }
