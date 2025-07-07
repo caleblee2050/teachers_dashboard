@@ -424,6 +424,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const baseFileName = file.originalName.replace(/\.[^/.]+$/, '');
           const txtFileName = `${dateStr}.${timeStr}.${baseFileName}.txt`;
           
+          // 생성된 콘텐츠의 제목을 날짜+시간+파일명으로 설정
+          if (generatedData) {
+            generatedData.title = txtFileName;
+          }
+          
           // 콘텐츠를 텍스트 형태로 변환
           const textContent = convertContentToText(generatedData);
           
@@ -582,7 +587,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 2. 생성된 PDF와 스크립트를 Gemini에 제공하여 오디오 생성
       const timestamp = Date.now();
-      const audioFileName = `podcast_${timestamp}.mp3`;
+      const audioFileName = `podcast_${timestamp}.wav`;
       const audioFilePath = path.join(process.cwd(), 'uploads', audioFileName);
       
       try {

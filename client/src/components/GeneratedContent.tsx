@@ -257,9 +257,12 @@ export default function GeneratedContent({
 
   // 팟캐스트 오디오 다운로드
   const downloadPodcastAudio = (audioFilePath: string, title: string) => {
+    const fileName = audioFilePath.split('/').pop() || '';
+    const fileExtension = fileName.split('.').pop() || 'wav';
+    
     const link = document.createElement('a');
-    link.href = `/uploads/${audioFilePath.split('/').pop()}`;
-    link.download = `${title}_podcast.mp3`;
+    link.href = `/uploads/${fileName}`;
+    link.download = `${title}_podcast.${fileExtension}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -392,6 +395,73 @@ export default function GeneratedContent({
     } else if (item.contentType === 'podcast') {
       fullText += `설명:\n${item.content.description}\n\n`;
       fullText += `스크립트:\n${item.content.script || ''}\n\n`;
+    } else if (item.contentType === 'integrated') {
+      // 통합 콘텐츠의 경우 학습가이드, 요약, 퀴즈 순서로 표시
+      if (item.content.studyGuide) {
+        fullText += `=== 학습 가이드 ===\n\n`;
+        if (item.content.studyGuide.learningObjectives?.length) {
+          fullText += `학습 목표:\n`;
+          item.content.studyGuide.learningObjectives.forEach((obj: string, i: number) => {
+            fullText += `${i + 1}. ${obj}\n`;
+          });
+          fullText += '\n';
+        }
+        
+        if (item.content.studyGuide.keyConcepts?.length) {
+          fullText += `핵심 개념:\n`;
+          item.content.studyGuide.keyConcepts.forEach((concept: any) => {
+            fullText += `• ${concept.term}: ${concept.definition}\n`;
+          });
+          fullText += '\n';
+        }
+        
+        if (item.content.studyGuide.studyQuestions?.length) {
+          fullText += `학습 질문:\n`;
+          item.content.studyGuide.studyQuestions.forEach((q: string, i: number) => {
+            fullText += `${i + 1}. ${q}\n`;
+          });
+          fullText += '\n';
+        }
+      }
+      
+      if (item.content.summary) {
+        fullText += `=== 요약 ===\n\n`;
+        if (item.content.summary.keyConcepts?.length) {
+          fullText += `주요 개념:\n`;
+          item.content.summary.keyConcepts.forEach((concept: string) => {
+            fullText += `• ${concept}\n`;
+          });
+          fullText += '\n';
+        }
+        
+        if (item.content.summary.mainContent) {
+          fullText += `주요 내용:\n${item.content.summary.mainContent}\n\n`;
+        }
+        
+        if (item.content.summary.formulas?.length) {
+          fullText += `주요 공식:\n`;
+          item.content.summary.formulas.forEach((formula: string) => {
+            fullText += `• ${formula}\n`;
+          });
+          fullText += '\n';
+        }
+      }
+      
+      if (item.content.quiz) {
+        fullText += `=== 퀴즈 ===\n\n`;
+        if (item.content.quiz.questions?.length) {
+          item.content.quiz.questions.forEach((q: any, i: number) => {
+            fullText += `문제 ${i + 1}: ${q.question}\n`;
+            if (q.options?.length) {
+              q.options.forEach((option: string, j: number) => {
+                fullText += `${String.fromCharCode(65 + j)}. ${option}\n`;
+              });
+            }
+            fullText += `정답: ${q.correctAnswer}\n`;
+            fullText += `설명: ${q.explanation}\n\n`;
+          });
+        }
+      }
     }
     
     return fullText;
@@ -544,22 +614,20 @@ export default function GeneratedContent({
                       <i className="fas fa-share-alt mr-1"></i>
                       공유
                     </Button>
-                    {classroomStatus?.hasPermissions && (
-                      <ClassroomUploadDialog
-                        contentId={item.id}
-                        contentTitle={item.title}
-                        contentType={item.contentType}
+                    <ClassroomUploadDialog
+                      contentId={item.id}
+                      contentTitle={item.title}
+                      contentType={item.contentType}
+                    >
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-600 hover:text-green-800 korean-text"
                       >
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-green-500 hover:text-green-700 korean-text"
-                        >
-                          <i className="fas fa-school mr-1"></i>
-                          Classroom
-                        </Button>
-                      </ClassroomUploadDialog>
-                    )}
+                        <i className="fas fa-google mr-1"></i>
+                        클래스룸 업로드
+                      </Button>
+                    </ClassroomUploadDialog>
                     <Button
                       size="sm"
                       variant="destructive"
@@ -828,7 +896,9 @@ export default function GeneratedContent({
           
           <div className="mt-4">
             <div className="bg-white p-6 rounded-lg border max-h-96 overflow-y-auto">
-              {selectedItem && renderFullContent(selectedItem)}
+              <pre className="whitespace-pre-wrap text-sm font-mono">
+                {selectedItem ? getFullTextContent(selectedItem) : ''}
+              </pre>
             </div>
             
             <div className="flex justify-end space-x-2 mt-4">
