@@ -43,6 +43,9 @@ export default function BatchClassroomUploadDialog({
         try {
           const result = await apiRequest(`/api/classroom/upload`, {
             method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
             body: JSON.stringify({
               courseId,
               contentId: item.id,
@@ -61,12 +64,22 @@ export default function BatchClassroomUploadDialog({
             result 
           });
           
-        } catch (error) {
+        } catch (error: any) {
           console.error(`Upload failed for ${item.title}:`, error);
+          
+          let errorMessage = '업로드 실패';
+          if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+            errorMessage = 'Google Classroom 권한 없음 - 다시 로그인 필요';
+          } else if (error.message?.includes('403')) {
+            errorMessage = 'Google Classroom API 권한 부족';
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
           results.push({ 
             success: false, 
             item, 
-            error 
+            error: errorMessage
           });
         } finally {
           setUploadingItems(prev => {
@@ -91,10 +104,11 @@ export default function BatchClassroomUploadDialog({
       }
       
       if (failed > 0) {
-        const failedItems = results.filter(r => !r.success).map(r => r.item.title).join(', ');
+        const failedItems = results.filter(r => !r.success);
+        const errorDetails = failedItems.map(r => `${r.item.title}: ${r.error}`).join('\n');
         toast({
           title: "일부 업로드 실패",
-          description: `실패한 항목: ${failedItems}`,
+          description: errorDetails,
           variant: "destructive",
         });
       }

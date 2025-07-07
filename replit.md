@@ -107,6 +107,13 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- July 07, 2025. Gemini podcast sharing fix and batch classroom upload improvements
+  - Fixed podcast sharing to use Gemini Files API URI instead of Google Drive links
+  - Modified generatePodcastAudio to properly return geminiFileLink from Gemini Files API
+  - Removed Google Drive upload override that was replacing Gemini file links
+  - Enhanced BatchClassroomUploadDialog with improved error handling for 401/403 authentication errors
+  - Added detailed error messages for failed uploads with specific error reasons
+  - Implemented proper Content-Type headers for batch upload API requests
 - July 07, 2025. Batch classroom upload feature and language-specific uploads
   - Created BatchClassroomUploadDialog component for bulk Google Classroom uploads
   - Added "선택된 항목 일괄 업로드" button for multiple content items at once

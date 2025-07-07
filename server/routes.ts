@@ -628,34 +628,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const audioFilePath = path.join(process.cwd(), 'uploads', audioFileName);
       
       try {
-        // Gemini를 사용하여 PDF 기반 오디오 생성
-        await generatePodcastAudio(podcastData.script, audioFilePath, pdfPath);
+        // Gemini를 사용하여 PDF 기반 오디오 생성 및 제미나이 파일 링크 획득
+        const audioResult = await generatePodcastAudio(podcastData.script, audioFilePath, pdfPath);
         podcastData.audioFilePath = `/uploads/${audioFileName}`;
+        
+        // 제미나이 파일 링크가 있으면 사용
+        if (audioResult.geminiFileLink) {
+          podcastData.geminiFileLink = audioResult.geminiFileLink;
+          console.log('Using Gemini file link for podcast:', audioResult.geminiFileLink);
+        }
         
         // 파일 크기로 재생 시간 추정
         const stats = fs.statSync(audioFilePath);
         podcastData.duration = Math.round(stats.size / 16000); // 기본 추정
         
         console.log(`Podcast audio generated successfully with PDF: ${audioFilePath}`);
-        
-        // 구글 드라이브에 오디오 파일 업로드 시도
-        if (req.user.googleAccessToken) {
-          try {
-            const driveService = await createDriveService(req.user);
-            const fs = await import('fs');
-            
-            const audioFileName = `podcast_${timestamp}_${podcastData.title.replace(/[^\w\s가-힣-]/g, '')}.wav`;
-            
-            // 구글 드라이브에 오디오 파일 업로드
-            const audioBuffer = fs.readFileSync(audioFilePath);
-            const uploadResult = await driveService.uploadFile(audioFileName, audioBuffer, 'audio/wav');
-            
-            console.log(`Podcast audio uploaded to Google Drive: ${uploadResult.webViewLink}`);
-            podcastData.geminiFileLink = uploadResult.webViewLink;
-          } catch (driveError) {
-            console.warn('Failed to upload audio to Google Drive:', driveError);
-          }
-        }
       } catch (audioError) {
         console.warn('Audio generation failed, proceeding with script only:', audioError);
         // 오디오 생성 실패 시 스크립트만 저장
