@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+import * as fs from 'fs';
 
 export interface ClassroomCourse {
   id: string;
@@ -220,10 +221,22 @@ export class GoogleClassroomService {
       });
 
       // 2. 오디오 파일이 있다면 업로드 (팟캐스트인 경우)
-      console.log('Checking audio file:', content.audioFilePath);
-      if (content.audioFilePath && fs.existsSync(content.audioFilePath)) {
+      console.log('Content type:', content.contentType);
+      console.log('Content object keys:', Object.keys(content));
+      console.log('Checking audio file from content:', content.audioFilePath);
+      console.log('Content.content object:', content.content);
+      
+      // 팟캐스트인 경우 content.content에서 audioFilePath 확인
+      let audioFilePath = content.audioFilePath;
+      if (content.contentType === 'podcast' && content.content && content.content.audioFilePath) {
+        audioFilePath = content.content.audioFilePath;
+      }
+      
+      console.log('Final audio file path:', audioFilePath);
+      
+      if (audioFilePath && fs.existsSync(audioFilePath)) {
         try {
-          console.log('Uploading audio file to Drive:', content.audioFilePath);
+          console.log('Uploading audio file to Drive:', audioFilePath);
           
           const audioFileName = `${languagePrefix}${title.replace(/[^\w\s가-힣-]/g, '')}_팟캐스트.wav`;
           const audioFileMetadata = {
@@ -233,7 +246,7 @@ export class GoogleClassroomService {
           
           const audioMedia = {
             mimeType: 'audio/wav',
-            body: fs.createReadStream(content.audioFilePath)
+            body: fs.createReadStream(audioFilePath)
           };
 
           let audioDriveFile;
@@ -270,7 +283,6 @@ export class GoogleClassroomService {
       }
 
       // 3. PDF 파일 생성 및 업로드 (모든 콘텐츠 타입)
-      const fs = require('fs');
       const path = require('path');
       const { generatePDF } = require('./pdfGenerator');
       
