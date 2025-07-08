@@ -2,6 +2,41 @@ import { GoogleGenAI, Modality } from "@google/genai";
 import * as fs from "fs";
 import * as path from "path";
 
+// PCM을 WAV 형식으로 변환하는 함수
+function convertPCMToWAV(pcmData: Buffer, sampleRate: number, bitsPerSample: number, channels: number): Buffer {
+  const byteRate = sampleRate * channels * bitsPerSample / 8;
+  const blockAlign = channels * bitsPerSample / 8;
+  const dataSize = pcmData.length;
+  const fileSize = 36 + dataSize;
+  
+  // WAV 헤더 생성
+  const buffer = Buffer.alloc(44 + dataSize);
+  
+  // RIFF 헤더
+  buffer.write('RIFF', 0);
+  buffer.writeUInt32LE(fileSize, 4);
+  buffer.write('WAVE', 8);
+  
+  // fmt 청크
+  buffer.write('fmt ', 12);
+  buffer.writeUInt32LE(16, 16); // fmt 청크 크기
+  buffer.writeUInt16LE(1, 20); // PCM 형식
+  buffer.writeUInt16LE(channels, 22); // 채널 수
+  buffer.writeUInt32LE(sampleRate, 24); // 샘플 레이트
+  buffer.writeUInt32LE(byteRate, 28); // 바이트 레이트
+  buffer.writeUInt16LE(blockAlign, 32); // 블록 정렬
+  buffer.writeUInt16LE(bitsPerSample, 34); // 비트 퍼 샘플
+  
+  // data 청크
+  buffer.write('data', 36);
+  buffer.writeUInt32LE(dataSize, 40);
+  
+  // PCM 데이터 복사
+  pcmData.copy(buffer, 44);
+  
+  return buffer;
+}
+
 // This API key is from Gemini Developer API Key, not vertex AI API Key
 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 console.log('Gemini API Key available:', !!apiKey);
@@ -460,8 +495,17 @@ AI 오디오 오버뷰 요구사항:
             throw new Error(`Audio file too small (${audioData.length} bytes), likely corrupted`);
           }
           
-          fs.writeFileSync(outputPath, audioData);
-          console.log(`AI Audio Overview saved to: ${outputPath}`);
+          // PCM 데이터를 WAV 형식으로 변환
+          if (part.inlineData.mimeType.includes('L16') || part.inlineData.mimeType.includes('pcm')) {
+            console.log('Converting PCM audio to WAV format...');
+            const wavData = convertPCMToWAV(audioData, 24000, 16, 1); // 24kHz, 16-bit, mono
+            fs.writeFileSync(outputPath, wavData);
+            console.log(`AI Audio Overview converted and saved to: ${outputPath}`);
+          } else {
+            fs.writeFileSync(outputPath, audioData);
+            console.log(`AI Audio Overview saved to: ${outputPath}`);
+          }
+          
           audioFound = true;
           break;
         }
@@ -494,8 +538,25 @@ AI 오디오 오버뷰 요구사항:
                 fs.mkdirSync(uploadDir, { recursive: true });
               }
               
-              fs.writeFileSync(outputPath, audioData);
-              console.log(`AI Audio Overview downloaded and saved to: ${outputPath}`);
+              console.log(`Downloaded audio data size: ${audioData.length} bytes`);
+              console.log(`MIME type: ${part.fileData.mimeType}`);
+              
+              // 파일이 너무 작으면 오류
+              if (audioData.length < 1000) {
+                throw new Error(`Audio file too small (${audioData.length} bytes), likely corrupted`);
+              }
+              
+              // PCM 데이터를 WAV 형식으로 변환 (필요한 경우)
+              if (part.fileData.mimeType?.includes('L16') || part.fileData.mimeType?.includes('pcm')) {
+                console.log('Converting PCM audio to WAV format...');
+                const wavData = convertPCMToWAV(audioData, 24000, 16, 1); // 24kHz, 16-bit, mono
+                fs.writeFileSync(outputPath, wavData);
+                console.log(`AI Audio Overview converted and saved to: ${outputPath}`);
+              } else {
+                fs.writeFileSync(outputPath, audioData);
+                console.log(`AI Audio Overview saved to: ${outputPath}`);
+              }
+              
               audioFound = true;
               break;
             }
