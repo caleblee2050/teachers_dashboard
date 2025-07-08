@@ -193,6 +193,50 @@ export class GoogleClassroomService {
       text += `📻 팟캐스트: ${data.title}\n\n`;
       text += `📝 설명: ${data.description}\n\n`;
       text += `📄 스크립트:\n${data.script}\n`;
+    } else if (content.contentType === 'integrated') {
+      const data = parsedContent;
+      text += `📚 통합 교육 자료\n\n`;
+      
+      // 요약 부분
+      if (data.summary) {
+        text += `📖 요약:\n`;
+        text += `주요 개념:\n`;
+        data.summary.keyConcepts?.forEach((concept: string) => {
+          text += `• ${concept}\n`;
+        });
+        text += `\n내용:\n${data.summary.mainContent}\n\n`;
+      }
+      
+      // 퀴즈 부분
+      if (data.quiz) {
+        text += `❓ 퀴즈:\n`;
+        data.quiz.questions?.forEach((q: any, index: number) => {
+          text += `${index + 1}. ${q.question}\n`;
+          if (q.options) {
+            q.options.forEach((option: string, optIndex: number) => {
+              text += `   ${String.fromCharCode(65 + optIndex)}. ${option}\n`;
+            });
+          }
+          text += `정답: ${q.correctAnswer}\n해설: ${q.explanation}\n\n`;
+        });
+      }
+      
+      // 학습 가이드 부분
+      if (data.studyGuide) {
+        text += `📋 학습 가이드:\n`;
+        text += `학습 목표:\n`;
+        data.studyGuide.learningObjectives?.forEach((obj: string) => {
+          text += `• ${obj}\n`;
+        });
+        text += `\n핵심 개념:\n`;
+        data.studyGuide.keyConcepts?.forEach((concept: any) => {
+          text += `• ${concept.term}: ${concept.definition}\n`;
+        });
+        text += `\n학습 질문:\n`;
+        data.studyGuide.studyQuestions?.forEach((question: string) => {
+          text += `• ${question}\n`;
+        });
+      }
     }
 
     console.log('Generated text length:', text.length);
@@ -214,14 +258,30 @@ export class GoogleClassroomService {
       
       const drive = google.drive({ version: 'v3', auth: this.oauth2Client });
       
-      // 언어별 타이틀 생성 (YY.MM.DD+파일명)
+      // 언어별 국가명 매핑
+      const languageCountryMap = {
+        'ko': '한국',
+        'en': '미국', 
+        'ja': '일본',
+        'zh': '중국',
+        'th': '태국',
+        'vi': '베트남',
+        'fil': '필리핀'
+      };
+      
+      const countryName = languageCountryMap[language] || '한국';
       const now = new Date();
       const datePrefix = `${now.getFullYear().toString().slice(-2)}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}`;
       
       // 파일명에서 확장자 제거
       const originalFileName = content.title.replace(/\.[^/.]+$/, '');
       
-      const title = `${datePrefix}+${originalFileName}`;
+      let title: string;
+      if (content.contentType === 'podcast') {
+        title = `${countryName}+${originalFileName}+팟캐스트`;
+      } else {
+        title = `${countryName}+${datePrefix}+${originalFileName}`;
+      }
       
       // 업로드할 파일들
       const uploadedFiles: Array<{
