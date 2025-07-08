@@ -1460,12 +1460,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Creating classroom service...');
       const classroomService = await createClassroomService(req.user);
       
-      console.log('Calling createSimpleAssignment...');
-      const result = await classroomService.createSimpleAssignment(
+      console.log('Calling createAssignment with file attachments...');
+      const result = await classroomService.createAssignment(
         courseId,
         title || targetContent.title,
         description || `EduAI Assistant에서 생성된 ${targetContent.contentType} 콘텐츠`,
-        targetContent
+        targetContent,
+        'ko' // 기본 언어를 한국어로 설정
       );
 
       console.log('Assignment creation result:', result);
