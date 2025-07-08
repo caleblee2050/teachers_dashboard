@@ -1461,7 +1461,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Creating classroom service...');
       const classroomService = await createClassroomService(req.user);
       
+      console.log('Available methods on classroomService:', Object.getOwnPropertyNames(Object.getPrototypeOf(classroomService)));
       console.log('Calling createAssignment with file attachments...');
+      console.log('Function parameters:', {
+        courseId,
+        title: title || targetContent.title,
+        description: description || `EduAI Assistant에서 생성된 ${targetContent.contentType} 콘텐츠`,
+        contentType: targetContent.contentType,
+        language: 'ko'
+      });
+      
       const result = await classroomService.createAssignment(
         courseId,
         title || targetContent.title,
