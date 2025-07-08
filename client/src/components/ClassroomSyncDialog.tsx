@@ -4,7 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Eye, Calendar, FileText } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Trash2, Eye, Calendar, FileText, Edit3, Save, X, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -33,9 +36,11 @@ interface ClassroomSyncDialogProps {
 export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: ClassroomSyncDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [editingAssignment, setEditingAssignment] = useState<string | null>(null);
+  const [editData, setEditData] = useState<{ title: string; description: string }>({ title: '', description: '' });
 
   // 과제 목록 조회
-  const { data: assignments = [], isLoading, error } = useQuery({
+  const { data: assignments = [], isLoading, error, refetch } = useQuery({
     queryKey: ['classroom-assignments', courseId],
     queryFn: async () => {
       const response = await fetch(`/api/classroom/courses/${courseId}/assignments`);
@@ -67,6 +72,67 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
       });
     }
   });
+
+  // 과제 업데이트 뮤테이션
+  const updateAssignmentMutation = useMutation({
+    mutationFn: async ({ assignmentId, updateData }: { assignmentId: string; updateData: any }) => {
+      return apiRequest(`/api/classroom/courses/${courseId}/assignments/${assignmentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['classroom-assignments', courseId] });
+      setEditingAssignment(null);
+      setEditData({ title: '', description: '' });
+      toast({
+        title: '성공',
+        description: '과제가 성공적으로 업데이트되었습니다.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: '오류',
+        description: error.message || '과제 업데이트에 실패했습니다.',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // 편집 관련 함수들
+  const startEditing = (assignment: Assignment) => {
+    setEditingAssignment(assignment.id);
+    setEditData({
+      title: assignment.title,
+      description: assignment.description || ''
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingAssignment(null);
+    setEditData({ title: '', description: '' });
+  };
+
+  const saveEditing = (assignmentId: string) => {
+    updateAssignmentMutation.mutate({
+      assignmentId,
+      updateData: {
+        title: editData.title,
+        description: editData.description
+      }
+    });
+  };
+
+  const handleRefresh = () => {
+    refetch();
+    toast({
+      title: '새로고침',
+      description: '과제 목록을 새로고침했습니다.',
+    });
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR', {
@@ -102,9 +168,21 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            {courseName} - 과제 관리
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              {courseName} - 과제 관리
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="flex items-center gap-1"
+            >
+              <RefreshCw className="h-3 w-3" />
+              새로고침
+            </Button>
           </DialogTitle>
         </DialogHeader>
 
@@ -142,47 +220,108 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <CardTitle className="text-lg">{assignment.title}</CardTitle>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge className={getStateColor(assignment.state)}>
-                              {assignment.state}
-                            </Badge>
-                            <span className="text-sm text-gray-500 flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              생성: {formatDate(assignment.creationTime)}
-                            </span>
-                            {assignment.updateTime !== assignment.creationTime && (
-                              <span className="text-sm text-gray-500">
-                                수정: {formatDate(assignment.updateTime)}
-                              </span>
-                            )}
-                          </div>
+                          {editingAssignment === assignment.id ? (
+                            <div className="space-y-3">
+                              <div>
+                                <Label htmlFor="title">제목</Label>
+                                <Input
+                                  id="title"
+                                  value={editData.title}
+                                  onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="description">설명</Label>
+                                <Textarea
+                                  id="description"
+                                  value={editData.description}
+                                  onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                                  className="mt-1"
+                                  rows={3}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <CardTitle className="text-lg">{assignment.title}</CardTitle>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge className={getStateColor(assignment.state)}>
+                                  {assignment.state}
+                                </Badge>
+                                <span className="text-sm text-gray-500 flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  생성: {formatDate(assignment.creationTime)}
+                                </span>
+                                {assignment.updateTime !== assignment.creationTime && (
+                                  <span className="text-sm text-gray-500">
+                                    수정: {formatDate(assignment.updateTime)}
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
                         <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openInClassroom(courseId, assignment.id)}
-                            className="flex items-center gap-1"
-                          >
-                            <Eye className="h-3 w-3" />
-                            보기
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(assignment.id, assignment.title)}
-                            disabled={deleteAssignmentMutation.isPending}
-                            className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            삭제
-                          </Button>
+                          {editingAssignment === assignment.id ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => saveEditing(assignment.id)}
+                                disabled={updateAssignmentMutation.isPending}
+                                className="flex items-center gap-1 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              >
+                                <Save className="h-3 w-3" />
+                                저장
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={cancelEditing}
+                                className="flex items-center gap-1 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                              >
+                                <X className="h-3 w-3" />
+                                취소
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => startEditing(assignment)}
+                                className="flex items-center gap-1 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                              >
+                                <Edit3 className="h-3 w-3" />
+                                수정
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openInClassroom(courseId, assignment.id)}
+                                className="flex items-center gap-1"
+                              >
+                                <Eye className="h-3 w-3" />
+                                보기
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDelete(assignment.id, assignment.title)}
+                                disabled={deleteAssignmentMutation.isPending}
+                                className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                삭제
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </CardHeader>
                     
-                    {assignment.description && (
+                    {assignment.description && editingAssignment !== assignment.id && (
                       <CardContent className="pt-0">
                         <p className="text-sm text-gray-600 line-clamp-2">
                           {assignment.description}

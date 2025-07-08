@@ -90,12 +90,15 @@ export class GoogleClassroomService {
   // 과제 목록 조회
   async getAssignments(courseId: string): Promise<any[]> {
     try {
+      console.log('Fetching assignments for course:', courseId);
       const response = await this.classroom.courses.courseWork.list({
         courseId,
         courseWorkStates: ['PUBLISHED', 'DRAFT'],
         orderBy: 'updateTime desc',
-        pageSize: 100
+        pageSize: 100,
+        fields: 'courseWork(id,title,description,state,creationTime,updateTime,dueDate,dueTime,materials,workType,assigneeMode,individualStudentsOptions,submissionModificationMode,creatorUserId,scheduledTime,associatedWithDeveloper,maxPoints,gradeCategory,alternateLink)'
       });
+      console.log('Found assignments:', response.data.courseWork?.length || 0);
       return response.data.courseWork || [];
     } catch (error) {
       console.error('Error fetching assignments:', error);
@@ -120,14 +123,34 @@ export class GoogleClassroomService {
   // 과제 상세 정보 조회
   async getAssignmentDetail(courseId: string, assignmentId: string): Promise<any> {
     try {
+      console.log('Fetching assignment detail:', courseId, assignmentId);
       const response = await this.classroom.courses.courseWork.get({
         courseId,
-        id: assignmentId
+        id: assignmentId,
+        fields: 'id,title,description,state,creationTime,updateTime,dueDate,dueTime,materials,workType,assigneeMode,individualStudentsOptions,submissionModificationMode,creatorUserId,scheduledTime,associatedWithDeveloper,maxPoints,gradeCategory,alternateLink'
       });
+      console.log('Assignment detail retrieved:', response.data.title);
       return response.data;
     } catch (error) {
       console.error('Error fetching assignment detail:', error);
       return null;
+    }
+  }
+
+  // 과제 업데이트
+  async updateAssignment(courseId: string, assignmentId: string, updateData: any): Promise<any> {
+    try {
+      console.log('Updating assignment:', courseId, assignmentId, updateData);
+      const response = await this.classroom.courses.courseWork.patch({
+        courseId,
+        id: assignmentId,
+        requestBody: updateData
+      });
+      console.log('Assignment updated successfully');
+      return response.data;
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      throw error;
     }
   }
 

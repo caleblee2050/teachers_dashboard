@@ -1514,6 +1514,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 과제 상세 정보 조회
+  app.get('/api/classroom/courses/:courseId/assignments/:assignmentId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { courseId, assignmentId } = req.params;
+      const classroomService = await createClassroomService(req.user);
+      const assignment = await classroomService.getAssignmentDetail(courseId, assignmentId);
+      
+      if (!assignment) {
+        return res.status(404).json({
+          success: false,
+          error: 'Assignment not found'
+        });
+      }
+      
+      res.json({ assignment });
+    } catch (error) {
+      console.error('Error fetching assignment detail:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch assignment detail'
+      });
+    }
+  });
+
+  // 과제 업데이트
+  app.put('/api/classroom/courses/:courseId/assignments/:assignmentId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { courseId, assignmentId } = req.params;
+      const updateData = req.body;
+      const classroomService = await createClassroomService(req.user);
+      const updatedAssignment = await classroomService.updateAssignment(courseId, assignmentId, updateData);
+      
+      res.json({
+        success: true,
+        assignment: updatedAssignment
+      });
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update assignment'
+      });
+    }
+  });
+
   // 과제 삭제
   app.delete('/api/classroom/courses/:courseId/assignments/:assignmentId', isAuthenticated, async (req: any, res) => {
     try {
