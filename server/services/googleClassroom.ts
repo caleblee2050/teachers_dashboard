@@ -219,6 +219,11 @@ export class GoogleClassroomService {
           title: textFileName
         }
       });
+      
+      console.log('Text file uploaded to Drive:', {
+        id: textDriveFile.data.id,
+        title: textFileName
+      });
 
       // 2. 오디오 파일이 있다면 업로드 (팟캐스트인 경우)
       console.log('Content type:', content.contentType);
@@ -400,6 +405,11 @@ export class GoogleClassroomService {
                 title: audioFileName
               }
             });
+            
+            console.log('Audio file uploaded to Drive:', {
+              id: audioDriveFile.data.id,
+              title: audioFileName
+            });
 
             console.log('Podcast audio successfully uploaded to Google Drive');
           } else {
@@ -446,7 +456,7 @@ export class GoogleClassroomService {
             },
             shareMode: 'STUDENT_VIEW'
           }
-        })) : undefined,
+        })) : [],
         // 학생 제출 설정 - 과제로만 업로드
         assignment: {
           studentWorkFolder: {
@@ -456,6 +466,11 @@ export class GoogleClassroomService {
       };
 
       console.log('Creating assignment with data:', JSON.stringify(assignment, null, 2));
+      console.log('UploadedFiles count:', uploadedFiles.length);
+      console.log('Materials being attached:', uploadedFiles.map(file => ({
+        fileId: file.driveFile.id,
+        title: file.driveFile.title
+      })));
       
       const response = await this.classroom.courses.courseWork.create({
         courseId,
