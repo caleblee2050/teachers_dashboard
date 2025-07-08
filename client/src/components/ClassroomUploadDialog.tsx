@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2 } from "lucide-react";
+import { Loader2, Settings } from "lucide-react";
+import { ClassroomSyncDialog } from "./ClassroomSyncDialog";
 
 interface ClassroomUploadDialogProps {
   contentId: string;
@@ -25,7 +26,9 @@ interface ClassroomCourse {
 
 export default function ClassroomUploadDialog({ contentId, contentTitle, contentType, children }: ClassroomUploadDialogProps) {
   const [open, setOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedCourseName, setSelectedCourseName] = useState("");
   const [title, setTitle] = useState(contentTitle);
   const [description, setDescription] = useState("");
   const { toast } = useToast();
@@ -322,6 +325,14 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
           </div>
         )}
       </DialogContent>
+      
+      {/* 동기화 다이얼로그 */}
+      <ClassroomSyncDialog
+        isOpen={syncOpen}
+        onClose={() => setSyncOpen(false)}
+        courseId={selectedCourse}
+        courseName={selectedCourseName}
+      />
     </Dialog>
   );
 }

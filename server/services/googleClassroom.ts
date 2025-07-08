@@ -87,6 +87,50 @@ export class GoogleClassroomService {
     }
   }
 
+  // 과제 목록 조회
+  async getAssignments(courseId: string): Promise<any[]> {
+    try {
+      const response = await this.classroom.courses.courseWork.list({
+        courseId,
+        courseWorkStates: ['PUBLISHED', 'DRAFT'],
+        orderBy: 'updateTime desc',
+        pageSize: 100
+      });
+      return response.data.courseWork || [];
+    } catch (error) {
+      console.error('Error fetching assignments:', error);
+      return [];
+    }
+  }
+
+  // 과제 삭제
+  async deleteAssignment(courseId: string, assignmentId: string): Promise<boolean> {
+    try {
+      await this.classroom.courses.courseWork.delete({
+        courseId,
+        id: assignmentId
+      });
+      return true;
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      return false;
+    }
+  }
+
+  // 과제 상세 정보 조회
+  async getAssignmentDetail(courseId: string, assignmentId: string): Promise<any> {
+    try {
+      const response = await this.classroom.courses.courseWork.get({
+        courseId,
+        id: assignmentId
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching assignment detail:', error);
+      return null;
+    }
+  }
+
   generateContentText(content: any): string {
     let text = `${content.title}\n\n`;
     
@@ -151,8 +195,14 @@ export class GoogleClassroomService {
       
       const drive = google.drive({ version: 'v3', auth: this.oauth2Client });
       
-      // 타이틀 생성
-      const title = `${content.title} - ${content.contentType === 'summary' ? '요약' : content.contentType === 'quiz' ? '퀴즈' : content.contentType === 'study_guide' ? '학습 가이드' : content.contentType === 'podcast' ? '팟캐스트' : '통합'} 자료`;
+      // 언어별 타이틀 생성 (YY.MM.DD+파일명)
+      const now = new Date();
+      const datePrefix = `${now.getFullYear().toString().slice(-2)}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}`;
+      
+      // 파일명에서 확장자 제거
+      const originalFileName = content.title.replace(/\.[^/.]+$/, '');
+      
+      const title = `${datePrefix}+${originalFileName}`;
       
       // 업로드할 파일들
       const uploadedFiles: Array<{
@@ -164,8 +214,11 @@ export class GoogleClassroomService {
 
       // 텍스트 파일 업로드
       const textContent = this.generateContentText(content);
+      console.log('Generated text content length:', textContent.length);
+      console.log('Text content preview:', textContent.substring(0, 200) + '...');
+      
       const fileMetadata = {
-        name: `${title.replace(/[^\w\s가-힣-]/g, '')}.txt`,
+        name: `${title.replace(/[^\w\s가-힣\+\.-]/g, '')}.txt`,
         parents: ['root']
       };
       

@@ -1503,7 +1503,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete classroom assignment endpoint
+  // 과제 목록 조회
+  app.get('/api/classroom/courses/:courseId/assignments', isAuthenticated, async (req: any, res) => {
+    try {
+      const { courseId } = req.params;
+      const classroomService = await createClassroomService(req.user);
+      const assignments = await classroomService.getAssignments(courseId);
+      res.json(assignments);
+    } catch (error) {
+      console.error('Error fetching assignments:', error);
+      res.status(500).json({ message: '과제 목록을 가져오는데 실패했습니다.' });
+    }
+  });
+
+  // 과제 삭제
+  app.delete('/api/classroom/courses/:courseId/assignments/:assignmentId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { courseId, assignmentId } = req.params;
+      const classroomService = await createClassroomService(req.user);
+      const success = await classroomService.deleteAssignment(courseId, assignmentId);
+      
+      if (success) {
+        res.json({ success: true, message: '과제가 성공적으로 삭제되었습니다.' });
+      } else {
+        res.status(400).json({ success: false, message: '과제 삭제에 실패했습니다.' });
+      }
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      res.status(500).json({ success: false, message: '과제 삭제 중 오류가 발생했습니다.' });
+    }
+  });
+
+  // 과제 상세 정보 조회
+  app.get('/api/classroom/courses/:courseId/assignments/:assignmentId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { courseId, assignmentId } = req.params;
+      const classroomService = await createClassroomService(req.user);
+      const assignment = await classroomService.getAssignmentDetail(courseId, assignmentId);
+      
+      if (assignment) {
+        res.json(assignment);
+      } else {
+        res.status(404).json({ message: '과제를 찾을 수 없습니다.' });
+      }
+    } catch (error) {
+      console.error('Error fetching assignment detail:', error);
+      res.status(500).json({ message: '과제 상세 정보를 가져오는데 실패했습니다.' });
+    }
+  });
+
+  // Delete classroom assignment endpoint (기존 호환성 유지)
   app.delete('/api/classroom/assignment/:courseId/:assignmentId', isAuthenticated, async (req: any, res) => {
     try {
       const { courseId, assignmentId } = req.params;
