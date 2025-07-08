@@ -575,20 +575,48 @@ export default function GeneratedContent({
           </div>
           <div className="flex items-center space-x-2">
             {selectedContent && selectedContent.length > 0 && (
-              <BatchClassroomUploadDialog
-                selectedContent={filteredContent.filter(item => selectedContent.includes(item.id))}
-                onSuccess={() => {
-                  // 성공 후 선택 해제 등의 작업을 부모 컴포넌트에서 처리할 수 있도록
-                }}
-              >
+              <>
                 <Button
                   size="sm"
-                  className="bg-green-600 hover:bg-green-700 text-white korean-text"
+                  onClick={() => {
+                    const nonPodcastContent = filteredContent.filter(item => 
+                      selectedContent.includes(item.id) && item.contentType !== 'podcast'
+                    );
+                    if (nonPodcastContent.length === 0) {
+                      toast({
+                        title: "팟캐스트 생성 불가",
+                        description: "선택된 항목 중 팟캐스트로 변환할 수 있는 콘텐츠가 없습니다.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    
+                    batchPodcastMutation.mutate({
+                      contentIds: nonPodcastContent.map(item => item.id),
+                      language: 'ko'
+                    });
+                  }}
+                  disabled={batchPodcastMutation.isPending}
+                  className="bg-purple-600 hover:bg-purple-700 text-white korean-text"
                 >
-                  <i className="fas fa-google mr-1"></i>
-                  선택된 항목 일괄 업로드 ({selectedContent.length})
+                  <i className="fas fa-microphone mr-1"></i>
+                  {batchPodcastMutation.isPending ? "생성 중..." : `팟캐스트 일괄 생성 (${selectedContent.length})`}
                 </Button>
-              </BatchClassroomUploadDialog>
+                <BatchClassroomUploadDialog
+                  selectedContent={filteredContent.filter(item => selectedContent.includes(item.id))}
+                  onSuccess={() => {
+                    // 성공 후 선택 해제 등의 작업을 부모 컴포넌트에서 처리할 수 있도록
+                  }}
+                >
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-white korean-text"
+                  >
+                    <i className="fas fa-google mr-1"></i>
+                    클래스룸 일괄 업로드 ({selectedContent.length})
+                  </Button>
+                </BatchClassroomUploadDialog>
+              </>
             )}
             {selectedContent && selectedContent.length > 0 && onDeleteSelected && (
               <Button

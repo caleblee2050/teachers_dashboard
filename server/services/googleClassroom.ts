@@ -348,22 +348,28 @@ export class GoogleClassroomService {
       // 3. 팟캐스트의 경우 오디오 파일을 구글 드라이브에 업로드
       if (content.contentType === 'podcast' && contentData.audioFilePath) {
         try {
+          console.log('Uploading podcast audio file:', contentData.audioFilePath);
           console.log('Uploading podcast audio to Google Drive...');
-          const audioFilePath = path.join(process.cwd(), contentData.audioFilePath);
+          
+          // audioFilePath가 절대 경로인지 상대 경로인지 확인
+          let audioFilePath = contentData.audioFilePath;
+          if (!path.isAbsolute(audioFilePath)) {
+            audioFilePath = path.join(process.cwd(), audioFilePath);
+          }
           console.log('Audio file path:', audioFilePath);
           
           if (fs.existsSync(audioFilePath)) {
             const stats = fs.statSync(audioFilePath);
             console.log(`Audio file size: ${stats.size} bytes`);
             
-            const audioFileName = `${title.replace(/[^\w\s가-힣-]/g, '')}_podcast.mp3`;
+            const audioFileName = `${title.replace(/[^\w\s가-힣-]/g, '')}_podcast.wav`;
             const audioFileMetadata = {
               name: audioFileName,
               parents: ['root']
             };
             
             const audioMedia = {
-              mimeType: 'audio/mpeg',
+              mimeType: 'audio/wav',
               body: fs.createReadStream(audioFilePath)
             };
 
@@ -410,7 +416,7 @@ export class GoogleClassroomService {
         uploadedFiles.forEach((file, index) => {
           if (file.driveFile.title.endsWith('.txt')) {
             assignmentDescription += `• 텍스트 자료: ${file.driveFile.title}\n`;
-          } else if (file.driveFile.title.endsWith('.mp3')) {
+          } else if (file.driveFile.title.endsWith('.wav') || file.driveFile.title.endsWith('.mp3')) {
             assignmentDescription += `• 오디오 팟캐스트: ${file.driveFile.title}\n`;
           } else if (file.driveFile.title.endsWith('.pdf')) {
             assignmentDescription += `• PDF 자료: ${file.driveFile.title}\n`;
