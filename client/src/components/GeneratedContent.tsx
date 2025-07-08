@@ -40,6 +40,41 @@ export default function GeneratedContent({
     setShowFullTextDialog(true);
   };
 
+  const testAudioGeneration = async (item: any) => {
+    setIsGeneratingAudio(item.id);
+    try {
+      const response = await apiRequest(`/api/test-audio-generation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contentId: item.id,
+          language: item.language || 'ko'
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast({
+          title: "오디오 생성 테스트 완료",
+          description: result.message || "오디오 생성이 성공적으로 완료되었습니다.",
+        });
+      } else {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error('오디오 생성 테스트 실패:', error);
+      toast({
+        title: "오디오 생성 테스트 실패",
+        description: error.message || "오디오 생성 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingAudio(null);
+    }
+  };
+
   const renderFullContent = (item: any) => {
     if (!item || !item.content) return '';
     
@@ -681,6 +716,17 @@ export default function GeneratedContent({
                         팟캐스트
                       </Button>
                     )}
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => testAudioGeneration(item)}
+                      disabled={isGeneratingAudio === item.id}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <i className="fas fa-volume-up mr-1"></i>
+                      {isGeneratingAudio === item.id ? "테스트 중..." : "오디오 테스트"}
+                    </Button>
 
                     <Button
                       size="sm"
