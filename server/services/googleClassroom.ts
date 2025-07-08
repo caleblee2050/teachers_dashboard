@@ -159,6 +159,10 @@ export class GoogleClassroomService {
       // 구글 드라이브에 파일들 업로드
       const drive = google.drive({ version: 'v3', auth: this.oauth2Client });
       const uploadedFiles: any[] = [];
+      
+      console.log('=== Starting Google Drive Upload Process ===');
+      console.log('Content type:', content.contentType);
+      console.log('Content ID:', content.id);
 
       // 1. 텍스트 파일 업로드 (기본) - 언어별 파일명 생성
       const languagePrefix = language !== 'ko' ? `[${language.toUpperCase()}] ` : '';
@@ -175,11 +179,13 @@ export class GoogleClassroomService {
 
       let textDriveFile;
       try {
+        console.log('Uploading text file to Drive:', textFileName);
         textDriveFile = await drive.files.create({
           requestBody: textFileMetadata,
           media: textMedia,
           fields: 'id'
         });
+        console.log('Text file upload successful, Drive ID:', textDriveFile.data.id);
 
         await drive.permissions.create({
           fileId: textDriveFile.data.id!,
@@ -241,7 +247,10 @@ export class GoogleClassroomService {
       
       if (audioFilePath && fs.existsSync(audioFilePath)) {
         try {
-          console.log('Uploading audio file to Drive:', audioFilePath);
+          console.log('=== Audio File Upload Process ===');
+          console.log('Audio file path:', audioFilePath);
+          console.log('Audio file exists:', fs.existsSync(audioFilePath));
+          console.log('Audio file size:', fs.statSync(audioFilePath).size, 'bytes');
           
           const audioFileName = `${languagePrefix}${title.replace(/[^\w\s가-힣-]/g, '')}_팟캐스트.wav`;
           const audioFileMetadata = {
@@ -382,13 +391,17 @@ export class GoogleClassroomService {
               body: fs.createReadStream(audioFilePath)
             };
 
+            console.log('Starting audio file upload to Drive...');
             const audioDriveFile = await drive.files.create({
               requestBody: audioFileMetadata,
               media: audioMedia,
               fields: 'id,name,webViewLink'
             });
 
-            console.log('Audio file uploaded to Drive:', audioDriveFile.data.id);
+            console.log('Audio file upload successful!');
+            console.log('Audio Drive ID:', audioDriveFile.data.id);
+            console.log('Audio file name:', audioDriveFile.data.name);
+            console.log('Audio webViewLink:', audioDriveFile.data.webViewLink);
 
             // 파일 권한 설정 (공개 읽기)
             await drive.permissions.create({
