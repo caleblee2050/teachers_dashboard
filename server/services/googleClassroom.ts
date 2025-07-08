@@ -200,8 +200,14 @@ export class GoogleClassroomService {
       // 오디오 파일 업로드 (팟캐스트인 경우)
       if (content.contentType === 'podcast' && content.content.audioFilePath) {
         console.log('=== Audio File Upload Process ===');
-        const audioFilePath = content.content.audioFilePath;
-        console.log('Audio file path:', audioFilePath);
+        let audioFilePath = content.content.audioFilePath;
+        console.log('Original audio file path:', audioFilePath);
+        
+        // 상대 경로를 절대 경로로 변환
+        if (!audioFilePath.startsWith('/')) {
+          audioFilePath = `/home/runner/workspace/${audioFilePath}`;
+        }
+        console.log('Absolute audio file path:', audioFilePath);
         console.log('Audio file exists:', fs.existsSync(audioFilePath));
         
         if (fs.existsSync(audioFilePath)) {

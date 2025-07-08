@@ -1431,66 +1431,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('=== NEW Classroom Upload Request DEBUG ===');
       console.log('User ID:', req.user.id);
       console.log('Request body:', JSON.stringify(req.body, null, 2));
-      console.log('Request headers:', req.headers);
-      console.log('Request URL:', req.url);
       
       const { courseId, contentId, title, description } = req.body;
 
       if (!courseId || !contentId) {
         console.log('Missing required data:', { courseId, contentId });
-        return res.status(400).json({ message: '필수 정보가 누락되었습니다.' });
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Missing courseId or contentId' 
+        });
       }
 
-      // Get the content to upload
-      console.log('Fetching content for user:', req.user.id);
-      const content = await storage.getGeneratedContentByTeacher(req.user.id);
-      console.log('Found content count:', content.length);
-      
-      const targetContent = content.find(c => c.id === contentId);
-      console.log('Target content found:', !!targetContent);
-
-      if (!targetContent) {
-        console.log('Content not found. Available IDs:', content.map(c => c.id));
-        return res.status(404).json({ message: '콘텐츠를 찾을 수 없습니다.' });
+      // 생성된 콘텐츠 조회
+      const content = await storage.getGeneratedContentByShare(contentId);
+      if (!content) {
+        console.log('Content not found:', contentId);
+        return res.status(404).json({ 
+          success: false, 
+          error: 'Content not found' 
+        });
       }
 
-      console.log('Target content:', {
-        id: targetContent.id,
-        title: targetContent.title,
-        type: targetContent.contentType
+      console.log('Found content:', {
+        id: content.id,
+        type: content.contentType,
+        title: content.title,
+        audioFilePath: content.content?.audioFilePath
       });
 
+      // Google Classroom 서비스 생성
       console.log('Creating classroom service...');
       const classroomService = await createClassroomService(req.user);
-      
-      console.log('Available methods on classroomService:', Object.getOwnPropertyNames(Object.getPrototypeOf(classroomService)));
-      console.log('Calling createAssignment with file attachments...');
-      console.log('Function parameters:', {
-        courseId,
-        title: title || targetContent.title,
-        description: description || `EduAI Assistant에서 생성된 ${targetContent.contentType} 콘텐츠`,
-        contentType: targetContent.contentType,
-        language: 'ko'
-      });
-      
-      console.log('=== ABOUT TO CALL createAssignment FUNCTION ===');
-      let result;
-      try {
-        result = await classroomService.createAssignment(
-          courseId,
-          title || targetContent.title,
-          description || `EduAI Assistant에서 생성된 ${targetContent.contentType} 콘텐츠`,
-          targetContent,
-          'ko' // 기본 언어를 한국어로 설정
-        );
-        console.log('=== createAssignment FUNCTION COMPLETED ===');
-      } catch (functionError) {
-        console.error('=== ERROR IN createAssignment FUNCTION ===');
-        console.error('Function error:', functionError);
-        throw functionError;
-      }
+      console.log('Classroom service created successfully');
 
+      // 과제 생성 (파일 첨부 포함)
+      console.log('Creating assignment...');
+      const result = await classroomService.createAssignment(courseId, content, content.language);
+      console.log('=== createAssignment FUNCTION COMPLETED ===');
       console.log('Assignment creation result:', result);
+
       res.json(result);
     } catch (error) {
       console.error('Error uploading to classroom:', error);
