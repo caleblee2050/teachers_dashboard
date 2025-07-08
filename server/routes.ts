@@ -671,8 +671,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`Podcast audio generated successfully: ${audioPath}`);
           } catch (audioError) {
             console.error('Podcast audio generation failed:', audioError);
-            podcastContent.audioFilePath = undefined;
-            podcastContent.geminiFileLink = undefined;
+            // Set to null instead of undefined to avoid string 'undefined'
+            podcastContent.audioFilePath = null;
+            podcastContent.geminiFileLink = null;
           }
 
           // Save as new podcast content

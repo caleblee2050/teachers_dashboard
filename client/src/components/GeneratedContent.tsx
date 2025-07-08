@@ -576,37 +576,42 @@ export default function GeneratedContent({
           <div className="flex items-center space-x-2">
             {selectedContent && selectedContent.length > 0 && (
               <>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    const nonPodcastContent = filteredContent.filter(item => 
-                      selectedContent.includes(item.id) && item.contentType !== 'podcast'
-                    );
-                    if (nonPodcastContent.length === 0) {
-                      toast({
-                        title: "팟캐스트 생성 불가",
-                        description: "선택된 항목 중 팟캐스트로 변환할 수 있는 콘텐츠가 없습니다.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    
-                    // 각 콘텐츠의 원래 언어를 사용하여 배치 생성
-                    const contentWithLanguage = nonPodcastContent.map(item => ({
-                      contentId: item.id,
-                      language: item.language || 'ko'
-                    }));
-                    
-                    batchPodcastMutation.mutate({
-                      contentWithLanguage: contentWithLanguage
-                    });
-                  }}
-                  disabled={batchPodcastMutation.isPending}
-                  className="bg-purple-600 hover:bg-purple-700 text-white korean-text"
-                >
-                  <i className="fas fa-microphone mr-1"></i>
-                  {batchPodcastMutation.isPending ? "생성 중..." : `팟캐스트 일괄 생성 (${selectedContent.length})`}
-                </Button>
+                {(() => {
+                  const nonPodcastContent = filteredContent.filter(item => 
+                    selectedContent.includes(item.id) && item.contentType !== 'podcast'
+                  );
+                  
+                  return (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (nonPodcastContent.length === 0) {
+                          toast({
+                            title: "팟캐스트 생성 불가",
+                            description: "선택된 항목 중 팟캐스트로 변환할 수 있는 콘텐츠가 없습니다.",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        // 각 콘텐츠의 원래 언어를 사용하여 배치 생성
+                        const contentWithLanguage = nonPodcastContent.map(item => ({
+                          contentId: item.id,
+                          language: item.language || 'ko'
+                        }));
+                        
+                        batchPodcastMutation.mutate({
+                          contentWithLanguage: contentWithLanguage
+                        });
+                      }}
+                      disabled={batchPodcastMutation.isPending}
+                      className="bg-purple-600 hover:bg-purple-700 text-white korean-text"
+                    >
+                      <i className="fas fa-microphone mr-1"></i>
+                      {batchPodcastMutation.isPending ? "생성 중..." : `팟캐스트 일괄 생성 (${nonPodcastContent.length})`}
+                    </Button>
+                  );
+                })()}
                 <BatchClassroomUploadDialog
                   selectedContent={filteredContent.filter(item => selectedContent.includes(item.id))}
                   onSuccess={() => {
@@ -618,7 +623,7 @@ export default function GeneratedContent({
                     className="bg-green-600 hover:bg-green-700 text-white korean-text"
                   >
                     <i className="fas fa-google mr-1"></i>
-                    클래스룸 일괄 업로드 ({selectedContent.length})
+                    클래스룸 일괄 업로드 ({filteredContent.filter(item => selectedContent.includes(item.id)).length})
                   </Button>
                 </BatchClassroomUploadDialog>
               </>
@@ -631,7 +636,7 @@ export default function GeneratedContent({
                 disabled={isDeleting}
                 className="korean-text"
               >
-                {isDeleting ? "삭제 중..." : `선택 삭제 (${selectedContent.length})`}
+                {isDeleting ? "삭제 중..." : `선택 삭제 (${filteredContent.filter(item => selectedContent.includes(item.id)).length})`}
               </Button>
             )}
           </div>
@@ -836,13 +841,13 @@ export default function GeneratedContent({
                         {/* Debug info */}
                         <div className="text-xs text-gray-500 mt-2">
                           디버그: script 존재 - {item.content?.script ? 'Yes' : 'No'}, 
-                          audioPath 존재 - {item.content?.audioFilePath ? 'Yes' : 'No'}
+                          audioPath 존재 - {item.content?.audioFilePath && item.content.audioFilePath !== 'undefined' ? 'Yes' : 'No'}
                         </div>
                       </div>
 
                       <div className="mb-4">
                         <p className="font-medium korean-text mb-2">오디오:</p>
-                        {item.content.audioFilePath ? (
+                        {item.content.audioFilePath && item.content.audioFilePath !== 'undefined' ? (
                           <div>
                             <audio controls className="w-full">
                               <source src={`/uploads/${item.content.audioFilePath.split('/').pop()}`} type="audio/mpeg" />
@@ -862,7 +867,7 @@ export default function GeneratedContent({
                           </div>
                         )}
                         <p className="text-sm text-gray-500 korean-text mt-2">
-                          {item.content.audioFilePath ? 
+                          {item.content.audioFilePath && item.content.audioFilePath !== 'undefined' ? 
                             'AI가 생성한 음성 파일을 재생할 수 있습니다.' : 
                             '팟캐스트 오디오 생성이 완료되면 이곳에서 재생할 수 있습니다.'
                           }
@@ -894,7 +899,7 @@ export default function GeneratedContent({
                   <div className="flex space-x-2">
                     {item.contentType === 'podcast' && (
                       <div className="flex space-x-2">
-                        {item.content?.audioFilePath && (
+                        {item.content?.audioFilePath && item.content.audioFilePath !== 'undefined' && (
                           <Button
                             onClick={() => {
                               const filename = item.content.audioFilePath.split('/').pop();
@@ -976,7 +981,7 @@ export default function GeneratedContent({
           
           <div className="mt-4">
             {/* 팟캐스트 오디오 재생 섹션 */}
-            {selectedItem?.contentType === 'podcast' && selectedItem?.content?.audioFilePath && (
+            {selectedItem?.contentType === 'podcast' && selectedItem?.content?.audioFilePath && selectedItem.content.audioFilePath !== 'undefined' && (
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <h4 className="font-medium korean-text mb-3">팟캐스트 오디오 재생</h4>
                 <div className="mb-3">
@@ -990,7 +995,7 @@ export default function GeneratedContent({
                   </audio>
                 </div>
                 <div className="flex space-x-2">
-                  {selectedItem.content?.audioFilePath && (
+                  {selectedItem.content?.audioFilePath && selectedItem.content.audioFilePath !== 'undefined' && (
                     <Button
                       onClick={() => {
                         const filename = selectedItem.content.audioFilePath.split('/').pop();
