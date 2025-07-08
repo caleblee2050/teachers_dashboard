@@ -149,6 +149,42 @@ export class GoogleDriveService {
     }
   }
 
+  async uploadAudioFile(fileName: string, filePath: string): Promise<{ fileId: string; webViewLink: string }> {
+    try {
+      const fs = require('fs');
+      
+      const fileMetadata = {
+        name: fileName,
+        parents: undefined, // Upload to root folder
+      };
+
+      const media = {
+        mimeType: 'audio/wav',
+        body: fs.createReadStream(filePath),
+      };
+
+      const response = await this.drive.files.create({
+        requestBody: fileMetadata,
+        media: media,
+        fields: 'id,webViewLink',
+      });
+
+      if (!response.data.id || !response.data.webViewLink) {
+        throw new Error('Failed to get file ID or web view link from upload response');
+      }
+
+      console.log(`Audio file uploaded to Drive: ${response.data.id}`);
+      
+      return {
+        fileId: response.data.id,
+        webViewLink: response.data.webViewLink,
+      };
+    } catch (error) {
+      console.error('Error uploading audio file to Drive:', error);
+      throw error;
+    }
+  }
+
   async uploadFile(fileName: string, fileBuffer: Buffer, mimeType: string): Promise<{ fileId: string; webViewLink: string }> {
     try {
       const { Readable } = require('stream');

@@ -219,7 +219,56 @@ export class GoogleClassroomService {
         }
       });
 
-      // 2. PDF 파일 생성 및 업로드 (모든 콘텐츠 타입)
+      // 2. 오디오 파일이 있다면 업로드 (팟캐스트인 경우)
+      if (content.audioFilePath && fs.existsSync(content.audioFilePath)) {
+        try {
+          console.log('Uploading audio file to Drive:', content.audioFilePath);
+          
+          const audioFileName = `${languagePrefix}${title.replace(/[^\w\s가-힣-]/g, '')}_팟캐스트.wav`;
+          const audioFileMetadata = {
+            name: audioFileName,
+            parents: ['root']
+          };
+          
+          const audioMedia = {
+            mimeType: 'audio/wav',
+            body: fs.createReadStream(content.audioFilePath)
+          };
+
+          let audioDriveFile;
+          try {
+            audioDriveFile = await drive.files.create({
+              requestBody: audioFileMetadata,
+              media: audioMedia,
+              fields: 'id'
+            });
+
+            await drive.permissions.create({
+              fileId: audioDriveFile.data.id!,
+              requestBody: {
+                role: 'reader',
+                type: 'anyone'
+              }
+            });
+
+            uploadedFiles.push({
+              driveFile: {
+                id: audioDriveFile.data.id,
+                title: audioFileName
+              },
+              shareMode: 'VIEW'
+            });
+
+            console.log(`Audio file uploaded successfully: ${audioDriveFile.data.id}`);
+          } catch (audioError: any) {
+            console.warn('Failed to upload audio file:', audioError);
+          }
+        } catch (audioError) {
+          console.warn('Audio file upload failed:', audioError);
+        }
+      }
+
+      // 3. PDF 파일 생성 및 업로드 (모든 콘텐츠 타입)
       const fs = require('fs');
       const path = require('path');
       const { generatePDF } = require('./pdfGenerator');

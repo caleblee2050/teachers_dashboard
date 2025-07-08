@@ -611,6 +611,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Batch podcast generation route
+  app.post('/api/content/batch/podcast', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { contentIds, language = 'ko' } = req.body;
+
+      if (!contentIds || !Array.isArray(contentIds) || contentIds.length === 0) {
+        return res.status(400).json({ message: 'Content IDs array is required' });
+      }
+
+      console.log(`Starting batch podcast generation for ${contentIds.length} contents`);
+      
+      const results = [];
+      const errors = [];
+
+      for (const contentId of contentIds) {
+        try {
+          console.log(`Processing content ID: ${contentId}`);
+          
+          // Get the content
+          const allContent = await storage.getGeneratedContentByTeacher(userId);
+          const targetContent = allContent.find(c => c.id === contentId);
+          
+          if (!targetContent) {
+            errors.push({ contentId, error: 'Content not found' });
+            continue;
+          }
+
+          // Skip if already a podcast
+          if (targetContent.contentType === 'podcast') {
+            errors.push({ contentId, error: 'Content is already a podcast' });
+            continue;
+          }
+
+          // Generate podcast script using the content
+          const contentText = convertContentToText(targetContent.content);
+          console.log(`Generating podcast for: ${targetContent.title}`);
+          
+          const podcastContent = await generatePodcastScript(contentText, language as 'ko' | 'en' | 'ja' | 'zh' | 'th' | 'vi' | 'fil');
+          
+          // Generate audio with PDF
+          const timestamp = Date.now();
+          const outputPath = path.join(process.cwd(), 'uploads', `podcast_${timestamp}.wav`);
+          
+          try {
+            const { audioPath, geminiFileLink } = await generatePodcastAudio(
+              podcastContent.script, 
+              outputPath, 
+              undefined, // No PDF path for batch processing
+              req.user
+            );
+            
+            podcastContent.audioFilePath = audioPath;
+            podcastContent.geminiFileLink = geminiFileLink;
+            
+            console.log(`Podcast audio generated successfully: ${audioPath}`);
+          } catch (audioError) {
+            console.error('Podcast audio generation failed:', audioError);
+            podcastContent.audioFilePath = undefined;
+            podcastContent.geminiFileLink = undefined;
+          }
+
+          // Save as new podcast content
+          const newContent = await storage.createGeneratedContent({
+            fileId: targetContent.fileId,
+            teacherId: userId,
+            title: `${targetContent.title} (팟캐스트)`,
+            contentType: 'podcast',
+            content: podcastContent,
+            language: language
+          });
+
+          results.push({
+            originalContentId: contentId,
+            newPodcastId: newContent.id,
+            title: newContent.title,
+            success: true
+          });
+
+          console.log(`Batch podcast created successfully: ${newContent.id}`);
+          
+        } catch (error) {
+          console.error(`Error processing content ${contentId}:`, error);
+          errors.push({ 
+            contentId, 
+            error: error instanceof Error ? error.message : 'Unknown error' 
+          });
+        }
+      }
+
+      res.json({
+        message: `Batch podcast generation completed`,
+        totalRequested: contentIds.length,
+        successful: results.length,
+        failed: errors.length,
+        results,
+        errors
+      });
+
+    } catch (error) {
+      console.error('Error in batch podcast generation:', error);
+      res.status(500).json({ 
+        message: 'Failed to generate batch podcasts',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Podcast generation route
   app.post('/api/content/:id/podcast', isAuthenticated, async (req: any, res) => {
     try {

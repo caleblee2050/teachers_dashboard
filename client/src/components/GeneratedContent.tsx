@@ -31,6 +31,7 @@ export default function GeneratedContent({
   const [activeTab, setActiveTab] = useState("integrated");
   const [isGeneratingAudio, setIsGeneratingAudio] = useState<string | null>(null);
   const [currentSpeech, setCurrentSpeech] = useState<SpeechSynthesisUtterance | null>(null);
+  const [isBatchPodcastGenerating, setIsBatchPodcastGenerating] = useState(false);
   const [showFullTextDialog, setShowFullTextDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
@@ -180,6 +181,43 @@ export default function GeneratedContent({
     queryKey: ['/api/classroom/check-permissions'],
     retry: false,
     refetchOnWindowFocus: false,
+  });
+
+  // Batch podcast generation mutation
+  const batchPodcastMutation = useMutation({
+    mutationFn: async (data: { contentIds: string[], language: string }) => {
+      const response = await fetch('/api/content/batch/podcast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to generate batch podcasts');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      console.log('Batch podcast generation result:', data);
+      toast({
+        title: "배치 팟캐스트 생성 완료",
+        description: `${data.successful}개 성공, ${data.failed}개 실패`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/content'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      setSelectedItems(new Set());
+      setIsBatchPodcastGenerating(false);
+    },
+    onError: (error) => {
+      console.error('Batch podcast generation failed:', error);
+      toast({
+        title: "배치 팟캐스트 생성 실패",
+        description: "오류가 발생했습니다.",
+        variant: "destructive",
+      });
+      setIsBatchPodcastGenerating(false);
+    },
   });
 
   // Individual content deletion mutation
