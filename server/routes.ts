@@ -1442,10 +1442,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // 생성된 콘텐츠 조회
-      const content = await storage.getGeneratedContentByShare(contentId);
+      // 생성된 콘텐츠 조회 - 사용자별로 조회 후 ID로 필터링
+      const allContent = await storage.getGeneratedContentByTeacher(req.user.id);
+      console.log('All user content count:', allContent.length);
+      console.log('Looking for content ID:', contentId);
+      
+      const content = allContent.find(c => c.id === contentId);
       if (!content) {
-        console.log('Content not found:', contentId);
+        console.log('Content not found. Available IDs:', allContent.map(c => c.id));
         return res.status(404).json({ 
           success: false, 
           error: 'Content not found' 
