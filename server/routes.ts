@@ -1096,6 +1096,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(401).json({ 
           message: 'Google authentication expired. Please reconnect your Google account.' 
         });
+      } else if (error.code === 403 && error.message?.includes('Drive API has not been used')) {
+        res.status(403).json({ 
+          message: 'Google Drive API가 활성화되지 않았습니다. Google Cloud Console에서 Drive API를 활성화해주세요.',
+          details: 'https://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=452832396126',
+          action: 'API_NOT_ENABLED'
+        });
       } else {
         res.status(500).json({ message: 'Failed to fetch Google Drive files' });
       }

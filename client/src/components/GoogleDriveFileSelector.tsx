@@ -35,7 +35,14 @@ export default function GoogleDriveFileSelector({ onFileUploaded, children }: Go
       const params = new URLSearchParams();
       if (searchQuery) params.append('q', searchQuery);
       const response = await fetch(`/api/drive/files?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch Google Drive files');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        const error = new Error(errorData.message || 'Failed to fetch Google Drive files');
+        (error as any).status = response.status;
+        (error as any).action = errorData.action;
+        (error as any).details = errorData.details;
+        throw error;
+      }
       return response.json();
     },
     enabled: isOpen,
@@ -91,6 +98,9 @@ export default function GoogleDriveFileSelector({ onFileUploaded, children }: Go
   };
 
   if (error) {
+    const errorAction = (error as any).action;
+    const errorDetails = (error as any).details;
+    
     return (
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
@@ -103,11 +113,26 @@ export default function GoogleDriveFileSelector({ onFileUploaded, children }: Go
           <div className="text-center py-8">
             <i className="fas fa-exclamation-circle text-red-500 text-4xl mb-4"></i>
             <h3 className="text-lg font-medium text-gray-900 mb-2 korean-text">
-              Google Drive 연결 오류
+              {errorAction === 'API_NOT_ENABLED' ? 'Google Drive API 활성화 필요' : 'Google Drive 연결 오류'}
             </h3>
             <p className="text-gray-600 mb-4 korean-text">
-              Google Drive에 연결할 수 없습니다. 다시 로그인해주세요.
+              {errorAction === 'API_NOT_ENABLED' 
+                ? 'Google Drive API가 활성화되지 않았습니다. Google Cloud Console에서 API를 활성화해주세요.'
+                : 'Google Drive에 연결할 수 없습니다. 다시 로그인해주세요.'}
             </p>
+            {errorAction === 'API_NOT_ENABLED' && errorDetails && (
+              <div className="mb-4">
+                <Button 
+                  onClick={() => window.open(errorDetails, '_blank')}
+                  className="bg-green-600 hover:bg-green-700 text-white korean-text mb-2"
+                >
+                  Google Cloud Console에서 API 활성화
+                </Button>
+                <p className="text-xs text-gray-500 korean-text">
+                  API 활성화 후 몇 분 정도 기다려주세요.
+                </p>
+              </div>
+            )}
             <Button 
               onClick={() => window.location.href = '/api/login'}
               className="bg-blue-600 hover:bg-blue-700 text-white korean-text"
