@@ -50,10 +50,13 @@ export default function GoogleDriveFileSelector({ onFileUploaded, children }: Go
 
   const uploadMutation = useMutation({
     mutationFn: async (file: DriveFile) => {
-      return apiRequest('/api/drive/upload', 'POST', {
+      console.log('Starting upload mutation for file:', file);
+      const response = await apiRequest('/api/drive/upload', 'POST', {
         fileId: file.id,
         fileName: file.name,
       });
+      console.log('Upload response:', response);
+      return response;
     },
     onSuccess: (data) => {
       toast({
