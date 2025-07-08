@@ -438,7 +438,15 @@ export class GoogleClassroomService {
         state: 'DRAFT', // First create as draft to prevent file attachment issues
         submissionModificationMode: 'MODIFIABLE_UNTIL_TURNED_IN',
         assigneeMode: 'ALL_STUDENTS',
-        materials: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+        materials: uploadedFiles.length > 0 ? uploadedFiles.map(file => ({
+          driveFile: {
+            driveFile: {
+              id: file.driveFile.id,
+              title: file.driveFile.title
+            },
+            shareMode: 'STUDENT_VIEW'
+          }
+        })) : undefined,
         // 학생 제출 설정 - 과제로만 업로드
         assignment: {
           studentWorkFolder: {
