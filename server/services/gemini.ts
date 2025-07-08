@@ -419,9 +419,7 @@ AI 오디오 오버뷰 요구사항:
     // AI Audio Overview 생성 시도 - 순서대로 모델 테스트
     let response;
     const modelsToTry = [
-      "gemini-2.0-flash-exp",
-      "gemini-1.5-flash",
-      "gemini-1.5-pro"
+      "gemini-2.0-flash-exp"
     ];
     
     let lastError;
@@ -436,7 +434,7 @@ AI 오디오 오버뷰 요구사항:
             parts: contents
           }],
           config: {
-            responseModalities: ["TEXT"]
+            responseModalities: ["AUDIO"]
           }
         });
         console.log(`Successfully generated audio with model: ${modelName}`);
