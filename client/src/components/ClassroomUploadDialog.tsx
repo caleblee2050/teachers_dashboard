@@ -50,9 +50,18 @@ export default function ClassroomUploadDialog({ contentId, contentTitle, content
       console.log('=== ClassroomUploadDialog: Starting upload ===');
       console.log('Upload data:', data);
       
-      const response = await apiRequest('POST', '/api/classroom/upload', data);
-      console.log('Upload response received:', response);
-      return response;
+      try {
+        const response = await apiRequest('POST', '/api/classroom/upload', data);
+        console.log('Raw response:', response);
+        
+        // Response 객체에서 JSON 파싱
+        const result = await response.json();
+        console.log('Parsed result:', result);
+        return result;
+      } catch (error) {
+        console.error('Upload request failed:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       console.log('Upload successful:', data);
