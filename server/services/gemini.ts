@@ -427,71 +427,132 @@ AI 오디오 오버뷰 요구사항:
     }
 
     // 오디오 데이터 및 파일 링크 찾기
+    console.log('Searching for audio data in response parts...');
+    console.log('Number of parts:', content.parts.length);
+    
+    let audioFound = false;
     for (const part of content.parts) {
-      if (part.inlineData && part.inlineData.mimeType?.startsWith('audio/') && part.inlineData.data) {
-        const audioData = Buffer.from(part.inlineData.data as string, 'base64');
+      console.log('Part type:', typeof part);
+      console.log('Part keys:', Object.keys(part));
+      
+      // inlineData 확인
+      if (part.inlineData) {
+        console.log('Found inlineData:', {
+          mimeType: part.inlineData.mimeType,
+          hasData: !!part.inlineData.data,
+          dataLength: part.inlineData.data ? part.inlineData.data.length : 0
+        });
         
-        // 업로드 폴더 확인 및 생성
-        const uploadDir = path.dirname(outputPath);
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        
-        // 오디오 파일 저장 전 검증
-        console.log(`Audio data size: ${audioData.length} bytes`);
-        console.log(`MIME type: ${part.inlineData.mimeType}`);
-        
-        // 파일이 너무 작으면 오류
-        if (audioData.length < 1000) {
-          throw new Error(`Audio file too small (${audioData.length} bytes), likely corrupted`);
-        }
-        
-        fs.writeFileSync(outputPath, audioData);
-        console.log(`AI Audio Overview saved to: ${outputPath}`);
-        
-        // 저장된 파일 크기 재확인
-        const savedStats = fs.statSync(outputPath);
-        console.log(`Saved file size: ${savedStats.size} bytes`);
-        
-        // 제미나이 Files API를 사용하여 파일 업로드 및 공유 링크 생성
-        let geminiFileLink;
-        
-        try {
-          console.log('Uploading audio to Gemini Files API...');
+        if (part.inlineData.mimeType?.startsWith('audio/') && part.inlineData.data) {
+          const audioData = Buffer.from(part.inlineData.data as string, 'base64');
           
-          const fileName = path.basename(outputPath);
-          const audioBuffer = fs.readFileSync(outputPath);
-          
-          // Gemini Files API를 사용하여 파일 업로드  
-          const blob = new Blob([audioBuffer], { type: 'audio/wav' });
-          const fileUploadResponse = await ai.files.upload({ file: blob });
-          
-          if (fileUploadResponse && fileUploadResponse.uri) {
-            console.log(`Gemini file uploaded successfully: ${fileUploadResponse.uri}`);
-            
-            // Gemini Files API는 직접적인 공유 링크를 제공하지 않습니다
-            // 대신 업로드된 파일 URI를 저장하고 Gemini AI Studio에서 접근 가능하도록 안내
-            geminiFileLink = fileUploadResponse.uri;
-            
-            console.log('Gemini file uploaded successfully.');
-            console.log('File can be accessed through Gemini AI Studio at: https://aistudio.google.com/app/files');
-            console.log(`File URI: ${geminiFileLink}`);
+          // 업로드 폴더 확인 및 생성
+          const uploadDir = path.dirname(outputPath);
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
           }
-        } catch (uploadError) {
-          console.warn('Failed to upload to Gemini Files API:', uploadError);
           
-          // 대안: 로컬 서버의 스트리밍 URL을 제미나이 링크로 표시
-          const fileName = path.basename(outputPath);
-          geminiFileLink = `/api/podcast/stream/${fileName}`;
-          console.log('Using local streaming URL as fallback:', geminiFileLink);
+          console.log(`Audio data size: ${audioData.length} bytes`);
+          console.log(`MIME type: ${part.inlineData.mimeType}`);
+          
+          // 파일이 너무 작으면 오류
+          if (audioData.length < 1000) {
+            throw new Error(`Audio file too small (${audioData.length} bytes), likely corrupted`);
+          }
+          
+          fs.writeFileSync(outputPath, audioData);
+          console.log(`AI Audio Overview saved to: ${outputPath}`);
+          audioFound = true;
+          break;
         }
+      }
+      
+      // fileData 확인 (다른 가능한 형태)
+      if (part.fileData) {
+        console.log('Found fileData:', {
+          mimeType: part.fileData.mimeType,
+          fileUri: part.fileData.fileUri
+        });
         
-        return { 
-          audioPath: outputPath, 
-          geminiFileLink: geminiFileLink || undefined 
-        };
+        if (part.fileData.mimeType?.startsWith('audio/') && part.fileData.fileUri) {
+          console.log('Audio file available at:', part.fileData.fileUri);
+          // fileUri가 있는 경우 다운로드 시도
+          try {
+            const response = await fetch(part.fileData.fileUri, {
+              headers: {
+                'Authorization': `Bearer ${apiKey}`
+              }
+            });
+            
+            if (response.ok) {
+              const audioBuffer = await response.arrayBuffer();
+              const audioData = Buffer.from(audioBuffer);
+              
+              // 업로드 폴더 확인 및 생성
+              const uploadDir = path.dirname(outputPath);
+              if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+              }
+              
+              fs.writeFileSync(outputPath, audioData);
+              console.log(`AI Audio Overview downloaded and saved to: ${outputPath}`);
+              audioFound = true;
+              break;
+            }
+          } catch (downloadError) {
+            console.warn('Failed to download audio from fileUri:', downloadError);
+          }
+        }
       }
     }
+    
+    if (!audioFound) {
+      console.error('No audio data found in any part of the response');
+      console.log('Response structure:', JSON.stringify(content, null, 2));
+      throw new Error("No audio data found in response");
+    }
+        
+    // 저장된 파일 크기 재확인
+    const savedStats = fs.statSync(outputPath);
+    console.log(`Saved file size: ${savedStats.size} bytes`);
+    
+    // 제미나이 Files API를 사용하여 파일 업로드 및 공유 링크 생성
+    let geminiFileLink;
+    
+    try {
+      console.log('Uploading audio to Gemini Files API...');
+      
+      const fileName = path.basename(outputPath);
+      const audioBuffer = fs.readFileSync(outputPath);
+      
+      // Gemini Files API를 사용하여 파일 업로드  
+      const blob = new Blob([audioBuffer], { type: 'audio/wav' });
+      const fileUploadResponse = await ai.files.upload({ file: blob });
+      
+      if (fileUploadResponse && fileUploadResponse.uri) {
+        console.log(`Gemini file uploaded successfully: ${fileUploadResponse.uri}`);
+        
+        // Gemini Files API는 직접적인 공유 링크를 제공하지 않습니다
+        // 대신 업로드된 파일 URI를 저장하고 Gemini AI Studio에서 접근 가능하도록 안내
+        geminiFileLink = fileUploadResponse.uri;
+        
+        console.log('Gemini file uploaded successfully.');
+        console.log('File can be accessed through Gemini AI Studio at: https://aistudio.google.com/app/files');
+        console.log(`File URI: ${geminiFileLink}`);
+      }
+    } catch (uploadError) {
+      console.warn('Failed to upload to Gemini Files API:', uploadError);
+      
+      // 대안: 로컬 서버의 스트리밍 URL을 제미나이 링크로 표시
+      const fileName = path.basename(outputPath);
+      geminiFileLink = `/api/podcast/stream/${fileName}`;
+      console.log('Using local streaming URL as fallback:', geminiFileLink);
+    }
+    
+    return { 
+      audioPath: outputPath, 
+      geminiFileLink: geminiFileLink || undefined 
+    };
 
     throw new Error("No audio data found in Gemini AI Audio Overview response");
   } catch (error) {

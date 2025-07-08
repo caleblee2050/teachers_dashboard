@@ -823,6 +823,20 @@ export default function GeneratedContent({
                   <div className="flex space-x-2">
                     {item.contentType === 'podcast' && (
                       <div className="flex space-x-2">
+                        {item.content?.audioFilePath && (
+                          <Button
+                            onClick={() => {
+                              const filename = item.content.audioFilePath.split('/').pop();
+                              const downloadUrl = `/api/podcast/download/${filename}`;
+                              window.open(downloadUrl, '_blank');
+                            }}
+                            className="bg-green-600 hover:bg-green-700 text-white text-xs"
+                            size="sm"
+                          >
+                            <i className="fas fa-download mr-1"></i>
+                            로컬 다운로드
+                          </Button>
+                        )}
 
                         {item.content?.geminiFileLink && (
                           <Button
@@ -905,6 +919,21 @@ export default function GeneratedContent({
                   </audio>
                 </div>
                 <div className="flex space-x-2">
+                  {selectedItem.content?.audioFilePath && (
+                    <Button
+                      onClick={() => {
+                        const filename = selectedItem.content.audioFilePath.split('/').pop();
+                        const downloadUrl = `/api/podcast/download/${filename}`;
+                        window.open(downloadUrl, '_blank');
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white text-sm"
+                      size="sm"
+                    >
+                      <i className="fas fa-download mr-1"></i>
+                      로컬 다운로드
+                    </Button>
+                  )}
+                  
                   {selectedItem.content?.geminiFileLink && (
                     <Button
                       onClick={() => {

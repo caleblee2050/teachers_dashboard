@@ -192,6 +192,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 팟캐스트 오디오 파일 다운로드 라우트
+  app.get('/api/podcast/download/:filename', isAuthenticated, (req, res) => {
+    try {
+      const filename = req.params.filename;
+      const filePath = path.join(process.cwd(), 'uploads', filename);
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: 'Audio file not found' });
+      }
+      
+      // 파일 이름에서 확장자 제거하고 의미있는 이름으로 변경
+      const originalName = filename.replace(/^\d+-/, '').replace(/\.wav$/, '');
+      const downloadName = `podcast-${originalName || 'audio'}.wav`;
+      
+      // 다운로드를 위한 헤더 설정
+      res.setHeader('Content-Type', 'audio/wav');
+      res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+      res.setHeader('Cache-Control', 'no-cache');
+      
+      // 파일 스트림으로 다운로드
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+      
+      fileStream.on('error', (error) => {
+        console.error('Error downloading podcast file:', error);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Failed to download file' });
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error in podcast download:', error);
+      res.status(500).json({ error: 'Failed to download file' });
+    }
+  });
+
   // Debug route to check session
   app.get('/api/session', (req: any, res) => {
     console.log('Session check:', {
