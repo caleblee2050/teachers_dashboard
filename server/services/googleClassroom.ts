@@ -66,6 +66,27 @@ export class GoogleClassroomService {
     }
   }
 
+  async checkPermissions(): Promise<boolean> {
+    try {
+      // 간단한 권한 확인: 내 수업 목록 조회 시도
+      const response = await this.classroom.courses.list({
+        teacherId: 'me',
+        pageSize: 1
+      });
+      
+      return true; // 성공하면 권한이 있음
+    } catch (error: any) {
+      console.error('Classroom permission check failed:', error);
+      
+      // 인증 오류인 경우
+      if (error.code === 401 || error.code === 403) {
+        return false;
+      }
+      
+      return false;
+    }
+  }
+
   generateContentText(content: any): string {
     let text = `${content.title}\n\n`;
     
