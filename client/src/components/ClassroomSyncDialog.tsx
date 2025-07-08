@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Eye, Calendar, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface Assignment {
   id: string;
@@ -47,11 +48,9 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
   // 과제 삭제 뮤테이션
   const deleteAssignmentMutation = useMutation({
     mutationFn: async (assignmentId: string) => {
-      const response = await fetch(`/api/classroom/courses/${courseId}/assignments/${assignmentId}`, {
+      return apiRequest(`/api/classroom/courses/${courseId}/assignments/${assignmentId}`, {
         method: 'DELETE'
       });
-      if (!response.ok) throw new Error('과제 삭제에 실패했습니다.');
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['classroom-assignments', courseId] });

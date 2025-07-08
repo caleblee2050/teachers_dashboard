@@ -1484,15 +1484,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Classroom sync endpoint
+  // Classroom sync endpoint (제거됨 - 개별 API 사용)
   app.get('/api/classroom/sync', isAuthenticated, async (req: any, res) => {
     try {
-      const classroomService = await createClassroomService(req.user);
-      const syncResult = await classroomService.syncAssignments();
-      
+      // 더 이상 필요 없음 - 개별 API로 대체
       res.json({
         success: true,
-        data: syncResult
+        message: '개별 API로 대체되었습니다.'
       });
     } catch (error) {
       console.error('Error syncing classroom:', error);

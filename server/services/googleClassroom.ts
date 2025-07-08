@@ -132,10 +132,25 @@ export class GoogleClassroomService {
   }
 
   generateContentText(content: any): string {
+    console.log('=== generateContentText DEBUG ===');
+    console.log('Content object:', JSON.stringify(content, null, 2));
+    
     let text = `${content.title}\n\n`;
     
+    // content.content가 문자열인 경우 JSON 파싱
+    let parsedContent = content.content;
+    if (typeof content.content === 'string') {
+      try {
+        parsedContent = JSON.parse(content.content);
+        console.log('Parsed content from string:', parsedContent);
+      } catch (error) {
+        console.log('Failed to parse content as JSON, using as is:', content.content);
+        parsedContent = content.content;
+      }
+    }
+    
     if (content.contentType === 'summary') {
-      const data = content.content;
+      const data = parsedContent;
       text += `📚 주요 개념:\n`;
       data.keyConcepts?.forEach((concept: string) => {
         text += `• ${concept}\n`;
@@ -148,7 +163,7 @@ export class GoogleClassroomService {
         });
       }
     } else if (content.contentType === 'quiz') {
-      const data = content.content;
+      const data = parsedContent;
       text += `❓ 퀴즈 문제:\n\n`;
       data.questions?.forEach((q: any, index: number) => {
         text += `${index + 1}. ${q.question}\n`;
@@ -160,7 +175,7 @@ export class GoogleClassroomService {
         text += `정답: ${q.correctAnswer}\n해설: ${q.explanation}\n\n`;
       });
     } else if (content.contentType === 'study_guide') {
-      const data = content.content;
+      const data = parsedContent;
       text += `🎯 학습 목표:\n`;
       data.learningObjectives?.forEach((obj: string) => {
         text += `• ${obj}\n`;
@@ -174,13 +189,17 @@ export class GoogleClassroomService {
         text += `• ${question}\n`;
       });
     } else if (content.contentType === 'podcast') {
-      const data = content.content;
+      const data = parsedContent;
       text += `📻 팟캐스트: ${data.title}\n\n`;
       text += `📝 설명: ${data.description}\n\n`;
       text += `📄 스크립트:\n${data.script}\n`;
     }
 
+    console.log('Generated text length:', text.length);
+    console.log('Generated text preview:', text.substring(0, 300) + '...');
+    
     return text;
+
   }
 
   async createAssignment(
@@ -302,10 +321,25 @@ export class GoogleClassroomService {
         }
       }
 
+      // 과제 설명 생성 - 전체 콘텐츠를 설명에 포함
+      let assignmentDescription = textContent;
+      
+      // 첨부 파일 목록 추가
+      if (uploadedFiles.length > 0) {
+        assignmentDescription += `\n\n📎 첨부 파일:\n`;
+        uploadedFiles.forEach(file => {
+          assignmentDescription += `• ${file.driveFile.title}\n`;
+        });
+      }
+      
+      console.log('=== Assignment Description ===');
+      console.log('Description length:', assignmentDescription.length);
+      console.log('Description preview:', assignmentDescription.substring(0, 500) + '...');
+
       // 과제 생성
       const assignment = {
         title,
-        description: textContent,
+        description: assignmentDescription,
         workType: 'ASSIGNMENT',
         state: 'PUBLISHED',
         submissionModificationMode: 'MODIFIABLE_UNTIL_TURNED_IN',
