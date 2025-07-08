@@ -615,20 +615,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/content/batch/podcast', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { contentIds, language = 'ko' } = req.body;
+      const { contentWithLanguage } = req.body;
 
-      if (!contentIds || !Array.isArray(contentIds) || contentIds.length === 0) {
-        return res.status(400).json({ message: 'Content IDs array is required' });
+      if (!contentWithLanguage || !Array.isArray(contentWithLanguage) || contentWithLanguage.length === 0) {
+        return res.status(400).json({ message: 'Content with language array is required' });
       }
 
-      console.log(`Starting batch podcast generation for ${contentIds.length} contents`);
+      console.log(`Starting batch podcast generation for ${contentWithLanguage.length} contents`);
       
       const results = [];
       const errors = [];
 
-      for (const contentId of contentIds) {
+      for (const item of contentWithLanguage) {
+        const { contentId, language } = item;
+        
         try {
-          console.log(`Processing content ID: ${contentId}`);
+          console.log(`Processing content ID: ${contentId} with language: ${language}`);
           
           // Get the content
           const allContent = await storage.getGeneratedContentByTeacher(userId);
@@ -645,9 +647,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
 
-          // Generate podcast script using the content
+          // Generate podcast script using the content with specific language
           const contentText = convertContentToText(targetContent.content);
-          console.log(`Generating podcast for: ${targetContent.title}`);
+          console.log(`Generating podcast for: ${targetContent.title} in language: ${language}`);
           
           const podcastContent = await generatePodcastScript(contentText, language as 'ko' | 'en' | 'ja' | 'zh' | 'th' | 'vi' | 'fil');
           
@@ -687,10 +689,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             originalContentId: contentId,
             newPodcastId: newContent.id,
             title: newContent.title,
+            language: language,
             success: true
           });
 
-          console.log(`Batch podcast created successfully: ${newContent.id}`);
+          console.log(`Batch podcast created successfully: ${newContent.id} in ${language}`);
           
         } catch (error) {
           console.error(`Error processing content ${contentId}:`, error);
@@ -704,9 +707,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         message: `Batch podcast generation completed`,
         totalRequested: contentWithLanguage.length,
-        successful: results.successful,
-        failed: results.failed,
-        errors: results.errors
+        successful: results.length,
+        failed: errors.length,
+        results,
+        errors
       });
 
     } catch (error) {
