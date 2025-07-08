@@ -257,7 +257,7 @@ export class GoogleClassroomService {
               id: file.driveFile.id,
               title: file.driveFile.title
             },
-            shareMode: 'STUDENT_VIEW'
+            shareMode: 'VIEW'
           }
         })),
         assignment: {

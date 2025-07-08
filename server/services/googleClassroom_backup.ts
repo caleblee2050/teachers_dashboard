@@ -397,7 +397,7 @@ export class GoogleClassroomService {
               id: file.driveFile.id,
               title: file.driveFile.title
             },
-            shareMode: 'STUDENT_VIEW'
+            shareMode: 'VIEW'
           }
         })) : [],
         // 학생 제출 설정 - 과제로만 업로드
