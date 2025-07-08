@@ -185,7 +185,7 @@ export default function GeneratedContent({
 
   // Batch podcast generation mutation
   const batchPodcastMutation = useMutation({
-    mutationFn: async (data: { contentIds: string[], language: string }) => {
+    mutationFn: async (data: { contentWithLanguage: Array<{contentId: string, language: string}> }) => {
       const response = await fetch('/api/content/batch/podcast', {
         method: 'POST',
         headers: {
@@ -591,9 +591,14 @@ export default function GeneratedContent({
                       return;
                     }
                     
+                    // 각 콘텐츠의 원래 언어를 사용하여 배치 생성
+                    const contentWithLanguage = nonPodcastContent.map(item => ({
+                      contentId: item.id,
+                      language: item.language || 'ko'
+                    }));
+                    
                     batchPodcastMutation.mutate({
-                      contentIds: nonPodcastContent.map(item => item.id),
-                      language: 'ko'
+                      contentWithLanguage: contentWithLanguage
                     });
                   }}
                   disabled={batchPodcastMutation.isPending}

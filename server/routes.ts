@@ -703,11 +703,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         message: `Batch podcast generation completed`,
-        totalRequested: contentIds.length,
-        successful: results.length,
-        failed: errors.length,
-        results,
-        errors
+        totalRequested: contentWithLanguage.length,
+        successful: results.successful,
+        failed: results.failed,
+        errors: results.errors
       });
 
     } catch (error) {
@@ -821,13 +820,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/content/batch/podcast', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { contentIds, language } = req.body;
+      const { contentWithLanguage } = req.body;
       
-      if (!contentIds || !Array.isArray(contentIds) || contentIds.length === 0) {
-        return res.status(400).json({ message: 'Content IDs are required' });
+      if (!contentWithLanguage || !Array.isArray(contentWithLanguage) || contentWithLanguage.length === 0) {
+        return res.status(400).json({ message: 'Content with language array is required' });
       }
       
-      console.log(`Starting batch podcast generation for ${contentIds.length} items`);
+      console.log(`Starting batch podcast generation for ${contentWithLanguage.length} items`);
       
       const results = {
         successful: 0,
@@ -835,14 +834,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         errors: [] as string[]
       };
       
-      // Process each content item
-      for (const contentId of contentIds) {
+      // Process each content item with specific language
+      for (const item of contentWithLanguage) {
+        const { contentId, language } = item;
+        
         try {
-          console.log(`Processing content ID: ${contentId}`);
+          console.log(`Processing content ID: ${contentId} with language: ${language}`);
           
           // Get the content
-          const existingContent = await storage.getGeneratedContentByFile(contentId);
-          const targetContent = existingContent.find(c => c.id === contentId);
+          const allContent = await storage.getGeneratedContentByTeacher(userId);
+          const targetContent = allContent.find(c => c.id === contentId);
           
           if (!targetContent) {
             console.log(`Content not found: ${contentId}`);
@@ -857,22 +858,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
           
-          // Generate podcast
+          // Generate podcast with specific language
           const podcastData = await generatePodcastScript(
             convertContentToText(targetContent.content),
             language
           );
           
           // Generate audio
-          const audioFileName = `podcast_${Date.now()}.wav`;
-          const audioFilePath = path.join(process.cwd(), 'uploads', audioFileName);
+          const timestamp = Date.now();
+          const outputPath = path.join(process.cwd(), 'uploads', `podcast_${timestamp}.wav`);
           
-          await generatePodcastAudio(podcastData.script, audioFilePath, undefined, req.user);
+          try {
+            const { audioPath, geminiFileLink } = await generatePodcastAudio(
+              podcastData.script, 
+              outputPath, 
+              undefined, // No PDF path for batch processing
+              req.user
+            );
+            
+            podcastData.audioFilePath = audioPath;
+            podcastData.geminiFileLink = geminiFileLink;
+            
+            console.log(`Podcast audio generated successfully: ${audioPath}`);
+          } catch (audioError) {
+            console.error('Podcast audio generation failed:', audioError);
+            podcastData.audioFilePath = undefined;
+            podcastData.geminiFileLink = undefined;
+          }
           
           // Save to database
           const podcastContentForDB = {
             ...podcastData,
-            audioFilePath: audioFilePath,
+            audioFilePath: podcastData.audioFilePath,
             audioData: undefined
           };
           
@@ -880,7 +897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fileId: targetContent.fileId,
             teacherId: userId,
             contentType: 'podcast',
-            title: podcastData.title,
+            title: `${targetContent.title} (팟캐스트)`,
             content: podcastContentForDB,
             language,
             shareToken: nanoid(16),

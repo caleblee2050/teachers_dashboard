@@ -368,8 +368,12 @@ export class GoogleClassroomService {
               parents: ['root']
             };
             
+            // Check if it's WAV or MP3 based on content
+            const fileBuffer = fs.readFileSync(audioFilePath);
+            const isWav = fileBuffer.toString('hex', 0, 4) === '52494646'; // RIFF header for WAV
+            
             const audioMedia = {
-              mimeType: 'audio/wav',
+              mimeType: isWav ? 'audio/wav' : 'audio/mpeg',
               body: fs.createReadStream(audioFilePath)
             };
 
@@ -431,10 +435,10 @@ export class GoogleClassroomService {
         title,
         description: assignmentDescription,
         workType: 'ASSIGNMENT',
-        state: 'PUBLISHED',
+        state: 'DRAFT', // First create as draft to prevent file attachment issues
         submissionModificationMode: 'MODIFIABLE_UNTIL_TURNED_IN',
         assigneeMode: 'ALL_STUDENTS',
-        materials: uploadedFiles,
+        materials: uploadedFiles.length > 0 ? uploadedFiles : undefined,
         // 학생 제출 설정 - 과제로만 업로드
         assignment: {
           studentWorkFolder: {
@@ -450,9 +454,39 @@ export class GoogleClassroomService {
         requestBody: assignment,
       });
 
-      console.log('Assignment created successfully!');
-      console.log('Response data:', JSON.stringify(response.data, null, 2));
+      console.log('Assignment created as draft successfully!');
       console.log('Assignment ID:', response.data.id);
+      
+      // Wait a bit for file processing, then publish
+      if (uploadedFiles.length > 0) {
+        console.log('Waiting for file processing before publishing...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        try {
+          const publishResponse = await this.classroom.courses.courseWork.patch({
+            courseId,
+            id: response.data.id!,
+            updateMask: 'state',
+            requestBody: { state: 'PUBLISHED' }
+          });
+          
+          console.log('Assignment published successfully!');
+          response.data.state = 'PUBLISHED';
+        } catch (publishError) {
+          console.error('Error publishing assignment:', publishError);
+          // Assignment was created successfully as draft, continue
+        }
+      } else {
+        // No files to wait for, publish immediately
+        const publishResponse = await this.classroom.courses.courseWork.patch({
+          courseId,
+          id: response.data.id!,
+          updateMask: 'state',
+          requestBody: { state: 'PUBLISHED' }
+        });
+        
+        response.data.state = 'PUBLISHED';
+      }
       console.log('Assignment URL:', response.data.alternateLink);
 
       return {
