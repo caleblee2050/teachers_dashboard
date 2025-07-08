@@ -817,6 +817,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Batch podcast generation route
+  app.post('/api/content/batch/podcast', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { contentIds, language } = req.body;
+      
+      if (!contentIds || !Array.isArray(contentIds) || contentIds.length === 0) {
+        return res.status(400).json({ message: 'Content IDs are required' });
+      }
+      
+      console.log(`Starting batch podcast generation for ${contentIds.length} items`);
+      
+      const results = {
+        successful: 0,
+        failed: 0,
+        errors: [] as string[]
+      };
+      
+      // Process each content item
+      for (const contentId of contentIds) {
+        try {
+          console.log(`Processing content ID: ${contentId}`);
+          
+          // Get the content
+          const existingContent = await storage.getGeneratedContentByFile(contentId);
+          const targetContent = existingContent.find(c => c.id === contentId);
+          
+          if (!targetContent) {
+            console.log(`Content not found: ${contentId}`);
+            results.failed++;
+            results.errors.push(`Content not found: ${contentId}`);
+            continue;
+          }
+          
+          // Skip if already a podcast
+          if (targetContent.contentType === 'podcast') {
+            console.log(`Already a podcast: ${contentId}`);
+            continue;
+          }
+          
+          // Generate podcast
+          const podcastData = await generatePodcastScript(
+            convertContentToText(targetContent.content),
+            language
+          );
+          
+          // Generate audio
+          const audioFileName = `podcast_${Date.now()}.wav`;
+          const audioFilePath = path.join(process.cwd(), 'uploads', audioFileName);
+          
+          await generatePodcastAudio(podcastData.script, audioFilePath, undefined, req.user);
+          
+          // Save to database
+          const podcastContentForDB = {
+            ...podcastData,
+            audioFilePath: audioFilePath,
+            audioData: undefined
+          };
+          
+          const newContent = await storage.createGeneratedContent({
+            fileId: targetContent.fileId,
+            teacherId: userId,
+            contentType: 'podcast',
+            title: podcastData.title,
+            content: podcastContentForDB,
+            language,
+            shareToken: nanoid(16),
+          });
+          
+          console.log(`Successfully generated podcast for: ${contentId}`);
+          results.successful++;
+          
+        } catch (error) {
+          console.error(`Error processing content ${contentId}:`, error);
+          results.failed++;
+          results.errors.push(`${contentId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+      
+      console.log(`Batch podcast generation completed: ${results.successful} successful, ${results.failed} failed`);
+      res.json(results);
+      
+    } catch (error) {
+      console.error('Error in batch podcast generation:', error);
+      res.status(500).json({ message: 'Failed to generate batch podcasts' });
+    }
+  });
+
   // Public content sharing route
   app.get('/api/share/:token', async (req, res) => {
     try {

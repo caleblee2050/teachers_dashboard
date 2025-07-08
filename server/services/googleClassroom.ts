@@ -220,6 +220,7 @@ export class GoogleClassroomService {
       });
 
       // 2. 오디오 파일이 있다면 업로드 (팟캐스트인 경우)
+      console.log('Checking audio file:', content.audioFilePath);
       if (content.audioFilePath && fs.existsSync(content.audioFilePath)) {
         try {
           console.log('Uploading audio file to Drive:', content.audioFilePath);
