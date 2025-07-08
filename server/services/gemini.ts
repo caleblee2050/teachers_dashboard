@@ -419,7 +419,8 @@ AI 오디오 오버뷰 요구사항:
     // AI Audio Overview 생성 시도 - 순서대로 모델 테스트
     let response;
     const modelsToTry = [
-      "gemini-2.0-flash-exp"
+      "gemini-2.5-pro-preview-tts",
+      "gemini-2.5-flash-preview-tts"
     ];
     
     let lastError;

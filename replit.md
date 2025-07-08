@@ -107,6 +107,12 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- July 08, 2025. Gemini API key integration and TTS model fix
+  - Added GEMINI_API_KEY environment variable for direct Gemini API access
+  - Fixed TTS model selection to use correct preview models: gemini-2.5-pro-preview-tts and gemini-2.5-flash-preview-tts
+  - Updated error handling to show clear quota exceeded messages without fallback actions
+  - Resolved "Model does not support requested modality: AUDIO" error by using proper TTS-enabled models
+  - Enhanced podcast generation workflow to handle API quota limits gracefully
 - July 08, 2025. Gemini share link implementation and UI improvements
   - Investigated and documented Gemini Files API limitations for direct share link generation
   - Confirmed g.co/gemini/share links are only available through Gemini Apps web interface, not API
