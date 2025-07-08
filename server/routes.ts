@@ -1319,7 +1319,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             activeCourse.id,
             assignmentTitle,
             `AI 생성 콘텐츠 - ${content.contentType}`,
-            content
+            content,
+            content.language || 'ko'
           );
           
           console.log(`Assignment creation result:`, result);

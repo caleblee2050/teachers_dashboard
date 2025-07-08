@@ -79,7 +79,8 @@ export class GoogleClassroomService {
     courseId: string,
     title: string,
     description: string,
-    content: any
+    content: any,
+    language: string = 'ko'
   ): Promise<ClassroomUploadResult> {
     try {
       console.log('=== createAssignment Started ===');
