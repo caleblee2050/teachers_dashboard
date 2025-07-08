@@ -467,9 +467,15 @@ AI 오디오 오버뷰 요구사항:
           const fileUploadResponse = await ai.files.upload({ file: blob });
           
           if (fileUploadResponse && fileUploadResponse.uri) {
-            // 업로드된 파일의 URI를 공유 링크로 사용
+            console.log(`Gemini file uploaded successfully: ${fileUploadResponse.uri}`);
+            
+            // Gemini Files API는 직접적인 공유 링크를 제공하지 않습니다
+            // 대신 업로드된 파일 URI를 저장하고 Gemini AI Studio에서 접근 가능하도록 안내
             geminiFileLink = fileUploadResponse.uri;
-            console.log(`Gemini file uploaded successfully: ${geminiFileLink}`);
+            
+            console.log('Gemini file uploaded successfully.');
+            console.log('File can be accessed through Gemini AI Studio at: https://aistudio.google.com/app/files');
+            console.log(`File URI: ${geminiFileLink}`);
           }
         } catch (uploadError) {
           console.warn('Failed to upload to Gemini Files API:', uploadError);

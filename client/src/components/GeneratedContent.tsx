@@ -827,12 +827,14 @@ export default function GeneratedContent({
                         {item.content?.geminiFileLink && (
                           <Button
                             onClick={() => {
+                              const fileUri = item.content.geminiFileLink;
+                              const fileId = fileUri.split('/').pop();
+                              
                               toast({
-                                title: "제미나이 파일 링크",
-                                description: "제미나이 파일이 서버에 업로드되었습니다. 현재 브라우저에서 직접 다운로드할 수 없으므로 제미나이 Studio에서 접근하세요.",
+                                title: "제미나이 파일 업로드 완료",
+                                description: `파일이 제미나이에 업로드되었습니다 (ID: ${fileId?.substring(0, 8)}...). AI Studio에서 파일을 확인하고 새로운 대화를 시작하여 공유 링크를 만들 수 있습니다.`,
                                 variant: "default",
                               });
-                              // 제미나이 Studio로 이동
                               window.open('https://aistudio.google.com/app/files', '_blank');
                             }}
                             className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
@@ -906,9 +908,12 @@ export default function GeneratedContent({
                   {selectedItem.content?.geminiFileLink && (
                     <Button
                       onClick={() => {
+                        const fileUri = selectedItem.content.geminiFileLink;
+                        const fileId = fileUri.split('/').pop();
+                        
                         toast({
-                          title: "제미나이 파일 링크",
-                          description: "제미나이 파일이 서버에 업로드되었습니다. 현재 브라우저에서 직접 다운로드할 수 없으므로 제미나이 Studio에서 접근하세요.",
+                          title: "제미나이 파일 업로드 완료",
+                          description: `파일이 제미나이에 업로드되었습니다 (ID: ${fileId?.substring(0, 8)}...). AI Studio에서 파일을 확인하고 새로운 대화를 시작하여 공유 링크를 만들 수 있습니다.`,
                           variant: "default",
                         });
                         window.open('https://aistudio.google.com/app/files', '_blank');

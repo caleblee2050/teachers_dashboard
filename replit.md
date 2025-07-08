@@ -107,6 +107,13 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- July 08, 2025. Gemini share link implementation and UI improvements
+  - Investigated and documented Gemini Files API limitations for direct share link generation
+  - Confirmed g.co/gemini/share links are only available through Gemini Apps web interface, not API
+  - Enhanced Gemini file upload notifications with file ID display and detailed instructions
+  - Improved user guidance for creating shareable links through AI Studio conversation workflow
+  - Updated Google Classroom upload title format with proper date formatting and language prefixes
+  - Maintained functional podcast audio playback while removing non-working download buttons
 - July 07, 2025. Educational content upload formatting and podcast UI cleanup
   - Updated Google Classroom upload title format: 오늘날짜+파일명+예습자료 with language prefixes
   - Removed local podcast download buttons that were not working correctly
