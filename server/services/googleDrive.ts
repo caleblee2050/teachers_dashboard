@@ -58,8 +58,27 @@ export class GoogleDriveService {
         webViewLink: file.webViewLink!,
         thumbnailLink: file.thumbnailLink ?? undefined,
       })) || [];
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching Drive files:', error);
+      
+      // Handle specific API errors
+      if (error.code === 403 && error.message?.includes('Google Drive API has not been used')) {
+        const projectId = error.message.match(/project (\d+)/)?.[1];
+        const activationUrl = `https://console.developers.google.com/apis/api/drive.googleapis.com/overview?project=${projectId}`;
+        
+        const customError = new Error('Google Drive API not enabled') as any;
+        customError.action = 'API_NOT_ENABLED';
+        customError.details = activationUrl;
+        customError.projectId = projectId;
+        throw customError;
+      }
+      
+      if (error.code === 401) {
+        const customError = new Error('Google Drive authentication failed') as any;
+        customError.action = 'REAUTHENTICATE';
+        throw customError;
+      }
+      
       throw new Error('Failed to fetch Google Drive files');
     }
   }
