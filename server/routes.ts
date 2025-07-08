@@ -1127,24 +1127,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/drive/upload', isAuthenticated, async (req: any, res) => {
     try {
+      console.log('=== Google Drive Upload Request ===');
+      console.log('Request body:', req.body);
+      
       const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user?.googleAccessToken) {
+        console.log('No Google access token found');
         return res.status(401).json({ message: 'Google authentication required' });
       }
       
       const { fileId, fileName } = req.body;
       
       if (!fileId || !fileName) {
+        console.log('Missing fileId or fileName:', { fileId, fileName });
         return res.status(400).json({ message: 'File ID and name are required' });
       }
       
+      console.log('Creating Drive service...');
       const driveService = await createDriveService(user);
       
       // Download file from Google Drive
+      console.log('Downloading file from Google Drive:', fileId);
       const fileBuffer = await driveService.downloadFile(fileId);
+      console.log('Downloaded file buffer size:', fileBuffer.length);
+      
+      console.log('Getting file metadata...');
       const fileMetadata = await driveService.getFileMetadata(fileId);
+      console.log('File metadata:', fileMetadata);
       
       // Save file locally
       const timestamp = Date.now();
@@ -1152,10 +1163,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const localFileName = `${timestamp}-${sanitizedName}`;
       const localFilePath = path.join(uploadDir, localFileName);
       
+      console.log('Saving file locally:', localFilePath);
       fs.writeFileSync(localFilePath, fileBuffer);
       
       // Extract text from the file
+      console.log('Extracting text from file...');
       const extractedText = await extractTextFromFile(localFilePath, fileMetadata.mimeType);
+      console.log('Extracted text length:', extractedText.length);
       
       // Create file record
       const fileData = {
@@ -1168,19 +1182,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         extractedText: extractedText
       };
       
+      console.log('Creating file record in database...');
       const validatedData = insertFileSchema.parse(fileData);
+      console.log('Validated file data:', validatedData);
+      
       const savedFile = await storage.createFile(validatedData);
+      console.log('File saved successfully:', savedFile.id);
       
       res.json(savedFile);
     } catch (error: any) {
       console.error('Error uploading from Drive:', error);
+      console.error('Error stack:', error.stack);
       
       if (error.code === 401 || error.status === 401) {
         res.status(401).json({ 
           message: 'Google authentication expired. Please reconnect your Google account.' 
         });
       } else {
-        res.status(500).json({ message: 'Failed to upload file from Google Drive' });
+        res.status(500).json({ 
+          message: 'Failed to upload file from Google Drive',
+          error: error.message 
+        });
       }
     }
   });
