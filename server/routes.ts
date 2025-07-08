@@ -1815,5 +1815,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   const httpServer = createServer(app);
+  // Gemini API 할당량 테스트 엔드포인트
+  app.get('/api/test/gemini-quota', async (_req, res) => {
+    try {
+      const { GoogleGenAI } = await import("@google/genai");
+      const apiKey = process.env.GEMINI_API_KEY;
+      
+      if (!apiKey) {
+        return res.json({
+          status: 'error',
+          message: 'GEMINI_API_KEY가 설정되지 않았습니다.'
+        });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const testResults = {
+        apiKeyStatus: '✓ 설정됨',
+        apiKeyPrefix: apiKey.substring(0, 12) + '...',
+        tests: [] as any[]
+      };
+
+      // 1. 기본 텍스트 모델 테스트
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-1.5-flash',
+          contents: [{ role: 'user', parts: [{ text: '테스트' }] }]
+        });
+        
+        testResults.tests.push({
+          model: 'gemini-1.5-flash',
+          status: '✓ 정상',
+          type: '텍스트 생성'
+        });
+      } catch (error: any) {
+        testResults.tests.push({
+          model: 'gemini-1.5-flash',
+          status: '❌ 실패',
+          error: error.message,
+          type: '텍스트 생성'
+        });
+      }
+
+      // 2. TTS 모델들 테스트
+      const ttsModels = ['gemini-2.5-pro-preview-tts', 'gemini-2.5-flash-preview-tts'];
+      
+      for (const modelName of ttsModels) {
+        try {
+          await ai.models.generateContent({
+            model: modelName,
+            contents: [{ role: 'user', parts: [{ text: '테스트' }] }],
+            config: { responseModalities: ['AUDIO'] }
+          });
+          
+          testResults.tests.push({
+            model: modelName,
+            status: '✓ 정상',
+            type: 'TTS (오디오 생성)'
+          });
+        } catch (error: any) {
+          let errorType = '기타 오류';
+          if (error.message.includes('quota') || error.message.includes('RESOURCE_EXHAUSTED')) {
+            errorType = '할당량 초과';
+          } else if (error.message.includes('API_KEY_INVALID')) {
+            errorType = 'API 키 무효';
+          } else if (error.message.includes('does not support')) {
+            errorType = '기능 미지원';
+          }
+          
+          testResults.tests.push({
+            model: modelName,
+            status: '❌ 실패',
+            error: error.message,
+            errorType,
+            type: 'TTS (오디오 생성)'
+          });
+        }
+      }
+
+      res.json({
+        status: 'success',
+        timestamp: new Date().toISOString(),
+        quota_info: {
+          free_tier_limits: {
+            'gemini-1.5-flash': '1,500 요청/일',
+            'gemini-1.5-pro': '50 요청/일',
+            'TTS 모델들': '15 요청/일 (프리뷰)'
+          }
+        },
+        ...testResults
+      });
+
+    } catch (error: any) {
+      res.status(500).json({
+        status: 'error',
+        message: error.message
+      });
+    }
+  });
+
   return httpServer;
 }
