@@ -1428,9 +1428,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/classroom/upload', isAuthenticated, async (req: any, res) => {
     try {
-      console.log('=== Classroom Upload Request ===');
+      console.log('=== NEW Classroom Upload Request DEBUG ===');
       console.log('User ID:', req.user.id);
-      console.log('Request body:', req.body);
+      console.log('Request body:', JSON.stringify(req.body, null, 2));
+      console.log('Request headers:', req.headers);
+      console.log('Request URL:', req.url);
       
       const { courseId, contentId, title, description } = req.body;
 
@@ -1471,13 +1473,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         language: 'ko'
       });
       
-      const result = await classroomService.createAssignment(
-        courseId,
-        title || targetContent.title,
-        description || `EduAI Assistant에서 생성된 ${targetContent.contentType} 콘텐츠`,
-        targetContent,
-        'ko' // 기본 언어를 한국어로 설정
-      );
+      console.log('=== ABOUT TO CALL createAssignment FUNCTION ===');
+      let result;
+      try {
+        result = await classroomService.createAssignment(
+          courseId,
+          title || targetContent.title,
+          description || `EduAI Assistant에서 생성된 ${targetContent.contentType} 콘텐츠`,
+          targetContent,
+          'ko' // 기본 언어를 한국어로 설정
+        );
+        console.log('=== createAssignment FUNCTION COMPLETED ===');
+      } catch (functionError) {
+        console.error('=== ERROR IN createAssignment FUNCTION ===');
+        console.error('Function error:', functionError);
+        throw functionError;
+      }
 
       console.log('Assignment creation result:', result);
       res.json(result);
