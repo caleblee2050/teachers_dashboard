@@ -671,6 +671,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`Podcast audio generated successfully: ${audioPath}`);
           } catch (audioError) {
             console.error('Podcast audio generation failed:', audioError);
+            
+            // 할당량 초과 시 사용자에게 명확한 메시지 전달
+            const errorMessage = audioError instanceof Error ? audioError.message : String(audioError);
+            if (errorMessage.includes('할당량이 초과되었습니다')) {
+              console.log('Gemini API 할당량 초과로 오디오 생성을 건너뜁니다.');
+            }
+            
             // Set to null instead of undefined to avoid string 'undefined'
             podcastContent.audioFilePath = null;
             podcastContent.geminiFileLink = null;
@@ -793,7 +800,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Podcast audio generated successfully with PDF: ${audioFilePath}`);
       } catch (audioError) {
         console.warn('Audio generation failed, proceeding with script only:', audioError);
+        
+        // 할당량 초과 시 사용자에게 명확한 메시지 전달
+        const errorMessage = audioError instanceof Error ? audioError.message : String(audioError);
+        if (errorMessage.includes('할당량이 초과되었습니다')) {
+          console.log('Gemini API 할당량 초과로 오디오 생성을 건너뜁니다.');
+        }
+        
         // 오디오 생성 실패 시 스크립트만 저장
+        podcastData.audioFilePath = null;
+        podcastData.geminiFileLink = null;
       }
 
       // 팟캐스트 콘텐츠 저장 (오디오 파일은 로컬에만 저장, DB에는 경로만 저장)

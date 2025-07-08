@@ -623,8 +623,8 @@ AI 오디오 오버뷰 요구사항:
     // 할당량 초과 시 특별 처리
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes('exceeded your current quota') || errorMessage.includes('RESOURCE_EXHAUSTED')) {
-      console.log('Gemini API quota exceeded. Please wait and try again later, or upgrade your plan.');
-      throw new Error('Gemini API 할당량이 초과되었습니다. 잠시 후 다시 시도해주시거나 플랜을 업그레이드해주세요.');
+      console.log('Gemini API 할당량이 초과되었습니다. 새로운 할당량이 배정된 이후 다시 사용해주세요.');
+      throw new Error('Gemini API 할당량이 초과되었습니다. 새로운 할당량이 배정된 이후 다시 사용해주세요.');
     }
     
     throw new Error(`Failed to generate AI Audio Overview: ${errorMessage}`);
