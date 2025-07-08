@@ -51,12 +51,19 @@ export default function GoogleDriveFileSelector({ onFileUploaded, children }: Go
   const uploadMutation = useMutation({
     mutationFn: async (file: DriveFile) => {
       console.log('Starting upload mutation for file:', file);
-      const response = await apiRequest('/api/drive/upload', 'POST', {
-        fileId: file.id,
-        fileName: file.name,
-      });
-      console.log('Upload response:', response);
-      return response;
+      try {
+        const response = await apiRequest('POST', '/api/drive/upload', {
+          fileId: file.id,
+          fileName: file.name,
+        });
+        console.log('Upload response received');
+        const data = await response.json();
+        console.log('Upload data:', data);
+        return data;
+      } catch (error) {
+        console.error('Upload mutation error:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       toast({
@@ -68,6 +75,7 @@ export default function GoogleDriveFileSelector({ onFileUploaded, children }: Go
       setIsOpen(false);
     },
     onError: (error: any) => {
+      console.error('Upload error:', error);
       toast({
         title: "업로드 실패",
         description: error.message || "Google Drive 파일 업로드에 실패했습니다.",
@@ -97,6 +105,7 @@ export default function GoogleDriveFileSelector({ onFileUploaded, children }: Go
   };
 
   const handleFileSelect = (file: DriveFile) => {
+    console.log('Selecting file for upload:', file);
     uploadMutation.mutate(file);
   };
 
