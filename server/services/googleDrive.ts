@@ -88,9 +88,25 @@ export class GoogleDriveService {
       const response = await this.drive.files.get({
         fileId,
         alt: 'media',
+      }, {
+        responseType: 'stream'
       });
 
-      return Buffer.from(response.data as string);
+      const chunks: Buffer[] = [];
+      
+      return new Promise((resolve, reject) => {
+        (response.data as any).on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
+
+        (response.data as any).on('end', () => {
+          resolve(Buffer.concat(chunks));
+        });
+
+        (response.data as any).on('error', (error: any) => {
+          reject(error);
+        });
+      });
     } catch (error) {
       console.error('Error downloading Drive file:', error);
       throw new Error('Failed to download file from Google Drive');
