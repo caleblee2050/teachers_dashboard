@@ -95,6 +95,58 @@ export class GoogleClassroomService {
     }
   }
 
+  // 학생 목록 조회
+  async getStudents(): Promise<any[]> {
+    try {
+      console.log('GoogleClassroomService.getStudents - fetching all students from all courses');
+      
+      const courses = await this.getCourses();
+      console.log('Found courses for student sync:', courses.length);
+      
+      const allStudents: any[] = [];
+      
+      for (const course of courses) {
+        try {
+          console.log(`Fetching students for course: ${course.name} (${course.id})`);
+          
+          const response = await this.classroom.courses.students.list({
+            courseId: course.id
+          });
+          
+          const courseStudents = response.data.students || [];
+          console.log(`Found ${courseStudents.length} students in course ${course.name}`);
+          
+          for (const student of courseStudents) {
+            if (student.profile?.name?.fullName && student.profile?.emailAddress) {
+              allStudents.push({
+                name: student.profile.name.fullName,
+                email: student.profile.emailAddress,
+                courseId: course.id,
+                courseName: course.name,
+                userId: student.userId
+              });
+            }
+          }
+        } catch (courseError) {
+          console.error(`Error fetching students for course ${course.name}:`, courseError);
+        }
+      }
+      
+      // 중복 제거 (같은 이메일 주소)
+      const uniqueStudents = allStudents.filter((student, index, self) =>
+        index === self.findIndex(s => s.email === student.email)
+      );
+      
+      console.log(`Total unique students found: ${uniqueStudents.length}`);
+      console.log('Student details:', uniqueStudents.map(s => ({ name: s.name, email: s.email })));
+      
+      return uniqueStudents;
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      return [];
+    }
+  }
+
   // 과제 목록 조회
   async getAssignments(courseId: string): Promise<any[]> {
     try {
