@@ -158,7 +158,7 @@ export class GoogleClassroomService {
         courseWorkStates: ['PUBLISHED', 'DRAFT'],
         orderBy: 'updateTime desc',
         pageSize: 100,
-        fields: 'courseWork(id,title,description,state,creationTime,updateTime,dueDate,dueTime,materials,workType,assigneeMode,individualStudentsOptions,submissionModificationMode,creatorUserId,scheduledTime,associatedWithDeveloper,maxPoints,gradeCategory,alternateLink)'
+        fields: 'courseWork(id,title,description,state,creationTime,updateTime,dueDate,dueTime,materials,workType,assigneeMode,submissionModificationMode,creatorUserId,scheduledTime,maxPoints,gradeCategory,alternateLink)'
       });
       
       console.log('API response received');
@@ -210,7 +210,7 @@ export class GoogleClassroomService {
       const response = await this.classroom.courses.courseWork.get({
         courseId,
         id: assignmentId,
-        fields: 'id,title,description,state,creationTime,updateTime,dueDate,dueTime,materials,workType,assigneeMode,individualStudentsOptions,submissionModificationMode,creatorUserId,scheduledTime,associatedWithDeveloper,maxPoints,gradeCategory,alternateLink'
+        fields: 'id,title,description,state,creationTime,updateTime,dueDate,dueTime,materials,workType,assigneeMode,submissionModificationMode,creatorUserId,scheduledTime,maxPoints,gradeCategory,alternateLink'
       });
       console.log('Assignment detail retrieved:', response.data.title);
       return response.data;
