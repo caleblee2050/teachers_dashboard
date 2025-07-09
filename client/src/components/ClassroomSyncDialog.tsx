@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, Eye, Calendar, FileText, Edit3, Save, X, RefreshCw } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Trash2, Eye, Calendar, FileText, Edit3, Save, X, RefreshCw, CheckSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -38,6 +39,7 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
   const queryClient = useQueryClient();
   const [editingAssignment, setEditingAssignment] = useState<string | null>(null);
   const [editData, setEditData] = useState<{ title: string; description: string }>({ title: '', description: '' });
+  const [selectedAssignments, setSelectedAssignments] = useState<string[]>([]);
 
   // 과제 목록 조회
   const { data: assignments = [], isLoading, error, refetch } = useQuery({
@@ -68,6 +70,33 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
       toast({
         title: '오류',
         description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // 다중 과제 삭제 뮤테이션
+  const deleteMultipleAssignmentsMutation = useMutation({
+    mutationFn: async (assignmentIds: string[]) => {
+      const deletePromises = assignmentIds.map(id => 
+        apiRequest(`/api/classroom/courses/${courseId}/assignments/${id}`, {
+          method: 'DELETE'
+        })
+      );
+      return Promise.all(deletePromises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['classroom-assignments', courseId] });
+      setSelectedAssignments([]);
+      toast({
+        title: '성공',
+        description: `${selectedAssignments.length}개 과제가 성공적으로 삭제되었습니다.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: '오류',
+        description: '일부 과제 삭제에 실패했습니다.',
         variant: 'destructive',
       });
     }
@@ -164,6 +193,32 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
     window.open(url, '_blank');
   };
 
+  // 다중 선택 관련 함수들
+  const handleSelectAssignment = (assignmentId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedAssignments(prev => [...prev, assignmentId]);
+    } else {
+      setSelectedAssignments(prev => prev.filter(id => id !== assignmentId));
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedAssignments(assignments.map(a => a.id));
+    } else {
+      setSelectedAssignments([]);
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedAssignments.length === 0) return;
+    
+    const confirmMessage = `선택한 ${selectedAssignments.length}개 과제를 삭제하시겠습니까?`;
+    if (confirm(confirmMessage)) {
+      deleteMultipleAssignmentsMutation.mutate(selectedAssignments);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -173,16 +228,30 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
               <FileText className="h-5 w-5" />
               {courseName} - 과제 관리
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isLoading}
-              className="flex items-center gap-1"
-            >
-              <RefreshCw className="h-3 w-3" />
-              새로고침
-            </Button>
+            <div className="flex items-center gap-2">
+              {selectedAssignments.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteSelected}
+                  disabled={deleteMultipleAssignmentsMutation.isPending}
+                  className="flex items-center gap-1"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  선택 삭제 ({selectedAssignments.length})
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="flex items-center gap-1"
+              >
+                <RefreshCw className="h-3 w-3" />
+                새로고침
+              </Button>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
@@ -209,9 +278,19 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
           {!isLoading && !error && assignments.length > 0 && (
             <>
               <div className="flex justify-between items-center">
-                <p className="text-sm text-gray-600">
-                  총 {assignments.length}개의 과제
-                </p>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <Checkbox
+                      checked={selectedAssignments.length === assignments.length}
+                      onCheckedChange={handleSelectAll}
+                      className="mr-1"
+                    />
+                    전체 선택
+                  </label>
+                  <p className="text-sm text-gray-600">
+                    총 {assignments.length}개의 과제
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -219,8 +298,14 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
                   <Card key={assignment.id} className="hover:shadow-md transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          {editingAssignment === assignment.id ? (
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            checked={selectedAssignments.includes(assignment.id)}
+                            onCheckedChange={(checked) => handleSelectAssignment(assignment.id, checked as boolean)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            {editingAssignment === assignment.id ? (
                             <div className="space-y-3">
                               <div>
                                 <Label htmlFor="title">제목</Label>
@@ -261,6 +346,7 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
                               </div>
                             </>
                           )}
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           {editingAssignment === assignment.id ? (
