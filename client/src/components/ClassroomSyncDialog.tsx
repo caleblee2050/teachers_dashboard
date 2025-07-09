@@ -78,25 +78,48 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
   // 다중 과제 삭제 뮤테이션
   const deleteMultipleAssignmentsMutation = useMutation({
     mutationFn: async (assignmentIds: string[]) => {
-      const deletePromises = assignmentIds.map(id => 
-        apiRequest(`/api/classroom/courses/${courseId}/assignments/${id}`, {
-          method: 'DELETE'
+      console.log('Starting multiple assignment deletion:', assignmentIds);
+      
+      const results = await Promise.allSettled(
+        assignmentIds.map(async (id) => {
+          console.log(`Deleting assignment ${id}`);
+          return await apiRequest(`/api/classroom/courses/${courseId}/assignments/${id}`, {
+            method: 'DELETE'
+          });
         })
       );
-      return Promise.all(deletePromises);
+      
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+      
+      console.log(`Deletion results: ${successful} successful, ${failed} failed`);
+      
+      if (failed > 0) {
+        const errors = results
+          .filter(r => r.status === 'rejected')
+          .map(r => (r as PromiseRejectedResult).reason);
+        console.error('Failed deletions:', errors);
+        throw new Error(`${failed}개 과제 삭제 실패`);
+      }
+      
+      return { successful, failed };
     },
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
+      console.log('Multiple assignment deletion completed:', result);
       queryClient.invalidateQueries({ queryKey: ['classroom-assignments', courseId] });
       setSelectedAssignments([]);
       toast({
         title: '성공',
-        description: `${selectedAssignments.length}개 과제가 성공적으로 삭제되었습니다.`,
+        description: `${variables.length}개 과제가 성공적으로 삭제되었습니다.`,
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables) => {
+      console.error('Multiple assignment deletion failed:', error, variables);
+      queryClient.invalidateQueries({ queryKey: ['classroom-assignments', courseId] });
+      setSelectedAssignments([]);
       toast({
-        title: '오류',
-        description: '일부 과제 삭제에 실패했습니다.',
+        title: '일부 삭제 실패',
+        description: error.message || '일부 과제 삭제에 실패했습니다.',
         variant: 'destructive',
       });
     }
