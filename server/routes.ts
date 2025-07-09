@@ -1398,8 +1398,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Google Classroom API routes
   app.get('/api/classroom/courses', isAuthenticated, async (req: any, res) => {
     try {
+      console.log('Fetching courses for user:', req.user.id);
       const classroomService = await createClassroomService(req.user);
       const courses = await classroomService.getCourses();
+      console.log('Courses fetched:', courses.length, 'courses');
+      console.log('Course details:', courses.map(c => ({ id: c.id, name: c.name, state: c.state })));
       res.json(courses);
     } catch (error: any) {
       console.error('Error fetching classroom courses:', error);
@@ -1505,8 +1508,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/classroom/courses/:courseId/assignments', isAuthenticated, async (req: any, res) => {
     try {
       const { courseId } = req.params;
+      console.log('Fetching assignments for course:', courseId);
+      
       const classroomService = await createClassroomService(req.user);
       const assignments = await classroomService.getAssignments(courseId);
+      
+      console.log('Assignments fetched:', assignments.length, 'assignments');
+      console.log('Assignment titles:', assignments.map(a => a.title));
+      
       res.json(assignments);
     } catch (error) {
       console.error('Error fetching assignments:', error);

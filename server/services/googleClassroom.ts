@@ -48,10 +48,18 @@ export class GoogleClassroomService {
 
   async getCourses(): Promise<ClassroomCourse[]> {
     try {
+      console.log('GoogleClassroomService.getCourses - making API call');
       const response = await this.classroom.courses.list({
         teacherId: 'me',
         courseStates: ['ACTIVE']
       });
+
+      console.log('Raw courses response:', response.data.courses?.length || 0);
+      console.log('Course raw data:', response.data.courses?.map(c => ({
+        id: c.id,
+        name: c.name,
+        state: c.courseState
+      })));
 
       return response.data.courses?.map(course => ({
         id: course.id!,
@@ -90,7 +98,9 @@ export class GoogleClassroomService {
   // 과제 목록 조회
   async getAssignments(courseId: string): Promise<any[]> {
     try {
-      console.log('Fetching assignments for course:', courseId);
+      console.log('GoogleClassroomService.getAssignments - courseId:', courseId);
+      console.log('Making API call to list courseWork...');
+      
       const response = await this.classroom.courses.courseWork.list({
         courseId,
         courseWorkStates: ['PUBLISHED', 'DRAFT'],
@@ -98,10 +108,31 @@ export class GoogleClassroomService {
         pageSize: 100,
         fields: 'courseWork(id,title,description,state,creationTime,updateTime,dueDate,dueTime,materials,workType,assigneeMode,individualStudentsOptions,submissionModificationMode,creatorUserId,scheduledTime,associatedWithDeveloper,maxPoints,gradeCategory,alternateLink)'
       });
-      console.log('Found assignments:', response.data.courseWork?.length || 0);
+      
+      console.log('API response received');
+      console.log('Response status:', response.status);
+      console.log('Response data structure:', Object.keys(response.data));
+      console.log('CourseWork array length:', response.data.courseWork?.length || 0);
+      
+      if (response.data.courseWork) {
+        console.log('Assignment details:', response.data.courseWork.map(a => ({
+          id: a.id,
+          title: a.title,
+          state: a.state,
+          creationTime: a.creationTime,
+          updateTime: a.updateTime,
+          materials: a.materials?.length || 0
+        })));
+      }
+      
       return response.data.courseWork || [];
     } catch (error) {
       console.error('Error fetching assignments:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        status: error.status
+      });
       return [];
     }
   }
