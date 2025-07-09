@@ -55,9 +55,7 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
   // 과제 삭제 뮤테이션
   const deleteAssignmentMutation = useMutation({
     mutationFn: async (assignmentId: string) => {
-      return apiRequest(`/api/classroom/courses/${courseId}/assignments/${assignmentId}`, {
-        method: 'DELETE'
-      });
+      return apiRequest('DELETE', `/api/classroom/courses/${courseId}/assignments/${assignmentId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['classroom-assignments', courseId] });
@@ -83,9 +81,7 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
       const results = await Promise.allSettled(
         assignmentIds.map(async (id) => {
           console.log(`Deleting assignment ${id}`);
-          return await apiRequest(`/api/classroom/courses/${courseId}/assignments/${id}`, {
-            method: 'DELETE'
-          });
+          return await apiRequest('DELETE', `/api/classroom/courses/${courseId}/assignments/${id}`);
         })
       );
       
@@ -128,13 +124,7 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
   // 과제 업데이트 뮤테이션
   const updateAssignmentMutation = useMutation({
     mutationFn: async ({ assignmentId, updateData }: { assignmentId: string; updateData: any }) => {
-      return apiRequest(`/api/classroom/courses/${courseId}/assignments/${assignmentId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updateData)
-      });
+      return apiRequest('PUT', `/api/classroom/courses/${courseId}/assignments/${assignmentId}`, updateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['classroom-assignments', courseId] });
