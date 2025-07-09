@@ -234,8 +234,8 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader className="sticky top-0 z-10 bg-white dark:bg-gray-950 border-b pb-4">
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -266,9 +266,27 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
               </Button>
             </div>
           </DialogTitle>
+          
+          {!isLoading && !error && assignments.length > 0 && (
+            <div className="flex justify-between items-center mt-4">
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <Checkbox
+                    checked={selectedAssignments.length === assignments.length}
+                    onCheckedChange={handleSelectAll}
+                    className="mr-1"
+                  />
+                  전체 선택
+                </label>
+                <p className="text-sm text-gray-600">
+                  총 {assignments.length}개의 과제
+                </p>
+              </div>
+            </div>
+          )}
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
           {isLoading && (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -289,25 +307,8 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
           )}
 
           {!isLoading && !error && assignments.length > 0 && (
-            <>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                    <Checkbox
-                      checked={selectedAssignments.length === assignments.length}
-                      onCheckedChange={handleSelectAll}
-                      className="mr-1"
-                    />
-                    전체 선택
-                  </label>
-                  <p className="text-sm text-gray-600">
-                    총 {assignments.length}개의 과제
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {assignments.map((assignment: Assignment) => (
+            <div className="space-y-3">
+              {assignments.map((assignment: Assignment) => (
                   <Card key={assignment.id} className="hover:shadow-md transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
@@ -434,8 +435,7 @@ export function ClassroomSyncDialog({ isOpen, onClose, courseId, courseName }: C
                     )}
                   </Card>
                 ))}
-              </div>
-            </>
+            </div>
           )}
 
           <div className="flex justify-end pt-4 border-t">
