@@ -1,8 +1,8 @@
-# EduAI Assistant - AI-Powered Educational Content Platform
+# 해밀 AI Edu Assistant - AI-Powered Educational Content Platform
 
 ## 🎓 개요
 
-EduAI Assistant는 교육자들을 위한 AI 기반 교육 콘텐츠 생성 및 관리 플랫폼입니다. 문서를 업로드하여 자동으로 요약, 퀴즈, 학습 가이드, 팟캐스트를 생성하고 Google 클래스룸과 연동하여 배포할 수 있습니다.
+해밀 AI Edu Assistant는 교육자들을 위한 AI 기반 교육 콘텐츠 생성 및 관리 플랫폼입니다. 문서를 업로드하여 자동으로 요약, 퀴즈, 학습 가이드, 팟캐스트를 생성하고 Google 클래스룸과 연동하여 배포할 수 있습니다.
 
 ## ✨ 주요 기능
 

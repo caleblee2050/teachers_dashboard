@@ -1,8 +1,8 @@
-# EduAI Assistant - Teacher's AI Educational Content Platform
+# 해밀 AI Edu Assistant - Teacher's AI Educational Content Platform
 
 ## Overview
 
-EduAI Assistant is a full-stack web application designed to help teachers create and manage AI-generated educational content. The platform allows educators to upload educational materials (PDF, DOCX, PPTX, TXT) and automatically generate summaries, quizzes, and study guides using AI technology. The application supports multiple languages including Korean, English, Chinese, Thai, Vietnamese, and Filipino.
+해밀 AI Edu Assistant is a full-stack web application designed to help teachers create and manage AI-generated educational content. The platform allows educators to upload educational materials (PDF, DOCX, PPTX, TXT) and automatically generate summaries, quizzes, and study guides using AI technology. The application supports multiple languages including Korean, English, Chinese, Thai, Vietnamese, and Filipino.
 
 ## System Architecture
 
@@ -107,6 +107,12 @@ EduAI Assistant is a full-stack web application designed to help teachers create
 
 ## Changelog
 
+- January 11, 2025. App name change to 해밀 AI Edu Assistant
+  - Updated AppHeader component to display new Korean app name
+  - Modified README.md title and description
+  - Updated replit.md project title
+  - Added page title to client/index.html for browser tab display
+  - Maintained all existing functionality with new branding
 - January 11, 2025. Complete deployment and update workflow documentation
   - Created comprehensive DEPLOYMENT_GUIDE.md with full deployment and update procedures
   - Documented Replit Deployments setup and configuration process
