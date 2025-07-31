@@ -107,6 +107,13 @@
 
 ## Changelog
 
+- January 11, 2025. Production deployment Google OAuth configuration guide
+  - Created comprehensive GOOGLE_OAUTH_DEPLOYMENT_SETUP.md with step-by-step setup instructions
+  - Documented required Google Cloud Console API activations and OAuth client setup
+  - Listed all necessary environment variables for production deployment
+  - Provided domain-specific redirect URI configurations for Replit Deployments
+  - Included troubleshooting guide for common OAuth configuration issues
+  - Added security considerations and best practices for production environment
 - January 11, 2025. App name change to 해밀 AI Edu Assistant
   - Updated AppHeader component to display new Korean app name
   - Modified README.md title and description
