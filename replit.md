@@ -49,3 +49,35 @@ The backend runs on **Node.js** with the **Express.js** framework, written in **
 - **mammoth**: DOCX text extraction.
 - **jsPDF**: PDF generation.
 - **archiver**: ZIP file creation.
+
+## Deployment Configuration
+
+### Environment Variables Management
+- **Replit Secrets**: Primary storage for all sensitive environment variables in development
+- **deployment-config/**: Secure folder containing environment variable files for external deployment
+  - `.env.current`: Extracted actual values from Replit Secrets
+  - `.env.example`: Template file for new deployments
+  - `.env.production`: Production environment template
+  - `export-secrets.js`: Script to extract current environment variables
+  - Protected by `.gitignore` to prevent GitHub upload
+
+### Required Environment Variables
+- **GOOGLE_CLIENT_ID**: Google OAuth client identification
+- **GOOGLE_CLIENT_SECRET**: Google OAuth client secret key
+- **OPENAI_API_KEY**: AI service authentication
+- **GEMINI_API_KEY**: Google Gemini API authentication
+- **DATABASE_URL**: PostgreSQL database connection string
+- **SESSION_SECRET**: Secure session encryption key
+- **NODE_ENV**: Environment mode (development/production)
+- **REPL_ID**: Replit environment identification
+
+## Changelog
+
+- January 11, 2025. External deployment environment variables setup
+  - Created deployment-config/ folder with complete environment variable files
+  - Generated .env.current with actual Replit Secrets values for external deployment
+  - Added .env.example and .env.production templates for different environments
+  - Implemented export-secrets.js script to extract current environment variables
+  - Added deployment-config/ to .gitignore for security (won't be uploaded to GitHub)
+  - Created comprehensive deployment instructions for various cloud platforms
+  - Included domain-specific configuration guides for external hosting

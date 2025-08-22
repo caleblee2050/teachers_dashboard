@@ -66,3 +66,6 @@ extracted_*.txt
 # Generated content files
 *.pdf
 *.zip
+
+# Deployment configuration (contains sensitive data)
+deployment-config/
