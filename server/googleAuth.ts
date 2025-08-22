@@ -29,6 +29,7 @@ export function getSession() {
       cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
         maxAge: sessionTtl,
       },
     });
@@ -53,6 +54,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: sessionTtl,
     },
   });
@@ -134,6 +136,8 @@ export async function setupAuth(app: Express) {
       clientID: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       callbackURL: callbackURL,
+      accessType: 'offline',  // Refresh Token 확보를 위해 필수
+      prompt: 'select_account',  // 계정 선택 화면 표시
       scope: [
         'profile',
         'email',
@@ -204,6 +208,16 @@ export async function setupAuth(app: Express) {
   });
 
   console.log('Setting up Google OAuth routes...');
+  
+  // 세션 디버깅 미들웨어 추가
+  app.use((req, res, next) => {
+    if (req.session && req.user) {
+      console.log('Session active for user:', req.user.id);
+      console.log('Session expires:', new Date(req.session.cookie.expires || 0));
+      console.log('Google tokens available:', !!req.user.googleAccessToken, !!req.user.googleRefreshToken);
+    }
+    next();
+  });
 
   // Auth routes
   app.get('/api/login', (req, res, next) => {
