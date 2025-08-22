@@ -108,6 +108,7 @@ export class MemStorage implements IStorage {
       id,
       shareToken,
       createdAt: new Date(),
+      folderName: contentData.folderName || null,
     };
     this.generatedContent.set(id, content);
     return content;
