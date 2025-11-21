@@ -21,6 +21,8 @@ export const pool = new Pool({
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000, // 10초로 증가 (Increase timeout)
   keepAlive: true, // TCP Keep-Alive 활성화 (Enable Keep-Alive)
+  statement_timeout: 10000, // 10초 (Statement timeout)
+  query_timeout: 10000, // 10초 (Query timeout)
   // Always use SSL with rejectUnauthorized: false for widest compatibility
   ssl: {
     rejectUnauthorized: false
