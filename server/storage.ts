@@ -15,26 +15,27 @@ import {
 import { nanoid } from "nanoid";
 import { eq, desc } from "drizzle-orm";
 import { db } from "./db";
+// const db: any = null;
 
 export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-  
+
   // File operations
   createFile(file: InsertFile): Promise<File>;
   getFilesByTeacher(teacherId: string): Promise<File[]>;
   getFile(id: string): Promise<File | undefined>;
   updateFileText(id: string, extractedText: string): Promise<File | undefined>;
   deleteFile(id: string): Promise<boolean>;
-  
+
   // Generated content operations
   createGeneratedContent(content: InsertGeneratedContent): Promise<GeneratedContent>;
   getGeneratedContentByFile(fileId: string): Promise<GeneratedContent[]>;
   getGeneratedContentByTeacher(teacherId: string): Promise<GeneratedContent[]>;
   getGeneratedContentByShare(shareToken: string): Promise<GeneratedContent | undefined>;
   deleteGeneratedContent(id: string): Promise<boolean>;
-  
+
   // Student operations
   createStudent(student: InsertStudent): Promise<Student>;
   getStudentsByTeacher(teacherId: string): Promise<Student[]>;
@@ -54,10 +55,10 @@ export class MemStorage implements IStorage {
 
   async upsertUser(userData: UpsertUser): Promise<User> {
     const existingUser = this.users.get(userData.id);
-    const user: User = existingUser 
+    const user: User = existingUser
       ? { ...existingUser, ...userData, updatedAt: new Date() }
       : { ...userData, createdAt: new Date(), updatedAt: new Date() } as User;
-    
+
     this.users.set(user.id, user);
     return user;
   }
