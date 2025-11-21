@@ -17,7 +17,7 @@ const isTransactionPooler = DATABASE_URL.includes(':6543');
 
 export const pool = new Pool({
   connectionString: DATABASE_URL,
-  max: 20, // 풀 크기 증가 (Increase pool size)
+  max: 5, // 풀 크기 축소 (Reduce pool size for stability)
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000, // 10초로 증가 (Increase timeout)
   keepAlive: true, // TCP Keep-Alive 활성화 (Enable Keep-Alive)
