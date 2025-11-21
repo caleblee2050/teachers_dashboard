@@ -19,15 +19,18 @@ export const pool = new Pool({
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000, // 5초로 단축
-  // Railway internal connection usually doesn't need SSL, Supabase requires it
-  ssl: isRailwayInternal ? undefined : {
+  // Always use SSL with rejectUnauthorized: false for widest compatibility
+  ssl: {
     rejectUnauthorized: false
   }
 });
 
-// Test connection
-pool.on('connect', () => {
-  console.log('✅ Connected to Supabase database');
+// Test connection immediately
+pool.connect().then(client => {
+  console.log('✅ Successfully connected to database');
+  client.release();
+}).catch(err => {
+  console.error('❌ Failed to connect to database:', err);
 });
 
 pool.on('error', (err) => {
