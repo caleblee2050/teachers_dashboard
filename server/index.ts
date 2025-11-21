@@ -97,8 +97,8 @@ app.use((req, res, next) => {
     // this serves both the API and the client.
     // It is the only port that is not firewalled.
     const port = Number(process.env.PORT) || 5000;
-    server.listen(port, "0.0.0.0", () => {
-      log(`serving on port ${port} (bound to 0.0.0.0)`);
+    server.listen(port, () => {
+      log(`serving on port ${port}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
