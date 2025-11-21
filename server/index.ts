@@ -12,6 +12,11 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Set charset to UTF-8 for proper Korean filename handling
 app.use((req, res, next) => {
   res.charset = 'utf-8';

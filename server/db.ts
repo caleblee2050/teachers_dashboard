@@ -12,13 +12,15 @@ if (!process.env.DATABASE_URL) {
 console.log('🔌 Connecting to Supabase with session pooling...');
 console.log('   Host:', DATABASE_URL.split('@')[1]?.split('/')[0] || 'unknown');
 
+const isRailwayInternal = DATABASE_URL.includes('railway.internal');
+
 export const pool = new Pool({
   connectionString: DATABASE_URL,
   max: 10,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  // Supabase pooler requires SSL
-  ssl: {
+  connectionTimeoutMillis: 5000, // 5초로 단축
+  // Railway internal connection usually doesn't need SSL, Supabase requires it
+  ssl: isRailwayInternal ? undefined : {
     rejectUnauthorized: false
   }
 });
