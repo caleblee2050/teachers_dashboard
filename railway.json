@@ -4,7 +4,7 @@
         "builder": "NIXPACKS"
     },
     "deploy": {
-        "startCommand": "NODE_ENV=production node dist/index.js",
+        "startCommand": "echo 'Checking node_modules/vite...' && ls -la node_modules/vite || echo 'Vite not found' && NODE_ENV=production node dist/index.js",
         "healthcheckPath": "/health",
         "healthcheckTimeout": 100,
         "restartPolicyType": "ON_FAILURE",
